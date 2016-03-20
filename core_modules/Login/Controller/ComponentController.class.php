@@ -82,5 +82,23 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
                 break;
         }
     }
-
+    
+    /**
+     * Do something before a module is loaded
+     * 
+     * This method is called only if any module
+     * gets loaded for content parsing
+     * USE CAREFULLY, DO NOT DO ANYTHING COSTLY HERE!
+     * CALCULATE YOUR STUFF AS LATE AS POSSIBLE
+     * @param \Cx\Core\ContentManager\Model\Entity\Page $page       The resolved page
+     */
+    public function preContentParse(\Cx\Core\ContentManager\Model\Entity\Page $page) {
+        if (
+            $this->cx->getMode() == \Cx\Core\Core\Controller\Cx::MODE_BACKEND &&
+            $page->getModule() == 'logout'
+        ) {
+            \FWUser::getFWUserObject()->logout();
+            exit;
+        }
+    }
 }

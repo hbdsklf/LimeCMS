@@ -783,6 +783,11 @@ namespace Cx\Core\Core\Controller {
                     throw new \Exception($e->getMessage());
                 }
                 // reset root of Cx\Core\Html\Sigma to backend template path
+                if (!$this->template->placeholderExists('ADMIN_CONTENT')) {
+                    $this->template->setRoot(\Env::get('cx')->getCodeBaseCorePath() . '/Core/View/Template/Backend');
+                    $this->template->addBlockfile('CONTENT_OUTPUT', 'content_master', 'ContentMaster.html');
+                }
+                
                 $this->template->setRoot($this->codeBaseAdminTemplatePath);
                 $this->template->setVariable('ADMIN_CONTENT', $e->getBackendViewMessage());
                 $this->setPostContentLoadPlaceholders();
@@ -1609,6 +1614,10 @@ namespace Cx\Core\Core\Controller {
                     $act = isset($_REQUEST['act']) ? $_REQUEST['act'] : '';
                     $plainCmd = $cmd;
                 }
+                
+                $this->resolvedPage->setType(\Cx\Core\ContentManager\Model\Entity\Page::TYPE_APPLICATION);
+                $this->resolvedPage->setModule($cmd);
+                $this->resolvedPage->setCmd($act);
 
                 // If standalone is set, then we will not have to initialize/load any content page related stuff
                 $isRegularPageRequest = !isset($_REQUEST['standalone']) || $_REQUEST['standalone'] == 'false';
@@ -1657,9 +1666,6 @@ namespace Cx\Core\Core\Controller {
             } else if ($this->mode == self::MODE_BACKEND) {
                 // Skip the nav/language bar for modules which don't make use of either.
                 // TODO: Remove language selector for modules which require navigation but bring their own language management.
-                if ($this->ch->isLegacyComponent($plainCmd)) {
-                    $this->template->addBlockfile('CONTENT_OUTPUT', 'content_master', 'LegacyContentMaster.html');
-                }
                 $plainSection = $plainCmd;
             }
         }

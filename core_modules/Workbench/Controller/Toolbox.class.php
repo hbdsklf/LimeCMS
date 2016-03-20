@@ -214,23 +214,9 @@ class Toolbox {
     
     protected function getComponentStyle($core, $name) {
         if ($this->componentExists($name)) {
-            return '3.1.0';
+            return '3.1+';
         }
-        if ($this->componentExistsInFileSystem($core, $name) !== '<span style="color:red;">false</span>') {
-            if (preg_match('/[A-Z]/', $name)) {
-                return '3.0.3';
-            }
-        }
-        // if there's a loading exception in legacy component handler
-        // return 3.0.0
-        $legacyComponentHandler = new \Cx\Core\Core\Controller\LegacyComponentHandler();
-        if (
-            $legacyComponentHandler->hasExceptionFor(true, 'load', $name) ||
-            $legacyComponentHandler->hasExceptionFor(false, 'load', $name)
-        ) {
-            return '3.0.0';
-        }
-        return '<span style="color:red;">&lt;= 2.2.6</span>';
+		return '<span style="color:red;">pre 3.1</span>';
     }
     
     protected function componentExists($name) {

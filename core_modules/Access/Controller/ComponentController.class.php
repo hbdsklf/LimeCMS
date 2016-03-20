@@ -99,6 +99,27 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
         }
     }
     
+    /**
+     * Do something before a module is loaded
+     * 
+     * This method is called only if any module
+     * gets loaded for content parsing
+     * USE CAREFULLY, DO NOT DO ANYTHING COSTLY HERE!
+     * CALCULATE YOUR STUFF AS LATE AS POSSIBLE
+     * @param \Cx\Core\ContentManager\Model\Entity\Page $page       The resolved page
+     */
+    public function preContentParse(\Cx\Core\ContentManager\Model\Entity\Page $page) {
+        if (
+            $this->cx->getMode() == \Cx\Core\Core\Controller\Cx::MODE_BACKEND &&
+            $page->getModule() == 'noaccess'
+        ) {
+            global $_CORELANG, $subMenuTitle;
+
+            $subMenuTitle = $_CORELANG['TXT_ACCESS_DENIED'];
+            throw new \Cx\Core\Error\Model\Entity\ShinyException('<img src="../core/Core/View/Media/no_access.png" alt="" /><br /><br />'.
+                    $_CORELANG['TXT_ACCESS_DENIED_DESCRIPTION']);
+        }
+    }
     
     /**
      * Do something after content is loaded from DB

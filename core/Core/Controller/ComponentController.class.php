@@ -196,5 +196,49 @@ Available commands:
             // else return 'customized';
         return 'normal';
     }
+    
+    /**
+     * Do something before resolving is done
+     * 
+     * USE CAREFULLY, DO NOT DO ANYTHING COSTLY HERE!
+     * CALCULATE YOUR STUFF AS LATE AS POSSIBLE
+     * @param \Cx\Core\Routing\Url                      $request    The URL object for this request
+     */
+    public function preResolve(\Cx\Core\Routing\Url $request) {
+        global $arrMatch, $plainCmd, $cmd;
+
+        // To clone any module, use an optional integer cmd suffix.
+        // E.g.: "shop2", "gallery5", etc.
+        // Mind that you *MUST* copy all necessary database tables, and fix any
+        // references to that module (section and cmd parameters, database tables)
+        // using the MODULE_INDEX constant in the right place both in your code
+        // *and* templates!
+        // See the Shop module for a working example and instructions on how to
+        // clone any module.
+        $arrMatch = array();
+        if (!isset($plainCmd)) {
+            $plainCmd = $cmd;
+        }
+        if (preg_match('/^(\D+)(\d+)$/', $cmd, $arrMatch)) {
+            // The plain section/module name, used below
+            $plainCmd = $arrMatch[1];
+        }
+        // The module index.
+        // Set to the empty string for the first instance (#1),
+        // and to an integer number of 2 or greater for any clones.
+        // This guarantees full backward compatibility with old code, templates
+        // and database tables for the default instance.
+        $moduleIndex = (empty($arrMatch[2]) ? '' : $arrMatch[2]);
+
+        /**
+         * @ignore
+         */
+        define('MODULE_INDEX', (intval($moduleIndex) == 0) ? '' : intval($moduleIndex));
+        // Simple way to distinguish any number of cloned modules
+        // and apply individual access rights.  This offset is added
+        // to any static access ID before checking it.
+        // @todo this is never used in Cx Init
+        //$intAccessIdOffset = intval(MODULE_INDEX)*1000;
+    }
 }
 
