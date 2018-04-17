@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * Class Cache Library
  *
@@ -55,12 +55,12 @@ namespace Cx\Core_Modules\Cache\Controller;
 class CacheLib
 {
     var $strCachePath;
-    
+
     /**
      * Alternative PHP Cache extension
      */
     const CACHE_ENGINE_APC = 'apc';
-    
+
     /**
      * memcache extension
      */
@@ -70,75 +70,146 @@ class CacheLib
      * memcache(d) extension
      */
     const CACHE_ENGINE_MEMCACHED = 'memcached';
-    
+
     /**
      * xcache extension
      */
     const CACHE_ENGINE_XCACHE = 'xcache';
-    
+
     /**
      * zend opcache extension
      */
     const CACHE_ENGINE_ZEND_OPCACHE = 'zendopcache';
-    
-    /**
-     * file system user cache extension
-     */
-    const CACHE_ENGINE_FILESYSTEM = 'filesystem';
-    
+
     /**
      * cache off
      */
     const CACHE_ENGINE_OFF = 'off';
-    
+
+    /**
+     * Page cache directory offset
+     */
+    const CACHE_DIRECTORY_OFFSET_PAGE = 'page/';
+
+    /**
+     * ESI cache directory offset
+     */
+    const CACHE_DIRECTORY_OFFSET_ESI = 'esi/';
+
     /**
      * Used op cache engines
      * @var array Cache engine names, empty for none
      */
     protected $opCacheEngines = array();
-    
+
     /**
      * Used user cache engines
      * @var type array Cache engine names, empty for none
      */
     protected $userCacheEngines = array();
-    
+
     protected $opCacheEngine = null;
     protected $userCacheEngine = null;
     protected $memcache = null;
+    protected $memcached = null;
 
     /**
-     * Delete all cached file's of the cache system   
+     * @var \Doctrine\Common\Cache\AbstractCache doctrine cache engine for the active user cache engine
+     */
+    protected $doctrineCacheEngine = null;
+
+    /**
+     * @var \Cx\Lib\ReverseProxy\Model\Entity\ReverseProxyProxy SSI proxy
+     */
+    protected $ssiProxy;
+
+    /**
+     * @var \Cx\Core\Json\JsonData
+     */
+    protected $jsonData = null;
+
+    /**
+     * Prefix to be used to identify cache entries in shared caching
+     * environments.
+     *
+     * @var string
+     */
+    protected $cachePrefix;
+
+    /**
+     * Constructor
+     */
+    public function __construct()
+    {
+        $this->setCachePath();
+        $this->initOPCaching();
+        $this->initUserCaching();
+        $this->getActivatedCacheEngines();
+    }
+
+    /**
+     * Delete all cached file's of the cache system
      */
     function _deleteAllFiles($cacheEngine = null)
     {
         if (!in_array($cacheEngine, array('cxPages', 'cxEntries'))) {
-        \Env::get('cache')->deleteAll();
+            $this->getDoctrineCacheDriver()->deleteAll();
             return;
         }
-        $handleDir = opendir($this->strCachePath);
+        $handleDir = opendir(
+            $this->strCachePath . static::CACHE_DIRECTORY_OFFSET_PAGE
+        );
         if ($handleDir) {
             while ($strFile = readdir($handleDir)) {
                 if ($strFile != '.' && $strFile != '..') {
                     switch ($cacheEngine) {
                         case 'cxPages':
-                            if(is_file($this->strCachePath . $strFile)){
-                                unlink($this->strCachePath . $strFile);
+                            if (is_file(
+                                $this->strCachePath . static::CACHE_DIRECTORY_OFFSET_PAGE . $strFile
+                            )) {
+                                unlink(
+                                    $this->strCachePath . static::CACHE_DIRECTORY_OFFSET_PAGE . $strFile
+                                );
                             }
                             break;
                         case 'cxEntries':
-                            \Env::get('cache')->deleteAll();
+                            $this->getDoctrineCacheDriver()->deleteAll();
                             break;
                         default:
-                            unlink($this->strCachePath . $strFile);
+                            unlink(
+                                $this->strCachePath . static::CACHE_DIRECTORY_OFFSET_PAGE . $strFile
+                            );
                             break;
                     }
                 }
             }
             closedir($handleDir);
-    }
         }
-    
+    }
+
+    /**
+     * Sets the cache path
+     */
+    protected function setCachePath() {
+        // check the cache directory
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $this->checkCacheDir($cx);
+        $this->strCachePath = $cx->getWebsiteCachePath() . '/';
+    }
+
+    /**
+     * Makes sure that the cache directory exists and is writable
+     * @param \Cx\Core\Core\Controller\Cx $cx The contrexx instance
+     */
+    protected function checkCacheDir($cx) {
+        if (!is_dir($cx->getWebsiteCachePath())) {
+            \Cx\Lib\FileSystem\FileSystem::make_folder($cx->getWebsiteCachePath());
+        }
+        if (!is_writable($cx->getWebsiteCachePath())) {
+            \Cx\Lib\FileSystem\FileSystem::makeWritable($cx->getWebsiteCachePath());
+        }
+    }
+
     protected function initOPCaching()
     {
         // APC
@@ -161,8 +232,10 @@ class CacheLib
         if ($this->isInstalled(self::CACHE_ENGINE_ZEND_OPCACHE)) {
             ini_set('opcache.save_comments', 1);
             ini_set('opcache.load_comments', 1);
-            ini_set('opcache.enable', 1);
-            
+            if (!ini_get('opcache.enable')) {
+                @ini_set('opcache.enable', 1);
+            }
+
             if (
                 !$this->isActive(self::CACHE_ENGINE_ZEND_OPCACHE) ||
                 !$this->isConfigured(self::CACHE_ENGINE_ZEND_OPCACHE)
@@ -186,7 +259,7 @@ class CacheLib
     protected function initUserCaching()
     {
         global $_CONFIG;
-        
+
         // APC
         if ($this->isInstalled(self::CACHE_ENGINE_APC)) {
             // have to use serializer "php", not "default" due to doctrine2 gedmo tree repository
@@ -198,7 +271,7 @@ class CacheLib
                 $this->userCacheEngines[] = self::CACHE_ENGINE_APC;
             }
         }
-        
+
         // Memcache
         if (   $this->isInstalled(self::CACHE_ENGINE_MEMCACHE)
             && (\Env::get('cx')->getMode() == \Cx\Core\Core\Controller\Cx::MODE_BACKEND
@@ -208,11 +281,6 @@ class CacheLib
             unset($this->memcache); // needed for reinitialization
             if (class_exists('\Memcache')) {
                 $memcache = new \Memcache();
-                if (@$memcache->connect($memcacheConfiguration['ip'], $memcacheConfiguration['port'])) {
-                    $this->memcache = $memcache;
-                }
-            } elseif (class_exists('\Memcached')) {
-                $memcache = new \Memcached();
                 if (@$memcache->addServer($memcacheConfiguration['ip'], $memcacheConfiguration['port'])) {
                     $this->memcache = $memcache;
                 }
@@ -228,11 +296,17 @@ class CacheLib
             || $_CONFIG['cacheUserCache'] == self::CACHE_ENGINE_MEMCACHED)
         ) {
             $memcachedConfiguration = $this->getMemcachedConfiguration();
-            unset($this->memcache); // needed for reinitialization
+            unset($this->memcached); // needed for reinitialization
             if (class_exists('\Memcached')) {
-                $memcache = new \Memcached();
-                if (@$memcache->addServer($memcachedConfiguration['ip'], $memcachedConfiguration['port'])) {
-                    $this->memcache = $memcache;
+                $memcached = new \Memcached();
+                $memcached->setOption(\Memcached::OPT_BINARY_PROTOCOL, false);
+                if (@$memcached->addServer($memcachedConfiguration['ip'], $memcachedConfiguration['port'])) {
+                    $servers = $memcached->getStats();
+                    if (!empty($servers) &&
+                        isset($servers[$memcachedConfiguration['ip'] . ':' . $memcachedConfiguration['port']])
+                    ) {
+                        $this->memcached = $memcached;
+                    }
                 }
             }
             if ($this->isConfigured(self::CACHE_ENGINE_MEMCACHED)) {
@@ -248,17 +322,12 @@ class CacheLib
         ) {
             $this->userCacheEngines[] = self::CACHE_ENGINE_XCACHE;
         }
-        
-        // Filesystem
-        if ($this->isConfigured(self::CACHE_ENGINE_FILESYSTEM)) {
-            $this->userCacheEngines[] = self::CACHE_ENGINE_FILESYSTEM;
-        }
     }
-    
+
     protected function getActivatedCacheEngines()
     {
         global $_CONFIG;
-        
+
         $this->userCacheEngine = self::CACHE_ENGINE_OFF;
         if (   isset($_CONFIG['cacheUserCache'])
             && in_array($_CONFIG['cacheUserCache'], $this->userCacheEngines)
@@ -272,8 +341,44 @@ class CacheLib
         ) {
             $this->opCacheEngine = $_CONFIG['cacheOPCache'];
         }
+
+        // if system is configured for "intern" or not correctly configured
+        $proxySettings = $this->getSsiProcessorConfiguration();
+        if (
+            !isset($_CONFIG['cacheSsiOutput']) ||
+            $_CONFIG['cacheSsiOutput'] == 'intern' ||
+            !in_array(
+                $_CONFIG['cacheSsiOutput'],
+                array(
+                    'intern',
+                    'ssi',
+                    'esi',
+                )
+            ) ||
+            !in_array(
+                $_CONFIG['cacheSsiType'],
+                array(
+                    'varnish',
+                    'nginx',
+                )
+            )
+        ) {
+            $this->ssiProxy = new \Cx\Core_Modules\Cache\Model\Entity\ReverseProxyCloudrexx(
+                $proxySettings['ip'],
+                $proxySettings['port']
+            );
+            return;
+        }
+        $className = '\\Cx\\Lib\\ReverseProxy\\Model\\Entity\\SsiProcessor' . ucfirst($_CONFIG['cacheSsiOutput']);
+        $ssiProcessor = new $className();
+        $className = '\\Cx\\Lib\\ReverseProxy\\Model\\Entity\\ReverseProxy' . ucfirst($_CONFIG['cacheSsiType']);
+        $this->ssiProxy = new $className(
+            $proxySettings['ip'],
+            $proxySettings['port'],
+            $ssiProcessor
+        );
     }
-        
+
     public function deactivateNotUsedOpCaches()
     {
         if (empty($this->opCacheEngine)) {
@@ -301,7 +406,7 @@ class CacheLib
             }
         }
     }
-    
+
     public function getUserCacheActive()
     {
         global $_CONFIG;
@@ -316,27 +421,232 @@ class CacheLib
             isset($_CONFIG['cacheOpStatus'])
             && $_CONFIG['cacheOpStatus'] == 'on';
     }
-    
+
     public function getOpCacheEngine() {
         return $this->opCacheEngine;
     }
-    
+
     public function getUserCacheEngine() {
         return $this->userCacheEngine;
     }
-    
+
     public function getMemcache() {
         return $this->memcache;
     }
-    
+
+    /**
+     * @return \Memcache The memcached object
+     */
+    public function getMemcached() {
+        return $this->memcached;
+    }
+
     public function getAllUserCacheEngines() {
         return array(self::CACHE_ENGINE_APC, self::CACHE_ENGINE_MEMCACHE, self::CACHE_ENGINE_MEMCACHED, self::CACHE_ENGINE_XCACHE);
     }
-    
+
     public function getAllOpCacheEngines() {
         return array(self::CACHE_ENGINE_APC, self::CACHE_ENGINE_ZEND_OPCACHE);
     }
+
+    /**
+     * Returns the current SSI proxy
+     * @return \Cx\Lib\ReverseProxy\Model\Entity\ReverseProxy SSI proxy
+     */
+    public function getSsiProxy() {
+        return $this->ssiProxy;
+    }
+
+    /**
+     * Returns the ESI/SSI content for a (json)data call
+     * @param string $adapterName (Json)Data adapter name
+     * @param string $adapterMethod (Json)Data method name
+     * @param array $params (optional) params for (Json)Data method call
+     * @return string ESI/SSI directives to put into HTML code
+     */
+    public function getEsiContent($adapterName, $adapterMethod, $params = array()) {
+        $url = $this->getUrlFromApi($adapterName, $adapterMethod, $params);
+        $settings = $this->getSettings();
+        if (
+            is_a($this->getSsiProxy(), '\\Cx\\Core_Modules\\Cache\\Model\\Entity\\ReverseProxyCloudrexx') &&
+            (
+                !isset($settings['internalSsiCache']) ||
+                $settings['internalSsiCache'] != 'on'
+            )
+        ) {
+            try {
+                return $this->getApiResponseForUrl($url);
+            } catch (\Exception $e) {
+                return '';
+            }
+        }
+        return $this->getSsiProxy()->getSsiProcessor()->getIncludeCode($url->toString());
+    }
+
+    /**
+     * Each entry of $esiContentInfos consists of an array like:
+     * array(
+     *     <adapterName>,
+     *     <adapterMethod>,
+     *     <params>,
+     * )
+     * @param array $esiContentInfos List of ESI content info arrays
+     * @param int $count (optional) Number of unique random entries to parse
+     * @return string ESI randomized include code
+     */
+    public function getRandomizedEsiContent($esiContentInfos, $count = 1) {
+        $urls = array();
+        foreach ($esiContentInfos as $i=>$esiContentInfo) {
+            $urls[] = $this->getUrlFromApi(
+                $esiContentInfo[0],
+                $esiContentInfo[1],
+                $esiContentInfo[2]
+            )->toString();
+        }
+        $settings = $this->getSettings();
+        if (
+            is_a(
+                $this->getSsiProxy(),
+                '\\Cx\\Core_Modules\\Cache\\Model\\Entity\\ReverseProxyCloudrexx'
+            ) &&
+            (
+                !isset($settings['internalSsiCache']) ||
+                $settings['internalSsiCache'] != 'on'
+            )
+        ) {
+            try {
+                return $this->getApiResponseForUrl(
+                    $urls[rand(0, (count($urls) - 1))]
+                );
+            } catch (\Exception $e) {
+                return '';
+            }
+        }
+        return $this->getSsiProxy()->getSsiProcessor()->getRandomizedIncludeCode(
+            $urls,
+            $count
+        );
+    }
+
+    /**
+     * Returns the content of the API response for an API URL
+     * This gets data internally and does not do a HTTP request!
+     * @param string $url API URL
+     * @throws \Exception If JsonAdapter request did not succeed
+     * @return string API content or empty string
+     */
+    protected function getApiResponseForUrl($url) {
+        // Initialize only when needed, we need DB for this!
+        if (empty($this->apiUrlString)) {
+            $this->apiUrlString = substr(\Cx\Core\Routing\Url::fromApi('', array(), array()), 0, -1);
+        }
+        
+        $query = parse_url($url, PHP_URL_QUERY);
+        $path = parse_url($url, PHP_URL_PATH);
+        $params = array();
+        parse_str($query, $params);
+        
+        $pathParts = explode('/', str_replace($this->apiUrlString, '', $path));
+        if (
+            count($pathParts) != 4 ||
+            $pathParts[0] != 'Data' ||
+            $pathParts[1] != 'Plain'
+        ) {
+            return '';
+        }
+        $adapter = contrexx_input2raw($pathParts[2]);
+        $method = contrexx_input2raw($pathParts[3]);
+        unset($params['cmd']);
+        unset($params['object']);
+        unset($params['act']);
+        $arguments = array('get' => contrexx_input2raw($params));
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $arguments['response'] = new \Cx\Core\Routing\Model\Entity\Response(
+            null,
+            200,
+            new \Cx\Core\Routing\Model\Entity\Request(
+                'get',
+                new \Cx\Core\Routing\Url($url),
+                array(
+                    'Referer' => $cx->getRequest()->getUrl()->toString(),
+                )
+            )
+        );
+        $arguments['response']->setPage($cx->getPage());
+
+        if (!$this->jsonData) {
+            $this->jsonData = new \Cx\Core\Json\JsonData();
+        }
+        $response = $this->jsonData->data($adapter, $method, $arguments);
+        if (
+            !isset($response['status']) ||
+            $response['status'] != 'success' ||
+            !isset($response['data']) ||
+            !isset($response['data']['content'])
+        ) {
+            throw new \Exception('JsonAdapter returned with an error: "' . $response['message'] . '"');
+        }
+        return $response['data']['content'];
+    }
+
+    /**
+     * Drops the ESI cache for a specific call
+     * @param string $adapterName (Json)Data adapter name
+     * @param string $adapterMethod (Json)Data method name
+     * @param array $params (optional) params for (Json)Data method call
+     * @todo Only drop this specific content instead of complete cache
+     */
+    public function clearSsiCachePage($adapterName, $adapterMethod, $params = array()) {
+        $url = $this->getUrlFromApi($adapterName, $adapterMethod, $params);
+        $this->getSsiProxy()->clearCachePage($url->toString(), $this->getDomainsAndPorts());
+    }
     
+    /**
+     * Wrapper for \Cx\Core\Routing\Url::fromApi()
+     * This ensures correct param order
+     * @param string $adapterName (Json)Data adapter name
+     * @param string $adapterMethod (Json)Data method name
+     * @param array $params (optional) params for (Json)Data method call
+     * @return \Cx\Core\Routing\Url URL for (Json)Data call
+     */
+    protected function getUrlFromApi($adapterName, $adapterMethod, $params) {
+        if (isset($_GET['preview'])) {
+            $params['theme'] = intval($_GET['preview']);
+        }
+        $url = \Cx\Core\Routing\Url::fromApi('Data', array('Plain', $adapterName, $adapterMethod), $params);
+        // make sure params are in correct order:
+        $correctIndexOrder = array(
+            'page',
+            'locale',
+            'user',
+            'theme',
+            'channel',
+            'country',
+            'currency',
+            'ref',
+            'targetComponent',
+            'targetEntity',
+            'targetId',
+        );
+        $params = $url->getParamArray();
+        uksort($params, function($a, $b) use ($correctIndexOrder) {
+            return array_search($a, $correctIndexOrder) - array_search($b, $correctIndexOrder);
+        });
+        $url->setParams($params);
+        $url->setParam('EOU', '');
+        return $url;
+    }
+
+    /**
+     * Drops all cached ESI/SSI elements
+     */
+    public function clearSsiCache($urlPattern = '') {
+        if (!empty($urlPattern)) {
+            $this->getSsiProxy()->clearCachePage($urlPattern, $this->getDomainsAndPorts());
+        }
+        $this->getSsiProxy()->clearCache($this->getDomainsAndPorts());
+    }
+
     protected function isInstalled($cacheEngine)
     {
         switch ($cacheEngine) {
@@ -350,11 +660,9 @@ class CacheLib
                 return extension_loaded('memcached');
             case self::CACHE_ENGINE_XCACHE:
                 return extension_loaded('xcache');
-            case self::CACHE_ENGINE_FILESYSTEM:
-                return true;
         }
     }
-    
+
     protected function isActive($cacheEngine)
     {
         if (!$this->isInstalled($cacheEngine)) {
@@ -368,21 +676,19 @@ class CacheLib
                 $setting = 'opcache.enable';
                 break;
             case self::CACHE_ENGINE_MEMCACHE:
-                return $this->memcache ? true : false;
+                return !empty($this->memcache) ? true : false;
             case self::CACHE_ENGINE_MEMCACHED:
-                return $this->memcache ? true : false;
+                return !empty($this->memcached) ? true : false;
             case self::CACHE_ENGINE_XCACHE:
                 $setting = 'xcache.cacher';
                 break;
-            case self::CACHE_ENGINE_FILESYSTEM:
-                return true;
         }
         if (!empty($setting)) {
             $configurations = ini_get_all();
             return $configurations[$setting]['global_value'];
         }
     }
-    
+
     protected function isConfigured($cacheEngine, $user = false)
     {
         if (!$this->isActive($cacheEngine)) {
@@ -395,37 +701,38 @@ class CacheLib
                 }
                 return true;
             case self::CACHE_ENGINE_ZEND_OPCACHE:
-                return ini_get('opcache.save_comments') && ini_get('opcache.load_comments');
+                // opcache.load_comments no longer exists since PHP7
+                // therefore, ini_get() will return FALSE in case the
+                // php directive does not exist
+                return ini_get('opcache.save_comments') && (ini_get('opcache.load_comments') === false || ini_get('opcache.load_comments'));
             case self::CACHE_ENGINE_MEMCACHE:
                 return $this->memcache ? true : false;
             case self::CACHE_ENGINE_MEMCACHED:
-                return $this->memcache ? true : false;
+                return $this->memcached ? true : false;
             case self::CACHE_ENGINE_XCACHE:
                 if ($user) {
                     return (
-                        ini_get('xcache.var_size') > 0 && 
-                        ini_get('xcache.admin.user') && 
+                        ini_get('xcache.var_size') > 0 &&
+                        ini_get('xcache.admin.user') &&
                         ini_get('xcache.admin.pass')
                     );
                 }
                 return ini_get('xcache.size') > 0;
-            case self::CACHE_ENGINE_FILESYSTEM:
-                return is_writable(ASCMS_CACHE_PATH);
         }
     }
-    
+
     protected function getMemcacheConfiguration()
     {
         global $_CONFIG;
         $ip = '127.0.0.1';
         $port = '11211';
-        
+
         if(!empty($_CONFIG['cacheUserCacheMemcacheConfig'])){
             $settings = json_decode($_CONFIG['cacheUserCacheMemcacheConfig'], true);
             $ip = $settings['ip'];
             $port = $settings['port'];
         }
-        
+
         return array('ip' => $ip, 'port' => $port);
     }
 
@@ -434,31 +741,54 @@ class CacheLib
         global $_CONFIG;
         $ip = '127.0.0.1';
         $port = '11211';
-        
+
         if(!empty($_CONFIG['cacheUserCacheMemcachedConfig'])){
             $settings = json_decode($_CONFIG['cacheUserCacheMemcachedConfig'], true);
             $ip = $settings['ip'];
             $port = $settings['port'];
         }
-        
+
         return array('ip' => $ip, 'port' => $port);
     }
-    
-    protected function getVarnishConfiguration()
+
+    /**
+     * Gets the configuration value for reverse proxy
+     * @return array 'ip' and 'port' of reverse proxy
+     */
+    protected function getReverseProxyConfiguration()
     {
         global $_CONFIG;
         $ip = '127.0.0.1';
         $port = '8080';
-        
-        if(!empty($_CONFIG['cacheProxyCacheVarnishConfig'])){
-            $settings = json_decode($_CONFIG['cacheProxyCacheVarnishConfig'], true);
+
+        if (!empty($_CONFIG['cacheProxyCacheConfig'])){
+            $settings = json_decode($_CONFIG['cacheProxyCacheConfig'], true);
             $ip = $settings['ip'];
             $port = $settings['port'];
         }
-        
+
         return array('ip' => $ip, 'port' => $port);
     }
-    
+
+    /**
+     * Gets the configuration value for external ESI/SSI processor
+     * @return array 'ip' and 'port' of external ESI/SSI processor
+     */
+    protected function getSsiProcessorConfiguration()
+    {
+        global $_CONFIG;
+        $ip = '127.0.0.1';
+        $port = '8080';
+
+        if (!empty($_CONFIG['cacheSsiProcessorConfig'])){
+            $settings = json_decode($_CONFIG['cacheSsiProcessorConfig'], true);
+            $ip = $settings['ip'];
+            $port = $settings['port'];
+        }
+
+        return array('ip' => $ip, 'port' => $port);
+    }
+
     /**
      * Flush all cache instances
      * @see \Cx\Core\ContentManager\Model\Event\PageEventListener on update of page objects
@@ -466,9 +796,10 @@ class CacheLib
     public function clearCache($cacheEngine = null)
     {
         if (!$this->strCachePath) {
-            if (is_dir(ASCMS_CACHE_PATH)) {
-                if (is_writable(ASCMS_CACHE_PATH)) {
-                    $this->strCachePath = ASCMS_CACHE_PATH . '/';
+            $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+            if (is_dir($cx->getWebsiteCachePath())) {
+                if (is_writable($cx->getWebsiteCachePath())) {
+                    $this->strCachePath = $cx->getWebsiteCachePath() . '/';
                 }
             }
         }
@@ -476,8 +807,15 @@ class CacheLib
             // remove cached files
             $this->_deleteAllFiles('cxPages');
         }
-        
-        $cacheEngine = $cacheEngine == null ? $this->userCacheEngine : $cacheEngine;
+
+        if ($cacheEngine == null) {
+            if ($this->userCacheEngine == self::CACHE_ENGINE_MEMCACHED) {
+                // do not automatically flush memcached as fallback
+                // this will break Gedmo etc
+            } else {
+                $cacheEngine = $this->userCacheEngine;
+            }
+        }
         switch ($cacheEngine) {
             case self::CACHE_ENGINE_APC:
                 $this->clearApc();
@@ -494,45 +832,77 @@ class CacheLib
             case self::CACHE_ENGINE_ZEND_OPCACHE:
                 $this->clearZendOpCache();
                 break;
-            case self::CACHE_ENGINE_FILESYSTEM:
-                $this->_deleteAllFiles();
             default:
                 break;
         }
-        
-        $this->clearVarnishCache();
+
+        $this->clearReverseProxyCache('*');
+        $this->clearSsiCache();
     }
-    
+
     /**
-     * Clears Varnish cache
+     * Drops a cache page on reverse proxy cache
+     * @param string $urlPatter URL pattern to drop on reverse cache proxy
      */
-    private function clearVarnishCache()
-    {
+    public function clearReverseProxyCache($urlPattern) {
         global $_CONFIG;
 
-        if (!isset($_CONFIG['cacheVarnishStatus']) || $_CONFIG['cacheVarnishStatus'] != 'on') {
+        // find rproxy driver
+        if (!isset($_CONFIG['cacheReverseProxy']) || $_CONFIG['cacheReverseProxy'] == 'none') {
             return;
         }
+        $reverseProxyType = $_CONFIG['cacheReverseProxy'];
 
-        $varnishConfiguration = $this->getVarnishConfiguration();
-        $varnishSocket = fsockopen($varnishConfiguration['ip'], $varnishConfiguration['port'], $errno, $errstr);
+        $className = '\\Cx\\Lib\\ReverseProxy\\Model\\Entity\\ReverseProxy' . ucfirst($reverseProxyType);
+        $reverseProxyConfiguration = $this->getReverseProxyConfiguration();
+        $reverseProxy = new $className(
+            $reverseProxyConfiguration['ip'],
+            $reverseProxyConfiguration['port']
+        );
 
-        if (!$varnishSocket) {
-            \DBG::log("Varnish error: $errstr ($errno) on server {$varnishConfiguration['ip']}:{$varnishConfiguration['port']}");
-        }
-
-        $requestDomain = $_CONFIG['domainUrl'];
-        $domainOffset  = ASCMS_PATH_OFFSET;
-
-        $request  = "BAN $domainOffset HTTP/1.0\r\n";
-        $request .= "Host: $requestDomain\r\n";
-        $request .= "User-Agent: Cloudrexx Varnish Cache Clear\r\n";
-        $request .= "Connection: Close\r\n\r\n";
-
-        fwrite($varnishSocket, $request);
-        fclose($varnishSocket);
+        // advise driver to drop page for HTTP and HTTPS ports on all domain aliases
+        $reverseProxy->clearCachePage($urlPattern, $this->getDomainsAndPorts());
     }
-    
+
+    /**
+     * Returns all domains and ports this instance of cloudrexx can be reached at
+     * @return array List of domains and ports (array(array(0=>{domain}, 1=>{port})))
+     */
+    protected function getDomainsAndPorts() {
+        $domainsAndPorts = array();
+        $domainRepo = new \Cx\Core\Net\Model\Repository\DomainRepository();
+        $forceDomainUrl = \Cx\Core\Setting\Controller\Setting::getValue(
+            'forceDomainUrl',
+            'Config'
+        );
+        if (isset($forceDomainUrl) && $forceDomainUrl == 'on') {
+            $domains = array($domainRepo->getMainDomain());
+        } else {
+            $domains = $domainRepo->findAll();
+        }
+        $forceProtocolFrontend = \Cx\Core\Setting\Controller\Setting::getValue(
+            'forceProtocolFrontend',
+            'Config'
+        );
+        if (isset($forceProtocolFrontend) && $forceProtocolFrontend != 'none') {
+            $protocols = array($forceProtocolFrontend);
+        } else {
+            $protocols = array('http', 'https');
+        }
+        foreach ($protocols as $protocol) {
+            foreach ($domains as $domain) {
+                $domainsAndPorts[] = array(
+                    $domain->getName(),
+                    \Cx\Core\Setting\Controller\Setting::getValue(
+                        'portFrontend' . strtoupper($protocol),
+                        'Config'
+                    )
+                );
+            }
+        }
+        return $domainsAndPorts;
+    }
+
     /**
      * Clears APC cache if APC is installed
      */
@@ -547,7 +917,7 @@ class CacheLib
             \apc_clear_cache(); // this only deletes the cached files
         }
     }
-    
+
     /**
      * Clears all Memcachedata related to this Domain if Memcache is installed
      */
@@ -583,37 +953,26 @@ class CacheLib
 
     /**
      * Clears all Memcacheddata related to this Domain if Memcache is installed
+     * @return  integer Returns the number of invalidated keys
      */
-    private function clearMemcached()
+    public function clearMemcached()
     {
         if(!$this->isInstalled(self::CACHE_ENGINE_MEMCACHED)){
             return;
         }
         //$this->memcache->flush(); //<- not like this!!!
-        $keys = array();
-        $allSlabs = $this->memcache->getExtendedStats('slabs');
-
-        foreach ($allSlabs as $server => $slabs) {
-            if (is_array($slabs)) {
-                foreach (array_keys($slabs) as $slabId) {
-                    $dump = $this->memcache->getExtendedStats('cachedump', (int) $slabId);
-                    if ($dump) {
-                        foreach ($dump as $entries) {
-                            if ($entries) {
-                                $keys = array_merge($keys, array_keys($entries));
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        $keys = $this->memcached->getAllKeys();
+        $n = 0;
         foreach($keys as $key){
             if(strpos($key, $this->getCachePrefix()) !== false){
-                $this->memcache->delete($key);
+                $this->memcached->delete($key);
+                $n++;
             }
         }
+
+        return $n;
     }
-    
+
     /**
      * Clears XCache if configured. Configuration is needed to clear.
      */
@@ -623,7 +982,7 @@ class CacheLib
             \xcache_clear_cache();
         }
     }
-    
+
     /**
      * Clears Zend OPCache if installed
      */
@@ -633,7 +992,7 @@ class CacheLib
             \opcache_reset();
         }
     }
-    
+
     /**
      * Retunrns the CachePrefix related to this Domain
      * @global string $_DBCONFIG
@@ -642,6 +1001,241 @@ class CacheLib
     protected function getCachePrefix()
     {
         global $_DBCONFIG;
-        return $_DBCONFIG['database'].'.'.DBPREFIX;
+
+        // TODO: check if the initialization of the prefix could be moved into
+        //       the constructor
+        if (empty($this->cachePrefix)) {
+            $this->cachePrefix = $_DBCONFIG['database'].'.'.$_DBCONFIG['tablePrefix'];
+        }
+
+        return $this->cachePrefix;
+    }
+
+    /**
+     * Overwrite the automatically set CachePrefix
+     * @param   $prefix String  The new CachePrefix to be used.
+     *                          Setting an empty string will reset
+     *                          the CachePrefix to its initial value.
+     */
+    public function setCachePrefix($prefix = '') {
+        $this->cachePrefix = $prefix;
+    }
+
+    /**
+     * Detects the correct doctrine cache driver for the user caching engine in use
+     * @return \Doctrine\Common\Cache\AbstractCache The doctrine cache driver object
+     */
+    public function getDoctrineCacheDriver() {
+        if($this->doctrineCacheEngine) { // return cache engine if already set
+            return $this->doctrineCacheEngine;
+        }
+        $userCacheEngine = $this->getUserCacheEngine();
+        // check if user caching is active
+        if (!$this->getUserCacheActive()) {
+            $userCacheEngine = \Cx\Core_Modules\Cache\Controller\Cache::CACHE_ENGINE_OFF;
+        }
+        switch ($userCacheEngine) {
+            case \Cx\Core_Modules\Cache\Controller\Cache::CACHE_ENGINE_APC:
+                $cache = new \Doctrine\Common\Cache\ApcCache();
+                $cache->setNamespace($this->getCachePrefix());
+                break;
+            case \Cx\Core_Modules\Cache\Controller\Cache::CACHE_ENGINE_MEMCACHE:
+                $memcache = $this->getMemcache();
+                $cache = new \Doctrine\Common\Cache\MemcacheCache();
+                $cache->setMemcache($memcache);
+                $cache->setNamespace($this->getCachePrefix());
+                break;
+            case \Cx\Core_Modules\Cache\Controller\Cache::CACHE_ENGINE_MEMCACHED:
+                $memcached = $this->getMemcached();
+                $cache = new \Doctrine\Common\Cache\MemcachedCache();
+                $cache->setMemcached($memcached);
+                $cache->setNamespace($this->getCachePrefix());
+                break;
+            case \Cx\Core_Modules\Cache\Controller\Cache::CACHE_ENGINE_XCACHE:
+                $cache = new \Doctrine\Common\Cache\XcacheCache();
+                $cache->setNamespace($this->getCachePrefix());
+                break;
+            default:
+                $cache = new \Doctrine\Common\Cache\ArrayCache();
+                break;
+        }
+        // set the doctrine cache engine to avoid getting it a second time
+        $this->doctrineCacheEngine = $cache;
+        return $cache;
+    }
+
+    /**
+     * Creates an array containing all important cache-settings
+     *
+     * @global     object    $objDatabase
+     * @return    array    $arrSettings
+     */
+    function getSettings() {
+        $arrSettings = array();
+        \Cx\Core\Setting\Controller\Setting::init('Config', NULL,'Yaml');
+        $ymlArray = \Cx\Core\Setting\Controller\Setting::getArray('Config', null);
+
+        foreach ($ymlArray as $key => $ymlValue){
+            $arrSettings[$key] = $ymlValue['value'];
+        }
+
+        return $arrSettings;
+    }
+
+    /**
+     * Returns the validated file search parts of the URL
+     * @param string $url URL to parse
+     * @param string $originalUrl URL of the page that ESI is parsed for
+     * @return array <fileNamePrefix>=><parsedValue> type array
+     */
+    public function getCacheFileNameSearchPartsFromUrl($url, $originalUrl) {
+        try {
+            $url = new \Cx\Lib\Net\Model\Entity\Url($url);
+            $params = $url->getParsedQuery();
+        } catch (\Cx\Lib\Net\Model\Entity\UrlException $e) {
+            parse_str(substr($url, 1), $params);
+        }
+        $searchParams = array(
+            'p' => 'page',
+            'l' => 'locale',
+            'u' => 'user',
+            't' => 'theme',
+            'ch' => 'channel',
+            'g' => 'country',
+            'c' => 'currency',
+            'r' => 'ref',
+            'tc' => 'targetComponent',
+            'te' => 'targetEntity',
+            'ti' => 'targetId',
+        );
+        $fileNameSearchParts = array();
+        foreach ($searchParams as $short=>$long) {
+            if (!isset($params[$long])) {
+                continue;
+            }
+            // security: abort if any mysterious characters are found
+            if (!preg_match('/^[a-zA-Z0-9-]+$/', $params[$long])) {
+                return array();
+            }
+            if ($long == 'ref') {
+                $params[$long] = str_replace(
+                    '$(HTTP_REFERER)',
+                    $originalUrl,
+                    $params[$long]
+                );
+                $params[$long] = md5($params[$long]);
+            }
+            $fileNameSearchParts[$short] = '_' . $short . $params[$long];
+        }
+        return $fileNameSearchParts;
+    }
+
+    /**
+     * Gets the local cache file name for an URL
+     * @param string $url URL to get file name for
+     * @param string $originalUrl URL of the page that ESI is parsed for
+     * @param boolean $withCacheInfoPart (optional) Adds info part (default true)
+     * @return string File name (without path)
+     */
+    public function getCacheFileNameFromUrl($url, $originalUrl, $withCacheInfoPart = true) {
+        $cacheInfoParts = $this->getCacheFileNameSearchPartsFromUrl($url, $originalUrl);
+        try {
+            $url = new \Cx\Lib\Net\Model\Entity\Url($url);
+            $params = $url->getParsedQuery();
+        } catch (\Cx\Lib\Net\Model\Entity\UrlException $e) {
+            parse_str(substr($url, 1), $params);
+        }
+        $correctIndexOrder = array(
+            'page',
+            'locale',
+            'user',
+            'theme',
+            'channel',
+            'country',
+            'currency',
+            'ref',
+            'targetComponent',
+            'targetEntity',
+            'targetId',
+        );
+        foreach ($correctIndexOrder as $paramName) {
+            unset($params[$paramName]);
+        }
+        // Make sure placeholders are replaced before generating filename.
+        // Otherwise the filename will be non-unique.
+        if (isset($params['ref'])) {
+            $params['ref'] = str_replace(
+                '$(HTTP_REFERER)',
+                $originalUrl,
+                $params['ref']
+            );
+        }
+        $fileName = '';
+        if (is_object($url)) {
+            $url->setParsedQuery($params);
+            $url = $url->toString();
+            $fileName = md5($url);
+        } else {
+            $url = http_build_query($params);
+        }
+        if ($withCacheInfoPart) {
+            $fileName .= implode('', $cacheInfoParts);
+        }
+        return $fileName;
+    }
+
+    /**
+     * Delete all specific file from cache-folder
+     */
+    function deleteSingleFile($intPageId) {
+        $intPageId = intval($intPageId);
+        if ( 0 < $intPageId ) {
+            $files = glob($this->strCachePath . static::CACHE_DIRECTORY_OFFSET_PAGE . '*_{,h}' . $intPageId . '*', GLOB_BRACE);
+            if ( count( $files ) ) {
+                foreach ( $files as $file ) {
+                    @unlink( $file );
+                }
+            }
+        }
+    }
+
+    /**
+     * Delete all cached files for a component from cache-folder
+     */
+    function deleteComponentFiles($componentName)
+    {
+        $pages = array();
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $em = $cx->getDb()->getEntityManager();
+        $pageRepo = $em->getRepository('Cx\Core\ContentManager\Model\Entity\Page');
+        // get all application pages
+        $applicationPages = $pageRepo->findBy(array(
+            'type' => \Cx\Core\ContentManager\Model\Entity\Page::TYPE_APPLICATION,
+            'module' => $componentName,
+        ));
+        foreach ($applicationPages as $page) {
+            $pages[$page->getId()] = $page;
+            // get all fallbacks to them
+            // get all symlinks to them
+            $pages += $pageRepo->getPagesPointingTo($page);
+        }
+        // foreach of the above
+        foreach ($pages as $pageId=>$page) {
+            $this->deleteSingleFile($pageId);
+        }
+        return array_keys($pages);
+    } 
+
+    /**
+     * Drops all page cache files that do not belong to a page
+     * Those are cached header redirects
+     */
+    public function deleteNonPagePageCache() {
+        $files = glob($this->strCachePath . static::CACHE_DIRECTORY_OFFSET_PAGE . '*_{,h}', GLOB_BRACE);
+        if (count($files)) {
+            foreach ($files as $file) {
+                @unlink($file);
+            }
+        }
     }
 }

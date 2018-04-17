@@ -63,6 +63,8 @@ $_ARRAYLANG['TXT_NEWS_MESSAGES'] = "Newsmeldungen";
 $_ARRAYLANG['TXT_NEWS_MESSAGE'] = "Newsmeldung";
 $_ARRAYLANG['TXT_EXTERNAL_SOURCE'] = "Externe Quellen";
 $_ARRAYLANG['TXT_LINK'] = "Link";
+$_ARRAYLANG['TXT_NEWS_REDIRECT_NEW_WINDOW'] = "Neues Fenster";
+$_ARRAYLANG['TXT_NEWS_REDIRECT_NEW_WINDOW_HELP'] = "Aktivieren Sie diese Option, damit die Verlinkung in einem neuen Fenster geöffnet wird.";
 $_ARRAYLANG['TXT_NEWS_NEWS_CONTENT'] = "Newsinhalt";
 $_ARRAYLANG['TXT_STORE'] = "Speichern";
 $_ARRAYLANG['TXT_PUBLISHING'] = "Veröffentlichen";
@@ -281,10 +283,12 @@ $_ARRAYLANG['TXT_NEWS_SETTINGS_COMMENTS_NOTIFICATION'] = "E-Mail Benachrichtigun
 $_ARRAYLANG['TXT_NEWS_SETTINGS_COMMENTS_NOTIFICATION_HELP'] = "Durch Aktivierung dieser Option wird bei jedem neu erfassten Kommentar eine Benachrichtigung per E-Mail an den Administrator gesendet.";
 $_ARRAYLANG['TXT_NEWS_SETTINGS_COMMENTS_TIMEOUT'] = "Sperrfrist:";
 $_ARRAYLANG['TXT_NEWS_SETTINGS_COMMENTS_TIMEOUT_HELP'] = "Definieren Sie die Zeitspanne, welche nach dem Erfassen eines Kommentars vergehen muss, bevor ein weiterer Kommentar erfasst werden darf.";
+$_ARRAYLANG['TXT_NEWS_SETTINGS_USE_COMMENTS'] = "Kommentare verwenden";
+$_ARRAYLANG['TXT_NEWS_SETTINGS_USE_TYPES'] = "Typen verwenden";
 $_ARRAYLANG['TXT_NEWS_COMMENTS_STATUS'] = "Kommentar (de-)aktivieren";
 $_ARRAYLANG['TXT_NEWS_COMMENT_ACTIVATE'] = "Aktivieren";
 $_ARRAYLANG['TXT_NEWS_COMMENT_DEACTIVATE'] = "Deaktivieren";
-$_ARRAYLANG['TXT_NEWS_COMMENTS'] = "Kommentar";
+$_ARRAYLANG['TXT_NEWS_COMMENTS'] = "Kommentare";
 $_ARRAYLANG['TXT_NEWS_DEFAULT_TEASERS'] = "Standard News Container";
 $_ARRAYLANG['TXT_NEWS_DEFAULT_TEASERS_HELP'] = "Wählen Sie hier jene News Container aus, welche bei der Erfassung einer Newsmeldung standardmässig vorselektiert werden sollen.";
 $_ARRAYLANG['TXT_NEWS_EXTENDED'] = "Erweitert";
@@ -311,7 +315,7 @@ $_ARRAYLANG['TXT_NEWS_TYPE_DESCRIPTION'] = "Typ der Newsmeldung";
 $_ARRAYLANG['TXT_NEWS_TYPE_NAME_DESCRIPTION'] = "Name des zugehörigen Typen";
 $_ARRAYLANG['TXT_NEWS_TYPE_ADD_ERROR_EMPTY'] = "Typ konnte nicht hinzugefügt werden, es wurde kein Name angegeben.";
 $_ARRAYLANG['TXT_USE_TEASER_TEXT'] = 'News Container Text verwenden';
-$_ARRAYLANG['TXT_USE_TYPES'] = "Typen verwenden";
+$_ARRAYLANG['TXT_NEWS_USE_TAGS'] = 'Tags verwenden';
 $_ARRAYLANG['TXT_NO_TYPE'] = "Keine Angabe";
 $_ARRAYLANG['TXT_TOP_NEWS_PLACEHOLDERS_USAGE'] = "In der Designvorlage <b>top_news.html</b>. Diese Seite kann mit dem Platzhalter [[TOP_NEWS_FILE]] im Design oder in einer Content Seite eingebunden werden.";
 $_ARRAYLANG['TXT_NEWS_TOP'] = "Top News";
@@ -380,3 +384,81 @@ $_ARRAYLANG['TXT_NEWS_NO_CATEGORY'] = "Weisen Sie der Meldung eine Rubrik zu.";
 $_ARRAYLANG['TXT_NEWS_NO_TITLE_AND_CATEGORY'] = "Setzen Sie einen Titel und weisen Sie die Meldung einer Rubrik zu";
 $_ARRAYLANG['TXT_NEWS_CATEGORY_ID_DESCRIPTION'] = "ID der News Rubrik";
 $_ARRAYLANG['TXT_CATEGORY_SELECT'] = "Kategorie auswählen";
+
+$_ARRAYLANG['TXT_NEWS_USER_ID_DESCRIPTION'] = 'ID des dazugehörigen Benutzerkontos';
+$_ARRAYLANG['TXT_NEWS_USERNAME_DESCRIPTION'] = 'Benutzername des dazugehörigen Benutzerkontos';
+$_ARRAYLANG['TXT_NEWS_USER_PROFILE_ATTRIBUTE_DESCRIPTION'] = 'Profildaten des dazugehörigen Benutzerkontos';
+$_ARRAYLANG['TXT_NEWS_TEASER_TEXT_ROW_DESCRIPTION'] = 'Optionaler Block zur Darstellung des News Container Textes.';
+$_ARRAYLANG['TXT_NEWS_NEWS_COMMENT_COUNT_ROW_DESCRIPTION'] = 'Optionaler Block zur Darstellung der Anzahl Kommentare.';
+$_ARRAYLANG['TXT_NEWS_TEXT_ROW_DESCRIPTION'] = 'Bei News Artikel vom Typ "Weiterleitung" wird dieser Block nicht angezeigt';
+$_ARRAYLANG['TXT_NEWS_REDIRECT_ROW_DESCRIPTION'] = 'Dieser Block wird nur bei News Artikel vom Typ "Weiterleitung" angezeigt';
+$_ARRAYLANG['TXT_NEWS_TAGS_ROW_DESCRIPTION'] = 'Block zur Auflistung der Tags';
+$_ARRAYLANG['TXT_NEWS_TAG_NAME_DESCRIPTION'] = 'Name des Tags';
+$_ARRAYLANG['TXT_NEWS_TAG_LINK_DESCRIPTION'] = 'Verlinkter Name des Tags';
+$_ARRAYLANG['TXT_NEWS_COMMENT_BLOCK_COMMENT_POSTER'] = 'Block zur Darstellung des Autors eines Kommentars';
+$_ARRAYLANG['TXT_NEWS_COMMENT_BLOCK_COMMENT_TIME'] = 'Eingabedatum des Kommentars';
+$_ARRAYLANG['TXT_NEWS_COMMENT_BLOCK_COMMENT_TITLE'] = 'Titel des Kommentars';
+
+$_ARRAYLANG['TXT_NEWS_PREVIOUS_NEXT_LINK_ROW_DESCRIPTION'] = "Block zur Darstellung der Verlinkungen zum vorangehenden und nächsten Artikel.<br />
+Starttag: &lt!-- BEGIN news_details_previous_next_links --&gt;<br />
+  &nbsp;&nbsp;&nbsp;Starttag: &lt!-- BEGIN news_details_previous_link --&gt;<br />
+  &nbsp;&nbsp;&nbsp;Endtag: &lt!-- END news_details_previous_link --&gt;<br /><br />
+  &nbsp;&nbsp;&nbsp;Starttag: &lt!-- BEGIN news_details_next_link --&gt;<br />
+  &nbsp;&nbsp;&nbsp;Endtag: &lt!-- END news_details_next_link --&gt;<br />
+Endtag: &lt!-- END news_details_previous_next_links --&gt;";
+$_ARRAYLANG['TXT_NEWS_PREVIOUS_NEXT_LINKS'] = "Verlinkungen zum vorangehendem und nächsten Artikel";
+
+$_ARRAYLANG['TXT_NEWS_PREVIOUS_LINK_DESCRITION'] = "Link zum vorangehenden Artikel";
+$_ARRAYLANG['TXT_NEWS_PREVIOUS_TITLE_DESCRITION'] = "Titel des vorangehenden Artikels";
+
+$_ARRAYLANG['TXT_NEWS_NEXT_LINK_DESCRITION'] = "Link zum nächsten Artikel";
+$_ARRAYLANG['TXT_NEWS_NEXT_TITLE_DESCRITION'] = "Titel des nächsten Artikels";
+$_ARRAYLANG['TXT_NEWS_PREVIOUS_SRC_DESCRITION'] = "URL zum vorangehenden Artikel";
+$_ARRAYLANG['TXT_NEWS_NEXT_SRC_DESCRITION'] = "URL zum nächsten Artikel";
+$_ARRAYLANG['TXT_NEWS_USE_PREVIOUS_NEXT_LINK'] = "Vorangehenden & nächsten Artikel verwenden";
+
+$_ARRAYLANG['TXT_NEWS_SETTINGS_USE_RELATED_NEWS'] = 'Verwante Artikel verwenden';
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS'] = "Verwandte Artikel";
+$_ARRAYLANG['TXT_NEWS_INCLUDE_NEWS'] = "Verknüpfte Artikel";
+$_ARRAYLANG['TXT_NEWS_INCLUDE_RELATED_NEWS_DESC'] = "Wählen Sie bestehende Artikel aus, die mit diesem Artikel verknüpft werden sollen.";
+$_ARRAYLANG['TXT_NEWS_SEARCH_INFO'] = "Geben Sie mindestens 3 Zeichen des Titels eines Artikels ein";
+$_ARRAYLANG['TXT_NEWS_SEARCH_PLACEHOLDER'] = "Suche Artikel";
+$_ARRAYLANG['TXT_NEWS_NOT_FOUND'] = "Kein Artikel gefunden";
+
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_BLOCK_DESCRITION'] = "Block zur Darstellung des Verwandte Artikel";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_BLOCK_TITLE_DESCRITION'] = "Titel für verwandten Artikel Block";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_DETAIL_BLOCK_DESCRITION'] = "Block zur Darstellung der Details des verwandten Artikels";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_ID_DESCRITION'] = "ID des verwandten Artikels";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_URL_DESCRITION'] = "URL des verwandten Artikels";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_LINK_DESCRITION'] = "Link des verwandten Artikels";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_TITLE_DESCRITION'] = "Titel des verwandten Artikels";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_TITLE_SHORT_DESCRITION'] = "Kurztitel des verwandten Artikels (Kürzung auf max 35 Zeichen)";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_TITLE_LINK_DESCRITION'] = "Titel-Link des verwandten Artikels";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_TEXT_DESCRITION'] = "Text des verwandten Artikels";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_TEXT_SHORT_DESCRITION'] = "Kurztext des verwandten Artikels (Kürzung auf max 250 Zeichen)";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_AUTHOR_DESCRITION'] = "Autors des verwandten Artikels";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_PUBLISHER_DESCRITION'] = "Name des Veröffentlichers des verwandten Artikels";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_CATEGORY_NAMES_DESCRITION'] = "Komma-getrennte Auflistung der Kategorien des verwandten Artikels";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_LONG_DATE_DESCRITION'] = "Datum mit Zeit des verwandten Artikels";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_DATE_DESCRITION'] = "Datum des verwandten Artikels";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_TIME_DESCRITION'] = "Zeit des verwandten Artikels";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_COMMENTS_BLOCK_DESCRITION'] = 'Dieser Block bestehen nur, wenn die Option "Kommentare verwenden" aktiv ist';
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_COMMENTS_DESCRITION'] = "Anzahl Kommentare des verwandten Artikels";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_TEASER_TEXT_BLOCK_DESCRITION'] = 'Dieser Block bestehen nur, wenn die Option "News Container Text verwenden" aktiv ist';
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_TEASER_TEXT_DESCRITION'] = "Container Text des verwandten Artikels";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_IMAGE_BLOCK_DESCRITION'] = "Block zur Darstellung des Teaser Bildes des verwandten Artikels";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_IMAGE_DESCRITION'] = "Teaser Bild des verwandten Artikels";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_IMAGE_TITLE_DESCRITION'] = "Titel des verwandten Artikels";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_IMAGE_LINK_DESCRITION'] = "Bild-Link des verwandten Artikels";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_IMAGE_SRC_DESCRITION'] = "Teaser-Bild-Quelle des verwandten Artikels";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_IMAGE_THUMB_BLOCK_DESCRITION'] = "Block zur Darstellung des Teaser-Bild Vorschaubildes des verwandten Artikels";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_IMAGE_THUMB_DESCRITION'] = "Teaser-Bild Vorschaubild des verwandten Artikels";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_IMAGE_THUMB_LINK_DESCRITION'] = "Teaser-Bild Vorschbild-Link des verwandten Artikels";
+$_ARRAYLANG['TXT_NEWS_RELATED_NEWS_IMAGE_THUMB_SRC_DESCRITION'] = "Teaser-Bild Vorschaubild-Quelle des verwandten Artikels";
+
+$_ARRAYLANG['TXT_NEWS_ADD_TAGS'] = "Tags hinzufügen";
+$_ARRAYLANG['TXT_NEWS_TAGS_ENABLE'] = "Verwenden";
+$_ARRAYLANG['TXT_NEWS_ERROR_SAVE_NEWS_TAG'] = "Die angegebenen Tags konnten nicht gespeichert werden.";
+$_ARRAYLANG['TXT_NEWS_ERROR_SAVE_NEWS_TAG_RELATION'] = "Die Zuweisung der Tags konnte nicht gespeichert werden.";
+$_ARRAYLANG['TXT_NEWS_ERROR_DELETE_NEWS_TAG_RELATION'] = "Die Entfernung der Tags konnte nicht gespeichert werden.";
+$_ARRAYLANG['TXT_NEWS_NO_TAGS_FOUND'] = "Keine Tags zugewiesen";

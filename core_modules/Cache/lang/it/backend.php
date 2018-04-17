@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,15 +24,15 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
-/** 
- * @copyright   CLOUDREXX CMS - CLOUDREXX AG 
+
+/**
+ * @copyright   CLOUDREXX CMS - CLOUDREXX AG
  * @author      Cloudrexx Development Team <info@cloudrexx.com>
- * @access      public 
+ * @access      public
  * @package     cloudrexx
  * @subpackage  coremodule_cache
- */ 
-global $_ARRAYLANG; 
+ */
+global $_ARRAYLANG;
 $_ARRAYLANG['TXT_CACHE_ERR_NOTWRITABLE'] = 'The choosen caching-directory is not writeable. Please set chmod 777 on ';
 $_ARRAYLANG['TXT_CACHE_ERR_NOTEXIST'] = 'Directory for cache-system does not exist. Please check path: ';
 $_ARRAYLANG['TXT_SETTINGS_MENU_CACHE'] = 'Caching';
@@ -47,11 +47,9 @@ $_ARRAYLANG['TXT_CACHE_ZEND_OPCACHE'] = 'Zend OPCache';
 $_ARRAYLANG['TXT_CACHE_XCACHE'] = 'xCache';
 $_ARRAYLANG['TXT_CACHE_MEMCACHE'] = 'Memcache';
 $_ARRAYLANG['TXT_CACHE_MEMCACHED'] = 'Memcached';
-$_ARRAYLANG['TXT_CACHE_FILESYSTEM'] = 'FileSystem';
 $_ARRAYLANG['TXT_CACHE_APC_ACTIVE_INFO'] = 'APC is active, as soon as the php directive "apc.enabled" has been set to "On".';
 $_ARRAYLANG['TXT_CACHE_APC_CONFIG_INFO'] = 'If you want to use apc as a database cache engine, you have to set the php directive "apc.serializer" to "php".';
 $_ARRAYLANG['TXT_CACHE_ZEND_OPCACHE_ACTIVE_INFO'] = 'Zend OPCache is active, as soon as the php directive "opcache.enable" has been set to "On".';
-$_ARRAYLANG['TXT_CACHE_ZEND_OPCACHE_CONFIG_INFO'] = 'If you want to use the zend opcache as cache engine, the php directives "opcache.save_comments" and "opcache.load_comments" has to be set to "On".';
 $_ARRAYLANG['TXT_CACHE_XCACHE_ACTIVE_INFO'] = 'xCache is active, as soon as the php directive "xcache.cacher" has been set to "On".';
 $_ARRAYLANG['TXT_CACHE_XCACHE_CONFIG_INFO'] = 'If you want to use xCache as a database cache engine, you have to set the php directive "xcache.var_size" to a value bigger than 0. For the program code cache the php directive "xcache.size" has to be bigger than 0.';
 $_ARRAYLANG['TXT_CACHE_MEMCACHE_ACTIVE_INFO'] = 'Memcache is active, as soon as the Memcache server is running and the configuration is correct.';
@@ -75,8 +73,6 @@ $_ARRAYLANG['TXT_CACHE_EMPTY_DESC_FILES'] = 'With a click on the button, you can
 $_ARRAYLANG['TXT_CACHE_EMPTY_DESC_MEMCACHE'] = 'With a click on the button, you can mark the current cache content as outdated. The cached entries will be updated while viewing the pages.';
 $_ARRAYLANG['TXT_CACHE_STATS_FILES'] = 'Cached pages';
 $_ARRAYLANG['TXT_CACHE_STATS_FOLDERSIZE'] = 'Folder size';
-$_ARRAYLANG['TXT_STATS_CHACHE_SITE_COUNT'] = 'Cached Files';
-$_ARRAYLANG['TXT_STATS_CHACHE_ENTRIES_COUNT'] = 'Cached Databaseentries';
 $_ARRAYLANG['TXT_STATS_CACHE_SIZE'] = 'Ammount of stored Data';
 $_ARRAYLANG['TXT_DISPLAY_CONFIGURATION'] = 'Konfiguration einblenden';
 $_ARRAYLANG['TXT_HIDE_CONFIGURATION'] = 'Konfiguration ausblenden';

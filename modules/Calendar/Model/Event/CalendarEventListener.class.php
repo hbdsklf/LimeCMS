@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,10 +24,10 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * EventListener for Calendar
- * 
+ *
  * @copyright   Cloudrexx AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @package     cloudrexx
@@ -41,19 +41,23 @@ use Cx\Core\Event\Model\Entity\DefaultEventListener;
 
 /**
  * EventListener for Calendar
- * 
+ *
  * @copyright   Cloudrexx AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @package     cloudrexx
  * @subpackage  module_calendar
  */
 class CalendarEventListener extends DefaultEventListener {
-   
+
     public function SearchFindContent($search) {
         $term_db = $search->getTerm();
         $query = \Cx\Modules\Calendar\Controller\CalendarEvent::getEventSearchQuery($term_db);
-        $pageUrl = function($pageUri, $searchData) {
-            return $pageUri . '?id=' . $searchData['id'] . '&date=' . strtotime($searchData['startdate']);
+        $dateTime = $this->getComponent('DateTime');
+        $pageUrl = function($pageUri, $searchData) use ($dateTime) {
+            $date = $dateTime->createDateTimeForDb($searchData['startdate']);
+            $dateTime->db2user($date);
+            $timestamp = $date->getTimestamp();
+            return $pageUri . '?id=' . $searchData['id'] . '&date=' . $timestamp;
         };
         $result = new \Cx\Core_Modules\Listing\Model\Entity\DataSet($search->getResultArray($query, 'Calendar', 'detail', $pageUrl, $search->getTerm()));
         $search->appendResult($result);
@@ -67,5 +71,10 @@ class CalendarEventListener extends DefaultEventListener {
             $this->cx->getWebsiteImagesCalendarWebPath(),
         ),array(16));
         $mediaBrowserConfiguration->addMediaType($mediaType);
+    }
+
+    public function onFlush($eventArgs) {
+        $this->cx->getComponent('Cache')->deleteComponentFiles('Calendar');
+        $this->cx->getComponent('Cache')->deleteComponentFiles('Home');
     }
 }

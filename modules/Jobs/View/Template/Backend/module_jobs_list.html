@@ -39,7 +39,50 @@ function setCheckboxes(do_check)
     return true;
   }
 }
+cx.ready(function() {
+    var lock = function() {
+        cx.jQuery('#load-lock').show();
+    };
+    var unlock = function() {
+        cx.jQuery("#load-lock").hide();
+    };
+    cx.bind('loadingStart', lock, 'hotOffer');
+    cx.bind('loadingEnd', unlock, 'hotOffer');
+
+    cx.jQuery('.hotOffer').click(function() {
+        var jobId     = cx.jQuery(this).data('id');
+        var isChecked = cx.jQuery(this).prop('checked') ? 1 : 0;
+
+        if (!jobId) {
+            return;
+        }
+
+        cx.trigger('loadingStart', 'hotOffer', {});
+        cx.ajax( 'Jobs', 'updateJobsHotOffer', {
+            type     : 'POST',
+            data     : 'id=' + jobId + '&hotOffer=' + isChecked,
+            dataType : 'json',
+            complete: function() {
+                cx.trigger('loadingEnd', 'hotOffer', {});
+            }
+        });
+    });
+});
 </script>
+<style type="text/css">
+    #load-lock {
+        position: absolute;
+        opacity: 0.5;
+        background-color: white;
+        display: none;
+        z-index: 500;
+        height: 100%;
+        width: 100%;
+        top: 0;
+        left: 0;
+    }
+</style>
+<div id="load-lock"></div>
 <table width="100%" height="38" cellspacing="0" cellpadding="3" border="0" class="adminlist">
 <tbody>
   <tr>
@@ -77,7 +120,7 @@ function setCheckboxes(do_check)
 <form name="formDocSys" method="post" action="index.php?cmd=Jobs&act=changeStatus">
 <table width="100%" cellspacing="0" cellpadding="3" border="0" class="adminlist">
 <tr>
-<th valign="top" colspan="9">{TXT_ARCHIVE}</th>
+<th valign="top" colspan="{JOBS_OVERVIEW_COLSPAN}">{TXT_ARCHIVE}</th>
   </tr>
 <tr class="row2">
   <td width="1%" valign="top" nowrap="nowrap"><b>#</b></td>
@@ -85,6 +128,9 @@ function setCheckboxes(do_check)
   <td width="2%" valign="top" nowrap="nowrap"><b>{TXT_STATUS}</b></td>
   <td width="5%" valign="top" nowrap="nowrap"><b>{TXT_DATE}</b></td>
   <td valign="top" nowrap="nowrap"><b>{TXT_TITLE}</b></td>
+  <!-- BEGIN jobs_modify_show_hot_offer_label -->
+  <td width="5%" valign="top" nowrap="nowrap"><b>{TXT_JOBS_OVERVIEW_HOT}</b></td>
+  <!-- END jobs_modify_show_hot_offer_label -->
   <td width="10%" valign="top" nowrap="nowrap"> <b>{TXT_CATEGORY}</b></td>
   <td width="10%" valign="top" nowrap="nowrap"> <b>{TXT_AUTHOR}</b></td>
   <td width="12%" valign="top" nowrap="nowrap"> <b>{TXT_LAST_EDIT}</b></td>
@@ -97,6 +143,9 @@ function setCheckboxes(do_check)
   <td nowrap="nowrap"><img border="0" title="{JOBS_STATUS}" alt="{JOBS_STATUS}" src="../core/Core/View/Media/icons/{JOBS_STATUS_PICTURE}" /></td>
   <td nowrap="nowrap">{JOBS_DATE}&nbsp;</td>
   <td><a href="?cmd=Jobs&act=edit&id={JOBS_ID}">{JOBS_TITLE}</a>&nbsp;</td>
+  <!-- BEGIN jobs_overview_show_hot_offer -->
+  <td><input type="checkbox" class="hotOffer" data-id="{JOBS_ID}" name="hotOffer" {JOBS_OVERVIEW_HOT_OFFER} value="1"/></td>
+  <!-- END jobs_overview_show_hot_offer -->
   <td nowrap="nowrap">{JOBS_CATEGORY}&nbsp;</td>
   <td nowrap="nowrap">&nbsp;{JOBS_AUTHOR}</td>
   <td nowrap="nowrap">{JOBS_CHANGELOG}: {JOBS_USER}&nbsp;</td>

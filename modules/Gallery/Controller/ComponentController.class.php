@@ -27,7 +27,7 @@
 
 /**
  * Main controller for Gallery
- * 
+ *
  * @copyright   Cloudrexx AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @package     cloudrexx
@@ -38,7 +38,7 @@ namespace Cx\Modules\Gallery\Controller;
 
 /**
  * Main controller for Gallery
- * 
+ *
  * @copyright   Cloudrexx AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @package     cloudrexx
@@ -53,7 +53,7 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
 
      /**
      * Load your component.
-     * 
+     *
      * @param \Cx\Core\ContentManager\Model\Entity\Page $page       The resolved page
      */
     public function load(\Cx\Core\ContentManager\Model\Entity\Page $page) {
@@ -62,14 +62,6 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
             case \Cx\Core\Core\Controller\Cx::MODE_FRONTEND:
                 $objGallery = new Gallery(\Env::get('cx')->getPage()->getContent());
                 \Env::get('cx')->getPage()->setContent($objGallery->getPage());
-
-                $topGalleryName = $objGallery->getTopGalleryName();
-                if ($topGalleryName) {
-                    \Env::get('cx')->getPage()->setTitle($topGalleryName);
-                    \Env::get('cx')->getPage()->setContentTitle($topGalleryName);
-                    \Env::get('cx')->getPage()->setMetaTitle($topGalleryName);
-                }
-               
                 break;
 
             case \Cx\Core\Core\Controller\Cx::MODE_BACKEND:
@@ -87,7 +79,7 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
     }
     /**
      * Do something before content is loaded from DB
-     * 
+     *
      * @param \Cx\Core\ContentManager\Model\Entity\Page $page       The resolved page
      */
     public function preContentLoad(\Cx\Core\ContentManager\Model\Entity\Page $page) {
@@ -128,7 +120,27 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
             default:
                 break;
         }
-        
+
+    }
+
+    /**
+     * Do something with a Response object
+     * You may do page alterations here (like changing the metatitle)
+     * You may do response alterations here (like set headers)
+     * PLEASE MAKE SURE THIS METHOD IS MOCKABLE. IT MAY ONLY INTERACT WITH
+     * resolve() HOOK.
+     *
+     * @param \Cx\Core\Routing\Model\Entity\Response $response Response object to adjust
+     */
+    public function adjustResponse(\Cx\Core\Routing\Model\Entity\Response $response) {
+        $params = $response->getRequest()->getUrl()->getParamArray();
+        unset($params['section']);
+        unset($params['cmd']);
+        $canonicalUrl = \Cx\Core\Routing\Url::fromPage($response->getPage(), $params);
+        $response->setHeader(
+            'Link',
+            '<' . $canonicalUrl->toString() . '>; rel="canonical"'
+        );
     }
 
     /**

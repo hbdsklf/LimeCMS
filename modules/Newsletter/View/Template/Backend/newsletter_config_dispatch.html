@@ -11,25 +11,12 @@
     }
 // ]]>
 </script>
-<div id="subnavbar_level2">
-<ul>
-    <li><a href="index.php?cmd=Newsletter&amp;act=dispatch" title="{TXT_DISPATCH_SETINGS}">{TXT_DISPATCH_SETINGS}</a></li>
-    <li><a href="index.php?cmd=Newsletter&amp;act=templates" title="{TXT_NEWSLETTER_TEMPLATES}">{TXT_NEWSLETTER_TEMPLATES}</a></li>
-    <li><a href="index.php?cmd=Newsletter&amp;act=interface" title="{TXT_NEWSLETTER_INTERFACE}">{TXT_NEWSLETTER_INTERFACE}</a></li>
-    <li><a href="index.php?cmd=Newsletter&amp;act=confightml" title="{TXT_GENERATE_HTML}">{TXT_GENERATE_HTML}</a></li>
-    <li><a href="index.php?cmd=Newsletter&amp;act=activatemail" title="{TXT_CONFIRM_MAIL}">{TXT_ACTIVATE_MAIL}</a></li>
-    <li><a href="index.php?cmd=Newsletter&amp;act=confirmmail" title="{TXT_CONFIRM_MAIL}">{TXT_CONFIRM_MAIL}</a></li>
-    <li><a href="index.php?cmd=Newsletter&amp;act=notificationmail" title="{TXT_NOTIFICATION_MAIL}">{TXT_NOTIFICATION_MAIL}</a></li>
-    <li><a href="index.php?cmd=Newsletter&amp;act=system" title="{TXT_DISPATCH_SETINGS}">{TXT_SYSTEM_SETINGS}</a></li>
-</ul>
-</div>
-<br />
 <table width="100%" border="0" cellpadding="3" cellspacing="0" class="adminlist">
   <tr>
     <th>{TXT_TITLE}</th>
   </tr>
 </table>
-<form name="adduser" action="index.php?cmd=Newsletter&amp;act=dispatch" method="post" onsubmit="return newsletterUpdate()">
+<form name="adduser" action="index.php?cmd=Newsletter&amp;act=Settings" method="post" onsubmit="return newsletterUpdate()">
 <input type="hidden" name="update" value="1" />
 <table width="100%" border="0" cellpadding="3" cellspacing="0" class="adminlist">
   <tr class="row2">
@@ -75,14 +62,40 @@
       <span class="tooltip-trigger icon-info"></span><span class="tooltip-message">{TXT_NEWSLETTER_INFO_ABOUT_ADMIN_INFORM}</span>
     </td>
   </tr>
-    <tr class="row2">
-        <td width="20%" style="vertical-align: top;">{TXT_NEWSLETTER_REJECT_INFO_MAIL_TEXT}
-            <span class="tooltip-trigger icon-info"></span><span class="tooltip-message">{TXT_NEWSLETTER_INFO_ABOUT_INFORM_TEXT}</span>
-        </td>
-        <td width="80%">
-            <textarea name="reject_info_mail_text" style="width: 600px; height: 200px">{NEWSLETTER_REJECT_INFO_MAIL_TEXT}</textarea>
-        </td>
-    </tr>
+  <tr class="row1">
+    <td valign="top">{TXT_NEWSLETTER_SEND_BY_SUBSCRIBE}</td>
+    <td>
+        <label>
+            <input type="radio" name="mailSendSubscribe" value="1" {NEWSLETTER_SEND_BY_SUBSCRIBE_ON} />{TXT_NEWSLETTER_NOTIFICATION_ACTIVATE}
+        </label>
+        <label>
+            <input type="radio" name="mailSendSubscribe" value="0" {NEWSLETTER_SEND_BY_SUBSCRIBE_OFF} />{TXT_NEWSLETTER_NOTIFICATION_DEACTIVATE}
+        </label>
+    </td>
+  </tr>
+  <tr class="row2">
+    <td valign="top">{TXT_NEWSLETTER_SEND_BY_UNSUBSCRIBE}</td>
+    <td >
+        <label>
+             <input type="radio" name="mailSendUnsubscribe" value="1" {NEWSLETTER_SEND_BY_UNSUBSCRIBE_ON} />{TXT_NEWSLETTER_NOTIFICATION_ACTIVATE}
+        </label>
+        <label>
+            <input type="radio" name="mailSendUnsubscribe" value="0" {NEWSLETTER_SEND_BY_UNSUBSCRIBE_OFF} />{TXT_NEWSLETTER_NOTIFICATION_DEACTIVATE}
+        </label>
+    </td>
+  </tr>
+  <tr class="row2">
+    <td>{TXT_NEWSLETTER_DEF_UNSUBSCRIBE}</td>
+    <td>
+        <label>
+            <input type="radio" name="def_unsubscribe" value="1" {NEWSLETTER_UNSUBSCRIBE_DELETE_ON} />{TXT_NEWSLETTER_UNSUBSCRIBE_DELETE}
+        </label>
+        <label>
+            <input type="radio" name="def_unsubscribe" value="0" {NEWSLETTER_UNSUBSCRIBE_DEACTIVATE_ON} />{TXT_NEWSLETTER_UNSUBSCRIBE_DEACTIVATE}
+        </label>
+    </td>
+  </tr>
+
 </table>
 <br />
 <input type="submit" value="{TXT_SAVE}" />

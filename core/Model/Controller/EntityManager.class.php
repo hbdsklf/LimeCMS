@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * Wrapper class for Doctrine Entity Manager
  *
@@ -36,7 +36,7 @@
  */
 
 namespace Cx\Core\Model\Controller;
-        
+
 /**
  * Wrapper class for Doctrine Entity Manager
  *
@@ -44,14 +44,19 @@ namespace Cx\Core\Model\Controller;
  * @author      ss4u <ss4u.comvation@gmail.com>
  * @version     $Id:    Exp $
  * @package     cloudrexx
- * @subpackage  core 
+ * @subpackage  core
  */
 class EntityManager extends \Doctrine\ORM\EntityManager {
-    
+
+    /**
+     * @var array Lookup table. Key is database table name, value is entity name
+     */
+    protected $reverseLookupTable = array();
+
     /**
      * {@inheritdoc}
      */
-    public function createQuery($dql = "")
+    public function createQuery($dql = '')
     {
         $query = new \Doctrine\ORM\Query($this);
 
@@ -67,24 +72,21 @@ class EntityManager extends \Doctrine\ORM\EntityManager {
     }
 
     /**
-     * {@inheritdoc}
+     * Returns the entity name for a table name
+     * @author Michael Ritter <michael.ritter@cloudrexx.com>
+     * @param string $tableName Name of the database table
+     * @return string Fully qualified name of the entity
      */
-    public static function create($conn, \Doctrine\ORM\Configuration $config, \Doctrine\Common\EventManager $eventManager = null)
-    {
-        if (!$config->getMetadataDriverImpl()) {
-            throw \Doctrine\ORM\ORMException::missingMappingDriverImpl();
-        }
-
-        if (is_array($conn)) {
-            $conn = \Doctrine\DBAL\DriverManager::getConnection($conn, $config, ($eventManager ?: new EventManager()));
-        } else if ($conn instanceof Connection) {
-            if ($eventManager !== null && $conn->getEventManager() !== $eventManager) {
-                 throw \Doctrine\ORM\ORMException::mismatchedEventManager();
+    public function getEntityNameByTableName($tableName) {
+        if (!count($this->reverseLookupTable)) {
+            $metadatas = $this->getMetadataFactory()->getAllMetadata();
+            foreach ($metadatas as $metadata) {
+                $this->reverseLookupTable[$metadata->getTableName()] = $metadata->getName();
             }
-        } else {
-            throw new \InvalidArgumentException("Invalid argument: " . $conn);
         }
-
-        return new EntityManager($conn, $config, $conn->getEventManager());
+        if (!isset($this->reverseLookupTable[$tableName])) {
+            return null;
+        }
+        return $this->reverseLookupTable[$tableName];
     }
 }

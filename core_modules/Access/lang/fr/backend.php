@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
  * @author      Cloudrexx Development Team <info@cloudrexx.com>
@@ -89,7 +89,7 @@ $_ARRAYLANG['TXT_ACCESS_CONFIG_SUCCESSFULLY_SAVED'] = "Paramètres enregistrés.
 $_ARRAYLANG['TXT_ACCESS_CONFIRM_DELETE_ATTRIBUTE_MSG'] = "Voulez-vous vraiment supprimer la propriété %s?\nCeci supprimera également toutes les propriétés dépendantes, ainsi que les données saisies par les utilisateurs!";
 $_ARRAYLANG['TXT_ACCESS_CONFIRM_DELETE_GROUP'] = "Voulez-vous vraiment supprimer le groupe %s?";
 $_ARRAYLANG['TXT_ACCESS_CONFIRM_DELETE_MAIL'] = "Voulez-vous vraiment supprimer l'E-mail?";
-$_ARRAYLANG['TXT_ACCESS_CONFIRM_DELETE_USER'] = "Voulez-vous vraiment supprimer l'utlisateur %s?";
+$_ARRAYLANG['TXT_ACCESS_CONFIRM_DELETE_USER'] = "Voulez-vous vraiment supprimer l'utilisateur %s?";
 $_ARRAYLANG['TXT_ACCESS_CONFIRM_LOCK_PAGE'] = "Voulez-vous vraiment activer la protection des modifications de cette page?";
 $_ARRAYLANG['TXT_ACCESS_CONFIRM_PROTECT_PAGE'] = "Voulez-vous vraiment activer la protection des accès à cette page?";
 $_ARRAYLANG['TXT_ACCESS_CONFIRM_UNLOCK_PAGE'] = "Voulez-vous vraiment supprimer la protection des modifications de cette page?";

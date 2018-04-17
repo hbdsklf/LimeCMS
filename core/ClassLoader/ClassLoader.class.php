@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * Cloudrexx ClassLoader
  *
@@ -33,7 +33,7 @@
  * @package     cloudrexx
  * @subpackage  core_classloader
  */
- 
+
 namespace Cx\Core\ClassLoader;
 
 /**
@@ -49,7 +49,33 @@ class ClassLoader {
     private $customizingPath;
     private $legacyClassLoader = null;
     private $cx = null;
-    
+
+    /**
+     * Local connection to Memcached server
+     * @var \Memcached
+     */
+    protected $memcached = null;
+
+    /**
+     * List of loaded classes and their path
+     * in the file system
+     * @var array
+     */
+    protected $classMap = array();
+
+    /**
+     * Prefix to be used for class-map-key
+     * @var string
+     */
+    const classMapPrefix = 'CxClassMap_';
+
+    /**
+     * Key to be used to identify the cached class map
+     * in Memcached server
+     * @var string
+     */
+    protected $classMapKey = '';
+
     /**
      * To use LegacyClassLoader config.php and set_constants.php must be loaded
      * If they are not present, set $useLegacyAsFallback to false!
@@ -64,6 +90,9 @@ class ClassLoader {
         $this->basePath = $cx->getCodeBaseDocumentRootPath();
         $this->customizingPath = $customizingPath;
 
+        // set key to be used for storing the paths of the loaded classes in memcached
+        $this->classMapKey = static::classMapPrefix . md5($this->basePath);
+
         // Check if there is already an other instance of the Cloudrexx ClassLoader running.
         // If so, we shall unregister it.
         if (class_exists('Env', false)) {
@@ -73,12 +102,12 @@ class ClassLoader {
             }
         }
         spl_autoload_register(array($this, 'autoload'));
-        
+
         if ($useLegacyAsFallback) {
             $this->legacyClassLoader = new LegacyClassLoader($this, $cx);
         }
     }
-    
+
     /**
      * This needs to be public because Doctrine tries to load a class using all
      * registered autoloaders.
@@ -86,17 +115,120 @@ class ClassLoader {
      * @return type void
      */
     public function autoload($name) {
-        //print $name."<br>";
+        // init cache to skip resolving class paths
+        $this->initClassMapCache();
+
+        // try to fetch class path from class map cache
+        if ($this->loadClassFromClassMapCache($name)) {
+            return;
+        }
+
         if ($this->load($name, $path)) {
             return;
         }
-        if ($path) {
-            //echo '<b>' . $name . ': ' . $path . '</b><br />';
-        }
+
         $this->loadLegacy($name);
     }
-    
+
+    /**
+     * Try to load a PHP class from cache.
+     *
+     * @param   $name   string The name of the class to be loaded
+     * @return  boolean TRUE if the class specified by $name was loaded from
+     *                  cache. Otherwise FALSE
+     */
+    protected function loadClassFromClassMapCache($name) {
+        // try to fetch class path from class map cache
+        if (!isset($this->memcached)) {
+            return false;
+        }
+
+        // fetch the class map from cache (if not yet done)
+        if (!isset($this->classMap[$this->classMapKey])) {
+            $this->classMap[$this->classMapKey] = array();
+            $this->classMap[$this->classMapKey] = $this->memcached->get($this->classMapKey);
+        }
+
+        if (!isset($this->classMap[$this->classMapKey][$name])) {
+            return false;
+        }
+
+        $path = $this->classMap[$this->classMapKey][$name];
+        require_once($path);
+
+        return true;
+    }
+
+    /**
+     * Initialize the class map cache
+     *
+     * This method does initialize the Memcached cache in case
+     * it has been enabled as user cache engine.
+     *
+     * @global  $_CONFIG    array   The basic configuration data. We're not
+     *                              using the Setting component here, as this
+     *                              method usually gets called before the
+     *                              postInit hook.
+     */
+    protected function initClassMapCache() {
+        global $_CONFIG;
+
+        if ($this->memcached) {
+            return;
+        }
+
+        if (!isset($_CONFIG['cacheDbStatus']) ||
+            $_CONFIG['cacheDbStatus'] != 'on'
+        ) {
+            return;
+        }
+
+        if (!isset($_CONFIG['cacheUserCache'])) {
+            return;
+        }
+
+        // note: we can't use the cache engines constats of Cache component here
+        // as the Cache component has not yet been loaded at this stage
+        switch ($_CONFIG['cacheUserCache']) {
+            case 'memcached':
+                // default memcached configuration
+                $ip = '127.0.0.1';
+                $port = '11211';
+
+                // load stored memcached configuration
+                if (!empty($_CONFIG['cacheUserCacheMemcachedConfig'])){
+                    $settings = json_decode($_CONFIG['cacheUserCacheMemcachedConfig'], true);
+                    $ip = $settings['ip'];
+                    $port = $settings['port'];
+                }
+
+                $memcachedConfiguration = array('ip' => $ip, 'port' => $port);
+
+                // verify that memcached is installed
+                if (!extension_loaded('memcached')) {
+                    break;
+                }
+
+                // verify that memcached is loaded
+                if (!class_exists('\Memcached', false)) {
+                    break;
+                }
+
+                // connect to memcached server
+                $memcached = new \Memcached();
+                if (!@$memcached->addServer($memcachedConfiguration['ip'], $memcachedConfiguration['port'])) {
+                    break;
+                }
+                $this->memcached = $memcached;
+                break;
+
+            default:
+                break;
+        }
+    }
+
     private function load($name, &$resolvedPath) {
+        $requestedName = $name;
         if (substr($name, 0, 1) == '\\') {
             $name = substr($name, 1);
         }
@@ -108,7 +240,7 @@ class ClassLoader {
         if (substr($name, 0, 8) == 'PHPUnit_') {
             return false;
         }
-        
+
         $suffix = '.class';
         if ($parts[0] == 'Cx') {
             // Exception for model, its within /model/[entities|events]/cx/model/
@@ -118,18 +250,20 @@ class ClassLoader {
                     $third = 'events';
                 }
                 if ($parts[2] == 'Proxies') {
+                    $tmpPart = implode('', array_slice($parts, 3));
+                    $parts   = array('Cx', 'Model', 'Proxies', $tmpPart);
                     $third = 'proxies';
                     $suffix = '';
                 }
                 $parts = array_merge(array('Cx', 'Model', $third), $parts);
-                
+
             // Exception for lib, its within /model/FRAMEWORK/
             } else if ($parts[1] == 'Lib') {
                 unset($parts[0]);
                 unset($parts[1]);
                 $parts = array_merge(array('Cx', 'Lib', 'FRAMEWORK'), $parts);
             }
-        
+
         // Exception for overwritten gedmo classes, they are within /model/entities/Gedmo
         // This is not ideal, maybe move the classes somewhere
         } else if ($parts[0] == 'Gedmo') {
@@ -150,7 +284,7 @@ class ClassLoader {
             $suffix = '';
             $parts = array_merge(array('Cx', 'Lib', 'doctrine', 'vendor'), $parts);
         }
-        
+
         // we don't need the Cx part
         unset($parts[0]);
         // core, lib, model, etc. are lowercase by design
@@ -168,28 +302,51 @@ class ClassLoader {
             }
             $path .= $part;
         }
-        
+
         $resolvedPath = $path . '/' . $className . $suffix . '.php';
-        if (preg_match('/Exception/', $className) && !$this->loadFile($resolvedPath)) {
+        if (preg_match('/Exception/', $className) && !$this->loadFile($resolvedPath, $requestedName)) {
             $className = preg_replace('/Exception/', '', $className);
             $resolvedPath = $path . '/' . $className . $suffix . '.php';
         }
-        if ($this->loadFile($resolvedPath)) {
+        if ($this->loadFile($resolvedPath, $requestedName)) {
             return true;
-        } else if ($this->loadFile($path.'/'.$className.'.interface.php')) {
+        } else if ($this->loadFile($path.'/'.$className.'.interface.php', $requestedName)) {
             return true;
         }
         //echo '<span style="color: red;">' . implode('\\', $parts) . '</span>';
         return false;
     }
-    
-    public function loadFile($path) {
-        
+
+    /**
+     * Try to load the file specified by $path
+     *
+     * @param   $path   string  Path to the file to be loaded
+     * @param   $name   string  Optional filename of the file to be loaded.
+     *                          If provided, the path of the file will be
+     *                          cached, so that the next time the file will
+     *                          be requested by the autoloading functionality
+     *                          of PHP, it can be loaded way faster.
+     * @return  boolean TRUE, if file was loaded. Otherwise FALSE, if file
+     *                  could not be located.
+     */
+    public function loadFile($path, $name = '') {
+
         $path = $this->getFilePath($path);
         if (!$path) {
             return false;
         }
+
         require_once($path);
+
+        // cache updated class map
+        if ($name && $this->memcached) {
+            if (!isset($this->classMap[$this->classMapKey])) {
+                $this->classMap[$this->classMapKey] = array();
+            }
+            $this->classMap[$this->classMapKey][$name] = $path;
+            $this->memcached->set($this->classMapKey, $this->classMap[$this->classMapKey]);
+        }
+
         return true;
     }
 
@@ -201,7 +358,7 @@ class ClassLoader {
      *
      * 1. If we are in FRONTEND mode and the file is part of the 'view' layer
      *      (it is located within the 'View' folder of its component), then it
-     *      will return the path to the customized version of the file in the 
+     *      will return the path to the customized version of the file in the
      *      currently active design theme (if it does exist at all).
      *      Note that the folder 'View' is being left out in the design theme as
      *      only files of the 'View' folder can be loaded from the design theme.
@@ -230,7 +387,7 @@ class ClassLoader {
      *                                  Otherwise it is set to FALSE.
      * @param   boolean $webPath        Whether or not to return the absolute
      *                                  file system path of the customized file.
-     *                                  IMPORTANT: This will cause the algorithm 
+     *                                  IMPORTANT: This will cause the algorithm
      *                                  to cut of any URL arguments from the
      *                                  file path like '?foo=bar' or '#foo', to
      *                                  be able to successfully locate dynamic
@@ -282,13 +439,61 @@ class ClassLoader {
         $path = $this->getFileFromWebsiteRepository($file, $webPath, $isWebsite);
         if ($path) return $path;
 
-        // 4. check if original file exists in code base
+        // 4. check if file exists in a MediaSource (shared repository)
+        $path = $this->getFileFromMediaSource($file, $webPath);
+        if ($path) return $path;
+
+        // 5. check if original file exists in code base
         if (file_exists($this->basePath.$file)) {
             return ($webPath ? $this->cx->getCodeBaseOffsetPath() : $this->basePath) . $file;
         }
 
         // lookup of file failed -> file does not exist
         return false;
+    }
+
+    /**
+     * Get file path with filename from registered MediaSource filesystems.
+     *
+     * @param   string  $file       Path of file, it should be located
+     *                              in /images, /media or /themes.
+     * @param   boolean $webPath    Whether or not to return the absolute file
+     *                              path or MediaSource file system path.
+     * @return  mixed               Returns absolute file path or MediaSource
+     *                              file path or FALSE if none exists.
+     */
+    public function getFileFromMediaSource($file, $webPath = false) {
+        // media source files may only be located in /images, /media or /themes
+        $cxClassName = get_class($this->cx);
+        if (!preg_match('#^(?:' . preg_quote($cxClassName::FOLDER_NAME_IMAGES, '#') . '|' . preg_quote($cxClassName::FOLDER_NAME_MEDIA, '#') . '|' . preg_quote($cxClassName::FOLDER_NAME_THEMES, '#') . ')/#', $file)) {
+            return false;
+        }
+
+        // check if Env has been initialized yet
+        if (!class_exists('Env', false)) {
+            return false;
+        }
+
+        // check if InitCMS has been initialized yet 
+        $objInit = \Env::get('init');
+        if (!$objInit) {
+            return false;
+        }
+        $mediaSourceManager = $this->cx->getMediaSourceManager();
+        if (!$mediaSourceManager) {
+            return false;
+        }
+
+        // check if file exists in any of the registered MediaSource filesystems
+        $mediaSourceFile = $mediaSourceManager->getMediaSourceFileFromPath($file);
+        if (!$mediaSourceFile) {
+            return false;
+        }
+
+        if ($webPath) {
+            return $file;
+        }
+        return $mediaSourceFile->getFileSystem()->getFullPath($mediaSourceFile) . $mediaSourceFile->getFullName();
     }
 
     /**
@@ -319,7 +524,7 @@ class ClassLoader {
             return false;
         }
 
-        // check if InitCMS has been initialized yet 
+        // check if InitCMS has been initialized yet
         $objInit = \Env::get('init');
         if (!$objInit) {
             return false;
@@ -435,13 +640,13 @@ class ClassLoader {
     public function getWebFilePath($file, &$isCustomized = false, &$isWebsite = false) {
         return $this->getFilePath($file, $isCustomized, $isWebsite, true);
     }
-    
+
     private function loadLegacy($name) {
         if ($this->legacyClassLoader) {
             $this->legacyClassLoader->autoload($name);
         }
     }
-    
+
     /**
      * Tests if a class is available. You may specify if legacy and customizing
      * can be used to load it if necessary.
@@ -449,7 +654,7 @@ class ClassLoader {
      * @param string $class Class name to look for
      * @param boolean $useLegacy (optional) Wheter to allow usage of legacy class loader or not (default false)
      * @param boolean $useCustomizing (optional) Wheter to allow usage of customizings or not (default true)
-     * @return boolean True if class could be found using the allowed methods, false otherwise 
+     * @return boolean True if class could be found using the allowed methods, false otherwise
      */
     public function classExists($class, $useLegacy = false, $useCustomizing = true) {
         if ($useLegacy) {
@@ -467,4 +672,3 @@ class ClassLoader {
         return $ret;
     }
 }
-

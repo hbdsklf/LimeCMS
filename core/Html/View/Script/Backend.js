@@ -4,7 +4,7 @@
  */
 
 /**
- * Script for initializing the row sorting functionality in ViewGenerator 
+ * Script for initializing the row sorting functionality in ViewGenerator
  */
 cx.ready(function() {
     var jQuery = cx.jQuery;
@@ -12,7 +12,7 @@ cx.ready(function() {
         sortable = {
             ajaxCall : function(opt) {
                 var data = 'sortOrder=' + opt.sortOrder + '&curPosition=' + opt.curIndex
-                            + '&prePosition=' + opt.preIndex + '&sortField=' + opt.sortField 
+                            + '&prePosition=' + opt.preIndex + '&sortField=' + opt.sortField
                             + '&pagingPosition=' + opt.position,
                     recordCount = 0;
                 if (opt.component && opt.entity) {
@@ -71,7 +71,7 @@ cx.ready(function() {
                 //If the same 'order' field value is repeated,
                 //we need to update all the entries.
                 if (options.repeat) {
-                    var pagingCnt = isDescOrder 
+                    var pagingCnt = isDescOrder
                                     ? (recordCnt - options.position) + 1
                                     : options.position;
                     obj.each(function() {
@@ -101,7 +101,7 @@ cx.ready(function() {
                 }
             }
         };
-    
+
     jQuery('table.sortable tbody').sortable({
         axis: "y",
         items: "> tr.row1,> tr.row2 ",
@@ -135,7 +135,7 @@ cx.ready(function() {
             ) {
                 return;
             }
-            
+
             params.uiItem.removeData('pIndex');
             sortable.ajaxCall(params);
         }
@@ -169,14 +169,15 @@ function editAssociation (thisElement) {
         paramAssociativeArray['mappedBy'],
         paramAssociativeArray['cssName'],
         paramAssociativeArray['sessionKey'],
-        existingData
+        existingData,
+        thisElement
     );
 }
 /*
 * This function creates a cx dialag for the ViewGenerator and opens it
 *
 */
-function openDialogForAssociation(content, className, existingData)
+function openDialogForAssociation(content, className, existingData, currentElement)
 {
 
     buttons = [
@@ -215,8 +216,16 @@ function openDialogForAssociation(content, className, existingData)
     });
     jQuery.each(existingData.split('&'), function(index, value){
         property = value.split('=');
-        dialog.getElement().find('[name='+property[0]+']').not('[type=button]').val(property[1]);
-        dialog.getElement().find('[type=button].mappedAssocciationButton').prop("disabled", true);
+        var el = dialog.getElement().find('[name='+property[0]+']');
+        if (el.attr('type') == 'button') {
+            el.filter('.mappedAssocciationButton').prop("disabled", true);
+        } else if (el.attr('type') == 'radio') {
+            dialog.getElement().find('[name='+property[0]+']').filter('[value='+property[1]+']').click();
+        } else if (el.attr('type') == 'checkbox') {
+            dialog.getElement().find('[name='+property[0]+']').filter('[value='+property[1]+']').prop('checked', true);
+        } else {
+            el.val(property[1]);
+        }
         if (property[0] == 'id') {
             jQuery('<input>').attr({
                 value: property[1],
@@ -300,7 +309,7 @@ function deleteAssociationMappingEntry(element)
  * we can insert the data for the mapped association
  *
  */
-function createAjaxRequest(entityClass, mappedBy, className, sessionKey, existingData){
+function createAjaxRequest(entityClass, mappedBy, className, sessionKey, existingData, currentElement){
     cx.ajax(
         'Html',
         'getViewOverJson',
@@ -314,7 +323,8 @@ function createAjaxRequest(entityClass, mappedBy, className, sessionKey, existin
             openDialogForAssociation(
                 data.data,
                 className,
-                existingData
+                existingData,
+                currentElement
             );
             jQuery('.datepicker').datepicker({
                 dateFormat: 'dd.mm.yy'
@@ -322,3 +332,134 @@ function createAjaxRequest(entityClass, mappedBy, className, sessionKey, existin
         }
     });
 }
+
+// Search and filter functionalities
+cx.ready(function() {
+    // since split() does weird things if limit param is used...
+    // from https://stackoverflow.com/questions/29998343/limiting-the-times-that-split-splits-rather-than-truncating-the-resulting-ar
+    function JavaSplit(string,separator,n) {
+        var split = string.split(separator);
+        if (split.length <= n)
+            return split;
+        var out = split.slice(0,n-1);
+        out.push(split.slice(n-1).join(separator));
+        return out;
+    }
+
+    // Since decodeURI() does not decode all characters and CSRF does weird things:
+    // TODO: Check if this is necessary (CSRF bug?) and either remove or move it
+    cx.tools.decodeURI = function (uri) {
+        uri = decodeURI(uri);
+        uri = uri.replace(/%2C/g, ",");
+        uri = uri.replace(/%3D/g, "=");
+        uri = uri.replace(/%2F/g, "/");
+        return uri;
+    }
+    
+    // If any of the dropdowns change or search button is pressed:
+    // manually generate url and document.location it
+    var getSubmitHandler = function(ev) {
+        var formId = jQuery(this).attr("form");
+        var elements = cx.jQuery("[form=" + formId + "]").filter("select,input,textarea").not("[type=button]").not("[type=submit]");
+        var vgId = jQuery("#" + formId).data("vg-id");
+        var url = cx.tools.decodeURI(document.location.href);
+        var attrGroups = {}
+        elements.each(function(index, el) {
+            el = cx.jQuery(el);
+            var regex = new RegExp("([?&])" + el.attr("name") + "[^&]+");
+            var replacement = "";
+            if (el.val().length) {
+                var val = el.val();
+                if (el.is(".vg-encode")) {
+                    if (el.data("vg-attrgroup")) {
+                        val = "{" + vgId + "," + el.data("vg-field") + "=" + el.val() + "}";
+                        if (!attrGroups[el.data("vg-attrgroup")]) {
+                            attrGroups[el.data("vg-attrgroup")] = "";
+                        } else {
+                            attrGroups[el.data("vg-attrgroup")] += ",";
+                        }
+                        attrGroups[el.data("vg-attrgroup")] += val;
+                        return;
+                    }
+                    val = "{" + vgId + "," + el.val() + "}";
+                }
+                replacement = el.attr("name") + "=" + val;
+            }
+            if (regex.test(url)) {
+                if (replacement.length) {
+                    replacement = "$1" + replacement;
+                }
+                url = url.replace(regex, replacement);
+            } else if (replacement.length) {
+                url += "&" + replacement;
+            }
+        });
+        // TODO: Need to remove attrGroups from URL
+        cx.jQuery(".vg-encode[data-vg-attrgroup]").each(function(index, el) {
+            el = cx.jQuery(el);
+            if (!attrGroups[el.data("vg-attrgroup")]) {
+                attrGroups[el.data("vg-attrgroup")] = "";
+            }
+        });
+        if (attrGroups) {
+            cx.jQuery.each(attrGroups, function(index, el) {
+                val = "";
+                if (el.length) {
+                    val = index + "=" + el;
+                }
+                regex = new RegExp("([?&])" + index + "[^&]+");
+                if (regex.test(url)) {
+                    if (val.length) {
+                        val = "$1" + val;
+                    }
+                    url = url.replace(regex, val);
+                } else if (val.length) {
+                    url += "&" + val;
+                }
+            });
+        }
+        document.location = url;
+        ev.preventDefault();
+    };
+    cx.jQuery("select.vg-searchSubmit").change(getSubmitHandler);
+    cx.jQuery(".vg-searchSubmit").filter("a,input").click(getSubmitHandler);
+    
+    (function() {
+        var url = cx.tools.decodeURI(document.location.href);
+        var parts = JavaSplit(url, "?", 2);
+        if (parts.length < 2) {
+            return;
+        }
+        parts = parts[1].split("&");
+        var elements = cx.jQuery("select,input,textarea").filter(".vg-encode");
+        if (!elements.length) {
+            return;
+        }
+        var regex = /\{([0-9+]),(?:([^=]+)=)?([^\}]+)\}/
+        cx.jQuery.each(parts, function(index, part) {
+            var attribute = JavaSplit(part, "=", 2);
+            if (attribute[0] == "csrf") {
+                return;
+            }
+            if (attribute[0] == "search" || attribute[0] == "term") {
+                var conditions = attribute[1].substr(1, attribute[1].length - 1).split("},{");
+                cx.jQuery.each(conditions, function(index, condition) {
+                    condition = "{" + condition + "}";
+                    var matches = condition.match(regex);
+                    if (matches.length < 4) {
+                        return;
+                    }
+                    var formId = "vg-" + matches[1] + "-searchForm";
+                    var formElement;
+                    if (matches[2]) {
+                        formElement = cx.jQuery("[form=" + formId + "][data-vg-field=" + matches[2] + "]");
+                    } else {
+                        formElement = cx.jQuery("[form=" + formId + "][name=" + attribute[0] + "]");
+                    }
+                    formElement.val(matches[3]);
+                });
+            }
+        });
+    })();
+});
+

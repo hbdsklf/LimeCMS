@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
 * User Management
 * @copyright    CLOUDREXX CMS - CLOUDREXX AG
@@ -63,6 +63,8 @@ class Access extends \Cx\Core_Modules\Access\Controller\AccessLib
         $cmd = isset($_REQUEST['cmd']) ? explode('_', $_REQUEST['cmd']) : array(0 => null);
         $groupId = isset($cmd[1]) ? intval($cmd[1]) : null;
 
+        // add whole component's language data to every application page of component
+        $this->_objTpl->setVariable(\Env::get('init')->getComponentSpecificLanguageData('Access'));
         \Cx\Lib\SocialLogin::parseSociallogin($this->_objTpl, 'access_');
         \Cx\Core\Csrf\Controller\Csrf::add_code();
         switch ($cmd[0]) {
@@ -98,7 +100,6 @@ class Access extends \Cx\Core_Modules\Access\Controller\AccessLib
     private function user(&$metaPageTitle, &$pageTitle)
     {
         global $_CONFIG;
-
         $objFWUser = \FWUser::getFWUserObject();
         $objUser = $objFWUser->objUser->getUser(!empty($_REQUEST['id']) ? intval($_REQUEST['id']) : 0);
         if ($objUser) {
@@ -124,6 +125,7 @@ class Access extends \Cx\Core_Modules\Access\Controller\AccessLib
                 'ACCESS_USER_ID'            => $objUser->getId(),
                 'ACCESS_USER_USERNAME'      => contrexx_raw2xhtml($objUser->getUsername()),
                 'ACCESS_USER_PRIMARY_GROUP' => contrexx_raw2xhtml($objUser->getPrimaryGroupName()),
+                'ACCESS_USER_REGDATE'       => date(ASCMS_DATE_FORMAT_DATE, $objUser->getRegistrationDate()),
             ));
 
             if ($objUser->getEmailAccess() == 'everyone' ||
@@ -140,17 +142,96 @@ class Access extends \Cx\Core_Modules\Access\Controller\AccessLib
             $nr = 0;
             while (!$objUser->objAttribute->EOF) {
                 $objAttribute = $objUser->objAttribute->getById($objUser->objAttribute->getId());
-                $this->parseAttribute($objUser, $objAttribute->getId(), 0, false, false, false, false, true, array('_CLASS' => $nr % 2 + 1)) ? $nr++ : false;
+                if ($objAttribute->checkReadPermission()) {
+                    $this->parseAttribute($objUser, $objAttribute->getId(), 0, false, false, false, false, true, array('_CLASS' => $nr % 2 + 1)) ? $nr++ : false;
+                }
                 $objUser->objAttribute->next();
             }
 
-            $this->_objTpl->setVariable("ACCESS_REFERER", $_SERVER['HTTP_REFERER']);
+            $this->_objTpl->setVariable("ACCESS_REFERER", '$(HTTP_REFERER)');
         } else {
             // or would it be better to redirect to the home page?
             \Cx\Core\Csrf\Controller\Csrf::header('Location: index.php?section=Access&cmd=members');
             exit;
         }
     }
+
+    /**
+     * Sanitize the array $filter by ensuring that is only contains
+     * valid keys specified by $allowedFilterKeys.
+     * 
+     * @param   array   $filter Nested array containing profile attribute
+     *                          filter conditions.
+     * @param   array   $allowedFilterKeys  Array consisting of keys that
+     *                                      are allowed to be used as filter
+     *                                      keys.
+     */
+    protected function sanitizeProfileFilter(&$filter, $allowedFilterKeys) { 
+        // verify that the requested filter is valid
+        foreach ($filter as $attribute => &$argument) {
+            // verify $attribute
+            if (   !in_array(strtoupper($attribute), $allowedFilterKeys)
+                && (!is_int($attribute) || !is_array($argument))
+            ) {
+                unset($filter[$attribute]);
+                continue;
+            }
+
+            if (is_array($argument)) {
+                $this->sanitizeProfileFilter($argument, $allowedFilterKeys);
+                // in case $argument contains no valid filters, we shall
+                // remove it completely
+                if (empty($argument)) {
+                    unset($filter[$attribute]);
+                }
+            }
+        }
+    }
+
+    /**
+     * Identifies all valid filter keys (of the current request) to be used
+     * for filtering the users. 
+     * Valid filter arguments can be specified in the application
+     * template in the form of template placeholders. I.e. add the
+     * following placeholder to allow filtering by firstname:
+     *     {ACCESS_FILTER_PROFILE_ATTRIBUTE_FIRSTNAME}
+     *
+     * @return  array   Array consisting of valid filter keys to be used for
+     *                  filtering users.
+     */
+    protected function fetchAllowedFilterAttributes() {
+        // fetch all placeholders from current application template
+        $placeholders = $this->_objTpl->getPlaceholderList();
+        $filterAttributePlaceholderPrefix = $this->modulePrefix.'FILTER_PROFILE_ATTRIBUTE_';
+
+        // filter out special placeholders that identify allowed filter attributes
+        $attributeFilterPlaceholders = preg_grep('/^' . $filterAttributePlaceholderPrefix . '/', $placeholders);
+        $allowedFilterAttributes = preg_filter('/^' . $filterAttributePlaceholderPrefix . '/', '', $attributeFilterPlaceholders);
+
+        // verify that attributes are valid
+        $objFWUser = \FWUser::getFWUserObject();
+        foreach ($allowedFilterAttributes as $idx => $attributeId) {
+            $objAttribute = $objFWUser->objUser->objAttribute->getById(strtolower($attributeId));
+
+            // unkown attribute -> drop it from filter
+            if ($objAttribute->EOF) {
+                unset($allowedFilterAttributes[$idx]);
+                continue;
+            }
+
+            // user does not have read access to attribute -> drop it from filter
+            if (!$objAttribute->checkReadPermission()) {
+                unset($allowedFilterAttributes[$idx]);
+                continue;
+            }
+        }
+
+        // add filter join methods (OR and AND) to allowed filter attributes
+        $allowedFilterAttributes = array_merge($allowedFilterAttributes, array('AND', 'OR', '=', '<', '>', '!=', '<', '>', 'REGEXP', 'LIKE'));
+
+        return $allowedFilterAttributes;
+    }
+
 
     private function members($groupId = null)
     {
@@ -160,17 +241,31 @@ class Access extends \Cx\Core_Modules\Access\Controller\AccessLib
         $search = isset($_REQUEST['search']) && !empty($_REQUEST['search']) ? preg_split('#\s+#', $_REQUEST['search']) : array();
         $limitOffset = isset($_GET['pos']) ? intval($_GET['pos']) : 0;
         $usernameFilter = isset($_REQUEST['username_filter']) && $_REQUEST['username_filter'] != '' && in_array(ord($_REQUEST['username_filter']), array_merge(array(48), range(65, 90))) ? $_REQUEST['username_filter'] : null;
-        $userFilter = array('active' => true);
+
+        $userFilter['AND'][] = array('active' => true);
+
+        if (isset($_REQUEST['profile_filter']) && is_array($_REQUEST['profile_filter'])) {
+            $profileFilter = $_REQUEST['profile_filter'];
+
+            // decode URL notation in supplied profile filter arguments
+            array_walk_recursive($profileFilter, function(&$value, $key) {$value = urldecode($value);});
+
+            // Ensure profile filter does only contain allowed filter arguments.
+            $this->sanitizeProfileFilter($profileFilter, $this->fetchAllowedFilterAttributes());
+            if (!empty($profileFilter)) {
+                $userFilter['AND'][] = $profileFilter;
+            }
+        }
 
         $this->parseLetterIndexList('index.php?section=Access&amp;cmd=members&amp;groupId='.$groupId, 'username_filter', $usernameFilter);
 
         $this->_objTpl->setVariable('ACCESS_SEARCH_VALUE', htmlentities(join(' ', $search), ENT_QUOTES, CONTREXX_CHARSET));
 
         if ($groupId) {
-            $userFilter['group_id'] = $groupId;
+            $userFilter['AND'][] = array('group_id' => $groupId);
         }
         if ($usernameFilter !== null) {
-            $userFilter['username'] = array('REGEXP' => '^'.($usernameFilter == '0' ? '[0-9]|-|_' : $usernameFilter));
+            $userFilter['AND'][] = array('username' => array('REGEXP' => '^'.($usernameFilter == '0' ? '[0-9]|-|_' : $usernameFilter)));
         }
 
         $objFWUser = \FWUser::getFWUserObject();
@@ -190,6 +285,7 @@ class Access extends \Cx\Core_Modules\Access\Controller\AccessLib
                 $this->parseAccountAttributes($objUser);
                 $this->_objTpl->setVariable('ACCESS_USER_ID', $objUser->getId());
                 $this->_objTpl->setVariable('ACCESS_USER_CLASS', $nr++ % 2 + 1);
+                $this->_objTpl->setVariable('ACCESS_USER_REGDATE', date(ASCMS_DATE_FORMAT_DATE, $objUser->getRegistrationDate()));
 
                 if ($objUser->getProfileAccess() == 'everyone' ||
                     $objFWUser->objUser->login() &&
@@ -203,12 +299,18 @@ class Access extends \Cx\Core_Modules\Access\Controller\AccessLib
 
                     while (!$objUser->objAttribute->EOF) {
                         $objAttribute = $objUser->objAttribute->getById($objUser->objAttribute->getId());
-                        $this->parseAttribute($objUser, $objAttribute->getId(), 0, false, false, false, false, false);
+                        if ($objAttribute->checkReadPermission()) {
+                            $this->parseAttribute($objUser, $objAttribute->getId(), 0, false, false, false, false, false);
+                        }
                         $objUser->objAttribute->next();
                     }
                 } else {
-                    $this->parseAttribute($objUser, 'picture', 0, false, false, false, false, false);
-                    $this->parseAttribute($objUser, 'gender', 0, false, false, false, false, false);
+                    foreach (array('picture', 'gender') as $attributeId) {
+                        $objAttribute = $objUser->objAttribute->getById($attributeId);
+                        if ($objAttribute->checkReadPermission()) {
+                            $this->parseAttribute($objUser, $attributeId, 0, false, false, false, false, false);
+                        }
+                    }
                 }
 
                 if($this->_objTpl->blockExists('u2u_addaddress')){
@@ -347,7 +449,7 @@ class Access extends \Cx\Core_Modules\Access\Controller\AccessLib
         }
 
         $uploader = $this->getImageUploader();
-        
+
         $this->parseAccountAttributes($objFWUser->objUser, true);
         $this->parseNewsletterLists($objFWUser->objUser);
 
@@ -521,6 +623,9 @@ class Access extends \Cx\Core_Modules\Access\Controller\AccessLib
                 $this->_objTpl->hideBlock('access_signup_confirm_success');
             }
 
+            $this->_objTpl->hideBlock('access_signup_form');
+            \Cx\Lib\SocialLogin::hideLogin($this->_objTpl, 'access_');
+
             return;
         } else {
             $this->_objTpl->hideBlock('access_signup_confirm_success');
@@ -609,6 +714,7 @@ class Access extends \Cx\Core_Modules\Access\Controller\AccessLib
                 }
 
                 $this->_objTpl->hideBlock('access_signup_form');
+                \Cx\Lib\SocialLogin::hideLogin($this->_objTpl, 'access_');
                 return;
             } else {
                 if (is_array($uploadImageError)) {
@@ -740,65 +846,92 @@ class Access extends \Cx\Core_Modules\Access\Controller\AccessLib
                 $objUserMail->load($mail2load, $_LANGID) ||
                 $objUserMail->load($mail2load)
             ) &&
-            (\Env::get('ClassLoader')->loadFile(ASCMS_LIBRARY_PATH.'/phpmailer/class.phpmailer.php')) &&
-            ($objMail = new \PHPMailer()) !== false
+            ($objMail = new \Cx\Core\MailTemplate\Model\Entity\Mail()) !== false
         ) {
-            if ($_CONFIG['coreSmtpServer'] > 0 && \Env::get('ClassLoader')->loadFile(ASCMS_CORE_PATH.'/SmtpSettings.class.php')) {
-                if (($arrSmtp = \SmtpSettings::getSmtpAccount($_CONFIG['coreSmtpServer'])) !== false) {
-                    $objMail->IsSMTP();
-                    $objMail->Host = $arrSmtp['hostname'];
-                    $objMail->Port = $arrSmtp['port'];
-                    $objMail->SMTPAuth = true;
-                    $objMail->Username = $arrSmtp['username'];
-                    $objMail->Password = $arrSmtp['password'];
-                }
-            }
 
-            $objMail->CharSet = CONTREXX_CHARSET;
             $objMail->SetFrom($objUserMail->getSenderMail(), $objUserMail->getSenderName());
             $objMail->Subject = $objUserMail->getSubject();
 
-            if (in_array($objUserMail->getFormat(), array('multipart', 'text'))) {
+            $isTextMail  = in_array($objUserMail->getFormat(), array('multipart', 'text'));
+            $isHtmlMail  = in_array($objUserMail->getFormat(), array('multipart', 'html'));
+            $searchTerms = array(
+                '[[HOST]]',
+                '[[USERNAME]]',
+                '[[ACTIVATION_LINK]]',
+                '[[HOST_LINK]]',
+                '[[SENDER]]',
+                '[[LINK]]',
+                '[[YEAR]]',
+            );
+            $replaceTextTerms = array(
+                $_CONFIG['domainUrl'],
+                $objUser->getUsername(),
+                'http://'.$_CONFIG['domainUrl'].CONTREXX_SCRIPT_PATH.'?section=Access&cmd=signup&u='.($objUser->getId()).'&k='.$objUser->getRestoreKey(),
+                'http://'.$_CONFIG['domainUrl'],
+                $objUserMail->getSenderName(),
+                'http://'.$_CONFIG['domainUrl'].ASCMS_PATH_OFFSET.ASCMS_BACKEND_PATH.'/index.php?cmd=Access&act=user&tpl=modify&id='.$objUser->getId(),
+                date('Y'),
+            );
+            $replaceHtmlTerms = array(
+                $_CONFIG['domainUrl'],
+                contrexx_raw2xhtml($objUser->getUsername()),
+                'http://'.$_CONFIG['domainUrl'].CONTREXX_SCRIPT_PATH.'?section=Access&cmd=signup&u='.($objUser->getId()).'&k='.$objUser->getRestoreKey(),
+                'http://'.$_CONFIG['domainUrl'],
+                contrexx_raw2xhtml($objUserMail->getSenderName()),
+                'http://'.$_CONFIG['domainUrl'].ASCMS_PATH_OFFSET.ASCMS_BACKEND_PATH.'/index.php?cmd=Access&act=user&tpl=modify&id='.$objUser->getId(),
+                date('Y'),
+            );
+            if ($mail2load == 'reg_confirm') {
+                $imagePath = 'http://'.$_CONFIG['domainUrl']
+                    . \Cx\Core\Core\Controller\Cx::instanciate()
+                    ->getWebsiteImagesAccessProfileWebPath().'/';
+                $objUser->objAttribute->first();
+                while (!$objUser->objAttribute->EOF) {
+                    $objAttribute = $objUser->objAttribute->getById(
+                        $objUser->objAttribute->getId()
+                    );
+
+                    $placeholderName  = strtoupper($objUser->objAttribute->getId());
+                    $searchTerms[]    = '[[USER_' . $placeholderName . ']]';
+                    $placeholderValue = $this->parseAttribute($objUser, $objAttribute->getId(), 0, false, true);
+                    if (
+                        $objAttribute->getType() == 'image' &&
+                        $objAttribute->getId() == 'picture'
+                    ) {
+                        $path = $imagePath.'0_noavatar.gif';
+                        $imgName = $objUser->getProfileAttribute($objAttribute->getId());
+                        if (\Cx\Lib\FileSystem\FileSystem::exists($imagePath . $imgName)) {
+                            $path = $imagePath . $imgName;
+                        }
+                        $replaceHtmlTerms[] = \Html::getImageByPath($path, 'alt="'.$objUser->getEmail().'"');
+                        $replaceTextTerms[] = $path;
+                    } else {
+                        if (in_array($objUser->objAttribute->getType(), array('text', 'menu'))) {
+                            $replaceTextTerms[] = html_entity_decode($placeholderValue, ENT_QUOTES, CONTREXX_CHARSET);
+                            $replaceHtmlTerms[] = html_entity_decode($placeholderValue, ENT_QUOTES, CONTREXX_CHARSET);
+                        } else {
+                            $replaceTextTerms[] = $placeholderValue;
+                            $replaceHtmlTerms[] = $placeholderValue;
+                        }
+                    }
+                    $objUser->objAttribute->next();
+                }
+            }
+
+            if ($isTextMail) {
                 $objUserMail->getFormat() == 'text' ? $objMail->IsHTML(false) : false;
                 $objMail->{($objUserMail->getFormat() == 'text' ? '' : 'Alt').'Body'} = str_replace(
-                    array(
-                        '[[HOST]]',
-                        '[[USERNAME]]',
-                        '[[ACTIVATION_LINK]]',
-                        '[[HOST_LINK]]',
-                        '[[SENDER]]',
-                        '[[LINK]]'
-                    ),
-                    array(
-                        $_CONFIG['domainUrl'],
-                        $objUser->getUsername(),
-                        'http://'.$_CONFIG['domainUrl'].CONTREXX_SCRIPT_PATH.'?section=Access&cmd=signup&u='.($objUser->getId()).'&k='.$objUser->getRestoreKey(),
-                        'http://'.$_CONFIG['domainUrl'],
-                        $objUserMail->getSenderName(),
-                        'http://'.$_CONFIG['domainUrl'].ASCMS_PATH_OFFSET.ASCMS_BACKEND_PATH.'/index.php?cmd=Access&act=user&tpl=modify&id='.$objUser->getId()
-                    ),
+                    $searchTerms,
+                    $replaceTextTerms,
                     $objUserMail->getBodyText()
                 );
             }
-            if (in_array($objUserMail->getFormat(), array('multipart', 'html'))) {
+
+            if ($isHtmlMail) {
                 $objUserMail->getFormat() == 'html' ? $objMail->IsHTML(true) : false;
                 $objMail->Body = str_replace(
-                    array(
-                        '[[HOST]]',
-                        '[[USERNAME]]',
-                        '[[ACTIVATION_LINK]]',
-                        '[[HOST_LINK]]',
-                        '[[SENDER]]',
-                        '[[LINK]]'
-                    ),
-                    array(
-                        $_CONFIG['domainUrl'],
-                        htmlentities($objUser->getUsername(), ENT_QUOTES, CONTREXX_CHARSET),
-                        'http://'.$_CONFIG['domainUrl'].CONTREXX_SCRIPT_PATH.'?section=Access&cmd=signup&u='.($objUser->getId()).'&k='.$objUser->getRestoreKey(),
-                        'http://'.$_CONFIG['domainUrl'],
-                        htmlentities($objUserMail->getSenderName(), ENT_QUOTES, CONTREXX_CHARSET),
-                        'http://'.$_CONFIG['domainUrl'].ASCMS_PATH_OFFSET.ASCMS_BACKEND_PATH.'/index.php?cmd=Access&act=user&tpl=modify&id='.$objUser->getId()
-                    ),
+                    $searchTerms,
+                    $replaceHtmlTerms,
                     $objUserMail->getBodyHtml()
                 );
             }
@@ -832,4 +965,3 @@ class Access extends \Cx\Core_Modules\Access\Controller\AccessLib
         return false;
     }
 }
-?>

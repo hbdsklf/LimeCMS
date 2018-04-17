@@ -45,59 +45,70 @@ namespace Cx\Modules\MediaDir\Controller;
  */
 class MediaDirectoryPlaceholders extends MediaDirectoryLibrary
 {
-    private $strPlaceholder;          
-    
+    private $strPlaceholder;
+
     /**
      * Constructor
      */
     function __construct($name)
     {
-        
+
         parent::__construct('.', $name);
         parent::getSettings();
     }
-    
+
     function getNavigationPlacholder()
     {
         $this->strPlaceholder = null;
-        
+
+        $requestParams = $this->cx->getRequest()->getUrl()->getParamArray();
+
         if($this->arrSettings['settingsShowLevels'] == 1) {
-        	$objLevels = new MediaDirectoryLevel(null, null, 0, $this->moduleName);
-	        $intLevelId = isset($_GET['lid']) ? intval($_GET['lid']) : null;
-	        
-	        $this->strPlaceholder = $objLevels->listLevels($this->_objTpl, 6, $intLevelId);
+            $objLevels = new MediaDirectoryLevel(null, null, 0, $this->moduleName);
+	        $intLevelId = null;
+            if (isset($requestParams['lid'])) {
+                $intLevelId = intval($requestParams['lid']);
+            }
+
+            $this->strPlaceholder = $objLevels->listLevels($this->_objTpl, 6, $intLevelId);
         } else {
-        	$objCategories = new MediaDirectoryCategory(null, null, 0, $this->moduleName);
-            $intCategoryId = isset($_GET['cid']) ? intval($_GET['cid']) : null;
-        
+            $objCategories = new MediaDirectoryCategory(null, null, 0, $this->moduleName);
+            $intCategoryId = null;
+            if (isset($requestParams['cid'])) {
+                $intCategoryId = intval($requestParams['cid']);
+            }
+
             $this->strPlaceholder = $objCategories->listCategories($this->_objTpl, 6, $intCategoryId, null, null, null, 1);
         }
-        
+
         return '<ul id="'.$this->moduleNameLC.'NavigationPlacholder">'.$this->strPlaceholder.'</ul>';
     }
-    
+
     function getLatestPlacholder()
     {
         $this->strPlaceholder = null;
-        
-        $intLimitEnd = intval($this->arrSettings['settingsLatestNumOverview']); 
-        
-        $objEntries = new MediaDirectoryEntry($this->moduleName); 
-        $objEntries->getEntries(null,null,null,null,true,null,1,null,$intLimitEnd);  
-        
+
+        //If the settings option 'List latest entries in webdesign template' is deactivated
+        //then do not parse the latest entries
+        if (!$this->arrSettings['showLatestEntriesInWebdesignTmpl']) {
+            return;
+        }
+        $intLimitEnd = intval($this->arrSettings['settingsLatestNumHeadlines']);
+
+        $objEntries = new MediaDirectoryEntry($this->moduleName);
+        $objEntries->getEntries(null,null,null,null,true,null,1,null,$intLimitEnd);
+
         foreach($objEntries->arrEntries as $intEntryId => $arrEntry) {
-            if($objEntries->checkPageCmd('detail'.intval($arrEntry['entryFormId']))) {
-                $strDetailCmd = 'detail'.intval($arrEntry['entryFormId']);
-            } else {
-                $strDetailCmd = 'detail';
-            }                                                                            
-            
-            $strDetailUrl = 'index.php?section='.$this->moduleName.'&amp;cmd='.$strDetailCmd.'&amp;eid='.$arrEntry['entryId'];
-        
-            $this->strPlaceholder .= '<li><a href="'.$strDetailUrl.'">'.$arrEntry['entryFields'][0].'</a></li>';    
-        } 
-        
-        return '<ul id="'.$this->moduleNameLC.'LatestPlacholder">'.$this->strPlaceholder.'</ul>'; 
+            try {
+                $strDetailUrl = $objEntries->getDetailUrlOfEntry($arrEntry, true);
+            } catch (MediaDirectoryEntryException $e) {
+                $strDetailUrl = '#';
+            }
+
+            $this->strPlaceholder .= '<li><a href="'.$strDetailUrl.'">'.$arrEntry['entryFields'][0].'</a></li>';
+        }
+
+        return '<ul id="'.$this->moduleNameLC.'LatestPlacholder">'.$this->strPlaceholder.'</ul>';
     }
 }
 ?>

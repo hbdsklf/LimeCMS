@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * JSON Adapter for Cx\Core\ContentManager\Model\Entity\Node
  * @copyright   Cloudrexx AG
@@ -50,43 +50,43 @@ class JsonNode implements JsonAdapter {
 
     /**
      * Reference to the Doctine EntityManager
-     * @var \Doctrine\ORM\EntityManager 
+     * @var \Doctrine\ORM\EntityManager
      */
     private $em = null;
-    
+
     /**
      * Reference to the Doctrine NodeRepo
      * @var \Cx\Core\ContentManager\Model\Repository\NodeRepository
      */
     private $nodeRepo = null;
-    
+
     /**
      * Reference to the Doctrine PageRepo
      * @var \Cx\Core\ContentManager\Model\Repository\PageRepository
      */
     private $pageRepo = null;
-    
+
     /**
      * Reference to the Doctring LogRepository
      * @var \Cx\Core\ContentManager\Model\Repository\PageLogRepository
      */
     private $logRepo = null;
-    
+
     /**
      * List of fallback languages
      * @var Array lang=>fallback lang
      */
     private $fallbacks = array();
-    
+
     /**
      * List of messages
-     * @var Array 
+     * @var Array
      */
     private $messages;
-    
+
     /**
      * List of IDs of deleted nodes
-     * @var Array 
+     * @var Array
      */
     protected $deleteBuffer = array();
 
@@ -110,7 +110,7 @@ class JsonNode implements JsonAdapter {
             $this->fallbacks[\FWLanguage::getLanguageCodeById($lang['id'])] = ((array_key_exists($lang['id'], $fallback_lang_codes)) ? \FWLanguage::getLanguageCodeById($fallback_lang_codes[$lang['id']]) : null);
         }
     }
-    
+
     /**
      * Returns the internal name used as identifier for this adapter
      * @return String Name of this adapter
@@ -118,7 +118,7 @@ class JsonNode implements JsonAdapter {
     public function getName() {
         return 'node';
     }
-    
+
     /**
      * Returns an array of method names accessable from a JSON request
      * @return array List of method names
@@ -134,7 +134,7 @@ class JsonNode implements JsonAdapter {
     public function getMessagesAsString() {
         return implode('<br />', $this->messages);
     }
-    
+
     /**
      * Returns default permission as object
      * @return Object
@@ -145,17 +145,17 @@ class JsonNode implements JsonAdapter {
 
     /**
      * Returns the Node tree rendered for JS
-     * @return String JSON data 
+     * @return String JSON data
      */
     public function getTree($parameters) {
         global $_CORELANG;
-        
+
         // Global access check
         if (!\Permission::checkAccess(6, 'static', true) ||
                 !\Permission::checkAccess(35, 'static', true)) {
             throw new ContentManagerException($_CORELANG['TXT_CORE_CM_USAGE_DENIED']);
         }
-        
+
         $nodeId = 0;
         if (isset($parameters['get']) && isset($parameters['get']['nodeid'])) {
             $nodeId = contrexx_input2raw($parameters['get']['nodeid']);
@@ -171,15 +171,15 @@ class JsonNode implements JsonAdapter {
                     $openNodes[] = '#node_' . $node->getId();
                     $node = $node->getParent();
                 }
-                if (!isset($_COOKIE['jstree_open'])) {
-                    $_COOKIE['jstree_open'] = '';
+                $openNodes2 = array();
+                if (isset($_COOKIE[\Cx\Core\ContentManager\Controller\ContentManager::JSTREE_COOKIE_OPEN])) {
+                    $openNodes2 = explode(',', $_COOKIE[\Cx\Core\ContentManager\Controller\ContentManager::JSTREE_COOKIE_OPEN]);
                 }
-                $openNodes2 = explode(',', $_COOKIE['jstree_open']);
                 if ($openNodes2 == array(0=>'')) {
                     $openNodes2 = array();
                 }
                 $openNodes = array_merge($openNodes, $openNodes2);
-                $_COOKIE['jstree_open'] = implode(',', $openNodes);
+                setcookie(\Cx\Core\ContentManager\Controller\ContentManager::JSTREE_COOKIE_OPEN, implode(',', $openNodes), 0, \Cx\Core\Core\Controller\Cx::instanciate()->getWebsiteOffsetPath() . '/');
             }
         }
 
@@ -195,18 +195,18 @@ class JsonNode implements JsonAdapter {
 
     /**
      * Moves a node.
-     * 
+     *
      * The following arguments are used:
      * id = id of the moved node
      * ref = id of the new parent node
      * position = new position of id as ref's Nth child
-     * 
+     *
      * Data source is in /lib/javascript/jquery/jstree/contrexx.js
      * @param array $arguments Arguments passed from JsonData
      */
     public function move($arguments) {
         global $_CORELANG;
-        
+
         // Global access check
         if (!\Permission::checkAccess(6, 'static', true) ||
                 !\Permission::checkAccess(35, 'static', true)) {
@@ -215,7 +215,7 @@ class JsonNode implements JsonAdapter {
         if (!\Permission::checkAccess(160, 'static', true)) {
             throw new ContentManagerException($_CORELANG['TXT_CORE_CM_MOVE_DENIED']);
         }
-        
+
         $moved_node = $this->nodeRepo->find($arguments['post']['id']);
         $parent_node = $this->nodeRepo->find($arguments['post']['ref']);
 
@@ -237,17 +237,18 @@ class JsonNode implements JsonAdapter {
                 $page->setupPath($page->getLang());
                 $this->em->persist($page);
             }
-            
+
             $this->em->persist($moved_node);
             $this->em->persist($parent_node);
 
             $this->em->flush();
             $this->em->getConnection()->commit();
+            $this->clearCache();
         } catch (\Exception $e) {
             $this->em->getConnection()->rollback();
             throw $e;
         }
-        
+
         $nodeLevels = array();
         $nodeStack = array();
         array_push($nodeStack, $moved_node);
@@ -258,15 +259,15 @@ class JsonNode implements JsonAdapter {
                 array_push($nodeStack, $child);
             }
         }
-        
+
         return array(
             'nodeLevels' => $nodeLevels,
         );
     }
-    
+
     public function copy($arguments) {
         global $_CORELANG;
-        
+
         // Global access check
         if (!\Permission::checkAccess(6, 'static', true) ||
                 !\Permission::checkAccess(35, 'static', true)) {
@@ -275,12 +276,12 @@ class JsonNode implements JsonAdapter {
         if (!\Permission::checkAccess(53, 'static', true)) {
             throw new ContentManagerException($_CORELANG['TXT_CORE_CM_COPY_DENIED']);
         }
-        
+
         $node = $this->nodeRepo->find($arguments['get']['id']);
         if (!$node) {
             throw new ContentManagerException($_CORELANG['TXT_CORE_CM_COPY_FAILED']);
         }
-        
+
         // this is necessary to get the position of the original node
         $sortedLevel = array();
         foreach ($node->getParent()->getChildren() as $levelNode) {
@@ -294,34 +295,42 @@ class JsonNode implements JsonAdapter {
                 break;
             }
         }
-        
-        // copy the node recursively and persist changes
-        $newNode = $node->copy(true);
-        $this->em->flush();
-        
-        // rename page
-        foreach ($newNode->getPages() as $page) {
-            $title = $page->getTitle() . ' (' . $_CORELANG['TXT_CORE_CM_COPY_OF_PAGE'] . ')';
-            $i = 1;
-            while ($this->titleExists($node->getParent(), $page->getLang(), $title)) {
-                $i++;
-                if ($page->getLang() == \FWLanguage::getDefaultLangId()) {
-                    $position++;
+
+        $this->em->getConnection()->beginTransaction();
+        try {
+            // copy the node recursively and persist changes
+            $newNode = $node->copy(true);
+            $this->em->flush();
+
+            // rename page
+            foreach ($newNode->getPages() as $page) {
+                $title = $page->getTitle() . ' (' . $_CORELANG['TXT_CORE_CM_COPY_OF_PAGE'] . ')';
+                $i = 1;
+                while ($this->titleExists($node->getParent(), $page->getLang(), $title)) {
+                    $i++;
+                    if ($page->getLang() == \FWLanguage::getDefaultLangId()) {
+                        $position++;
+                    }
+                    $title = $page->getTitle() . ' (' . sprintf($_CORELANG['TXT_CORE_CM_COPY_N_OF_PAGE'], $i) . ')';
                 }
-                $title = $page->getTitle() . ' (' . sprintf($_CORELANG['TXT_CORE_CM_COPY_N_OF_PAGE'], $i) . ')';
+                $page->setTitle($title);
+                $this->em->persist($page);
             }
-            $page->setTitle($title);
-            $this->em->persist($page);
+
+            // move the node to correct position
+            $this->nodeRepo->moveUp($newNode, true);
+            $this->nodeRepo->moveDown($newNode, $position, true);
+            $this->em->persist($newNode);
+
+            $this->em->flush();
+            $this->em->getConnection()->commit();
+            $this->clearCache();
+        } catch (\Exception $e) {
+            $this->em->getConnection()->rollback();
+            throw $e;
         }
-        
-        // move the node to correct position
-        $this->nodeRepo->moveUp($newNode, true);
-        $this->nodeRepo->moveDown($newNode, $position, true);
-        $this->em->persist($newNode);
-        
-        $this->em->flush();
     }
-    
+
     protected function titleExists($parentNode, $lang, $title) {
         foreach ($parentNode->getChildren() as $childNode) {
             if ($childNode->getPage($lang) && $childNode->getPage($lang)->getTitle() == $title) {
@@ -337,7 +346,7 @@ class JsonNode implements JsonAdapter {
      */
     public function delete($arguments, $flush = true) {
         global $_CORELANG;
-        
+
         // Global access check
         if (!\Permission::checkAccess(6, 'static', true) ||
                 !\Permission::checkAccess(35, 'static', true)) {
@@ -346,7 +355,7 @@ class JsonNode implements JsonAdapter {
         if (!\Permission::checkAccess(26, 'static', true)) {
             throw new ContentManagerException($_CORELANG['TXT_CORE_CM_DELETE_DENIED']);
         }
-        
+
         $node = $this->nodeRepo->find($arguments['post']['id']);
         if (!$node) {
             return array(
@@ -354,7 +363,7 @@ class JsonNode implements JsonAdapter {
                 'deletedCurrentPage'    => false,
             );
         }
-        
+
         // explicit recursive delete in order to ensure logs get written
         // MOVED code down below to NodeEventListener.class.php @method: preRemove();
         /*$toDelete = array($node);
@@ -384,34 +393,50 @@ class JsonNode implements JsonAdapter {
         }*/
         $this->em->remove($node);
         if ($flush) {
-            $this->em->flush();
-            $this->em->clear();
+            $this->em->getConnection()->beginTransaction();
+            try {
+                $this->em->flush();
+                $this->em->clear();
+                $this->em->getConnection()->commit();
+                $this->clearCache();
+            } catch (\Exception $e) {
+                $this->em->getConnection()->rollback();
+                throw $e;
+            }
         }
         return array(
             'action'                => 'delete',
             'deletedCurrentPage'    => (isset($arguments['post']['currentNodeId']) && $arguments['post']['currentNodeId'] == $arguments['post']['id']),
         );
     }
-    
+
     /**
      * Deletes multiple nodes.
-     * 
+     *
      * @param  array  $param  Client parameters.
      */
     public function multipleDelete($params) {
         $post   = $params['post'];
         $return = array('action' => 'delete');
-        
-        foreach ($post['nodes'] as $nodeId) {
-            $data['post']['id'] = $nodeId;
-            $this->delete($data, false);
-            if ($nodeId == $post['currentNodeId']) {
-                $return['deletedCurrentPage'] = true;
+
+        $this->em->getConnection()->beginTransaction();
+        try {
+            foreach ($post['nodes'] as $nodeId) {
+                $data['post']['id'] = $nodeId;
+                $this->delete($data, false);
+                if ($nodeId == $post['currentNodeId']) {
+                    $return['deletedCurrentPage'] = true;
+                }
             }
+            $this->em->flush();
+            $this->em->clear();
+            $this->em->getConnection()->commit();
+            $this->clearCache();
+        } catch (\Exception $e) {
+            $this->em->getConnection()->rollback();
+            throw $e;
         }
-        $this->em->flush();
-        $this->em->clear();
-        
+
         return $return;
     }
 
@@ -451,14 +476,14 @@ class JsonNode implements JsonAdapter {
 
         // get open nodes
         $open_nodes = array();
-        if (isset($_COOKIE['jstree_open'])) {
-            $tmp_open_nodes = explode(',', $_COOKIE['jstree_open']);
+        if (isset($_COOKIE[\Cx\Core\ContentManager\Controller\ContentManager::JSTREE_COOKIE_OPEN])) {
+            $tmp_open_nodes = explode(',', $_COOKIE[\Cx\Core\ContentManager\Controller\ContentManager::JSTREE_COOKIE_OPEN]);
             foreach ($tmp_open_nodes as $node) {
                 $node_id = substr($node, 6);
                 $open_nodes[$node_id] = true;
             }
         }
-        
+
         $output     = array();
         $tree       = array();
         $nodeLevels = array();
@@ -466,7 +491,7 @@ class JsonNode implements JsonAdapter {
             $data       = array();
             $metadata   = array();
             $children   = array();
-            
+
             // if this node is expanded (toggled)
             $toggled = (isset($open_nodes[$node->getId()]) &&
                         $open_nodes[$node->getId()]);
@@ -535,7 +560,7 @@ class JsonNode implements JsonAdapter {
                         !\Permission::checkAccess($page->getBackendAccessId(), 'dynamic', true)) {
                     $publishingStatus .= ' locked';
                 }
-                
+
                 $metadata[$page->getId()] = array(
                     'visibility' => $page->getStatus(),
                     'publishing' => $publishingStatus,
@@ -545,7 +570,7 @@ class JsonNode implements JsonAdapter {
             if ($numberOfPages == 0) {
                 continue;
             }
-            
+
             foreach ($fallback_langs as $lang => $fallback) {
                 // fallback can be false, array_key_exists does not like booleans
                 if (!$fallback) {
@@ -581,7 +606,7 @@ class JsonNode implements JsonAdapter {
                     'publishing' => 'unpublished',
                 );
             }
-            
+
             $state = array();
             if (count($node->getChildren()) > 0) {
                 if ($toggled) {
@@ -617,53 +642,53 @@ class JsonNode implements JsonAdapter {
             ));
             $output['hasHome'][$lang['lang']] = ($page ? $page->getId() : false);
         }
-        
+
         return($output);
     }
-    
+
     /**
      * Gets the page titles of all languages.
-     * 
+     *
      * @return  array  $tree
      */
     public function getPageTitlesTree()
-    {        
+    {
         $root = $this->nodeRepo->getRoot();
         $tree = $this->buildPageTitlesTree($root);
-        
+
         return $tree;
     }
-    
+
     /**
      * Builds a tree with all page titles.
-     * 
+     *
      * @param   array  $root
      */
     protected function buildPageTitlesTree($root)
-    {   
+    {
         $sortedTree = array();
         foreach ($root->getChildren() as $node) {
             $sortedTree[$node->getLft()] = $node;
         }
         ksort($sortedTree);
-        
+
         $tree     = array();
         $children = array();
-        
+
         foreach ($sortedTree as $node) {
             $children = $this->buildPageTitlesTree($node);
-            
+
             $nodeId   = $node->getId();
             $langCode = 0;
-            
+
             foreach ($node->getPages() as $page) {
                 $langCode = \FWLanguage::getLanguageCodeById($page->getLang());
-                
+
                 $tree[$nodeId][$langCode]['title'] = $page->getTitle();
                 $tree[$nodeId][$langCode]['id'] = $page->getId();
                 $tree[$nodeId][$langCode]['level'] = $node->getLvl();
             }
-            
+
             foreach ($this->fallbacks as $lang => $fallback) {
                 $fallback = $fallback ? $fallback : null;
                 if (isset($tree[$nodeId]) && !array_key_exists($lang, $tree[$nodeId]) && array_key_exists($fallback, $tree[$nodeId])) {
@@ -676,10 +701,18 @@ class JsonNode implements JsonAdapter {
                     }
                 }
             }
-            
+
             $tree += $children;
         }
-        
+
         return $tree;
+    }
+
+    /**
+     * Drops the complete output cache
+     */
+    protected function clearCache() {
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $cx->getComponent('Cache')->clearCache();
     }
 }

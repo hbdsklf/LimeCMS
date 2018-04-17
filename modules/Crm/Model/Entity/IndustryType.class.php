@@ -93,7 +93,8 @@ class IndustryType
         $arrIndustries = array();
         $whereParentId = '';
         $whereActive   = '';
-        
+        $langId = !empty($_LANGID) ? $_LANGID : FRONTEND_LANG_ID;
+
         if (!empty($intIndustryId)) {
             $whereParentId = '';
         } else {
@@ -101,14 +102,14 @@ class IndustryType
                 $whereParentId = "AND parent_id = {$intParentId}";
             } else {
                 $whereParentId = "AND parent_id = 0";
-            }            
+            }
         }
 
         if ($status) {
             $whereActive = "AND (Intype.status = '1') ";
         } else {
             $whereActive = '';
-	}
+    }
         $sortOrder = 'ORDER BY sorting ASC';
 
         $objIndustries = $objDatabase->Execute("SELECT Intype.id,
@@ -119,7 +120,7 @@ class IndustryType
                                                  FROM `".DBPREFIX."module_{$this->moduleName}_industry_types` AS Intype
                                                  LEFT JOIN `".DBPREFIX."module_{$this->moduleName}_industry_type_local` AS Inloc
                                                     ON Intype.id = Inloc.entry_id
-                                                 WHERE Inloc.lang_id = ".$_LANGID."
+                                                 WHERE Inloc.lang_id = ".$langId."
                                                  $whereParentId
                                                  $whereActive
                                                  $sortOrder
@@ -147,7 +148,7 @@ class IndustryType
 
     /**
      * Set the variable if new
-     * 
+     *
      * @param String $name  variable name
      * @param String $value variable value
      *
@@ -160,7 +161,7 @@ class IndustryType
 
     /**
      * Get the variable value
-     * 
+     *
      * @param String $name variable name
      *
      * @return String

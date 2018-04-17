@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,15 +24,15 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
-/** 
+
+/**
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
  * @author      Cloudrexx Development Team <info@cloudrexx.com>
- * @access      public 
+ * @access      public
  * @package     cloudrexx
  * @subpackage  core_viewmanager
- */ 
-global $_ARRAYLANG; 
+ */
+global $_ARRAYLANG;
 $_ARRAYLANG['TXT_DESIGN_MANAGEMENT'] = "Layout";
 $_ARRAYLANG['TXT_THEME_UNABLE_TO_CREATE'] = 'kan niet worden aangemaakt!';
 $_ARRAYLANG['TXT_DESIGN_OVERVIEW'] = 'Overzicht';
@@ -105,7 +105,6 @@ $_ARRAYLANG['TXT_ACTIVE_TEMPLATE'] = 'Standaard';
 $_ARRAYLANG['TXT_ACTIVE_PDF_TEMPLATE'] = 'PDF';
 $_ARRAYLANG['TXT_ACTIVE_PRINT_TEMPLATE'] = 'Print';
 $_ARRAYLANG['TXT_THEME_ACTIVATE_INFO'] = 'Geactiveerde taal';
-$_ARRAYLANG['TXT_THEME_ACTIVATE_INFO_BODY'] = 'Is een taal roze gekleurd, dan is deze in de Frontend bij de <a href="index.php?cmd=LanguageManager">Taalinstellingen</a> geactiveerd';
 $_ARRAYLANG['TXT_ACTIVE_MOBILE_TEMPLATE'] = 'Mobile';
 $_ARRAYLANG['TXT_APP'] = 'App';
 $_ARRAYLANG['TXT_DESIGN_VARIABLES_LIST'] = 'Vervangende map';

@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * Navigation
  * Note: modified 27/06/2006 by Sébastien Perret => sva.perret@bluewin.ch
@@ -81,7 +81,7 @@ class Navigation
     {
         return $this->parseNavigation($templateContent, $license, $boolShop, true);
     }
-    
+
 
     public function getNavigation($templateContent, $license, $boolShop=false)
     {
@@ -178,12 +178,14 @@ class Navigation
 
 
     /**
-     * getFrontendLangNavigation()
-     * @param \Cx\Core\Routing\Url $pageUrl
-     * @param boolean $langNameContraction
-     * @return string 
+     * Get frontend language navigation
+     *
+     * @param Cx\Core\ContentManager\Model\Entity\Page $page                page object
+     * @param boolean                                  $langNameContraction If true, display short lang name
+     *
+     * @return string
      */
-    public function getFrontendLangNavigation($page, $pageUrl, $langNameContraction = false)
+    public function getFrontendLangNavigation($page, $langNameContraction = false)
     {
         $activeLanguages = \FWLanguage::getActiveFrontendLanguages();
         $node = $page->getNode();
@@ -191,16 +193,26 @@ class Navigation
         $langNavigation = array();
         foreach ($activeLanguages as $langId => $langData) {
             $targetPage = $node->getPage($langId);
-            if ($targetPage && $targetPage->isActive()) {
-                $url = clone $pageUrl;
-                $url->setLangDir($langData['lang']);
-                $url->setPath(substr($targetPage->getPath(), 1));
-
-                $name  = contrexx_raw2xhtml($langNameContraction ? strtoupper($langData['lang']) : $langData['name']);
-                $class = $langId == FRONTEND_LANG_ID ? $langData['lang'].' active' : $langData['lang'];
-
-                $langNavigation[] = '<a class="'.$class.'" href="'.$url.'" title="'.$name.'">'.$name.'</a>';
+            if (!$targetPage || !$targetPage->isActive()) {
+                continue;
             }
+            $name = $langData['name'];
+            if ($langNameContraction) {
+                $name = strtoupper($langData['lang']);
+            }
+
+            $class = $langData['lang'];
+            if ($langId == FRONTEND_LANG_ID) {
+                $class = $langData['lang'] . ' active';
+            }
+
+            $nodePlaceholder  = \Cx\Core\Routing\NodePlaceholder::fromPage($targetPage);
+            $langNavigation[] = \Html::getLink(
+                $nodePlaceholder . '$(QUERY_STRING)',
+                contrexx_raw2xhtml($name),
+                null,
+                'class="' . $class . '" title="' . contrexx_raw2xhtml($name) . '" '
+            );
         }
 
         return implode('', $langNavigation);
@@ -208,31 +220,26 @@ class Navigation
 
 
     /**
-     * Sets the language placeholders in the provided template
-     * @param \Cx\Core\Routing\Url $pageUrl
-     * @param \Cx\Core\Html\Sigma $objTemplate 
+     * Get language link by lang ID
+     *
+     * @param \Cx\Core\ContentManager\Model\Entity\Page $page   page object
+     * @param integer                                   $langId language ID
+     *
+     * @return string
      */
-    public function setLanguagePlaceholders($page, $pageUrl, $objTemplate)
-    {
-        $activeLanguages = \FWLanguage::getActiveFrontendLanguages();
-        $node = $page->getNode();
-
-        $placeholders = array();
-        foreach ($activeLanguages as $langId => $langData) {
-            $url = clone $pageUrl;
-            $url->setLangDir($langData['lang']);
-
-            if (($targetPage = $node->getPage($langId)) && $targetPage->isActive()) {
-                $url->setPath(substr($targetPage->getPath(), 1));
-                $link = $url->__toString();
-            } else {
-                $link = $url->fromModuleAndCmd('Error', '', $langId);
-            }
-            $placeholders['LANG_CHANGE_'.strtoupper($langData['lang'])] = $link;
-            $placeholders['LANG_SELECTED_'.strtoupper($langData['lang'])] = '';
+    public function getLanguageLinkById(
+        \Cx\Core\ContentManager\Model\Entity\Page $page,
+        $langId
+    ) {
+        if (empty($langId)) {
+            return;
         }
-        $placeholders['LANG_SELECTED_'.strtoupper($pageUrl->getLangDir())] = 'selected';
-        $objTemplate->setVariable($placeholders);
+
+        $node       = $page->getNode();
+        $targetPage = $node->getPage($langId);
+        if (!$targetPage || !$targetPage->isActive()) {
+            return \Cx\Core\Routing\Url::fromModuleAndCmd('Error', '', $langId);
+        }
+        return \Cx\Core\Routing\NodePlaceholder::fromPage($targetPage) . '$(QUERY_STRING)';
     }
 }
-

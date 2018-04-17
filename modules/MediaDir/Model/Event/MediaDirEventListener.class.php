@@ -54,18 +54,17 @@ class MediaDirEventListener extends DefaultEventListener
     /**
      * Global search event listener
      * Appends the MediaDir search results to the search object
-     * 
+     *
      * @param array $search
      */
     public function SearchFindContent($search) {
-        if (!$search->getAccessablePage('MediaDir')) {
-            return;
-        }
+        // note: inclusion check is done in method MediaDirectoryEntry::searchResultsForSearchModule()
+
         $objEntry = new \Cx\Modules\MediaDir\Controller\MediaDirectoryEntry('MediaDir');
         $result   = new \Cx\Core_Modules\Listing\Model\Entity\DataSet($objEntry->searchResultsForSearchModule($search->getTerm()));
         $search->appendResult($result);
     }
-    
+
     public function mediasourceLoad(
         MediaSourceManager $mediaBrowserConfiguration
     ) {

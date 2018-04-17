@@ -45,13 +45,13 @@ namespace Cx\Modules\Pim\Controller;
  * @subpackage  module_pim
  */
 class BackendController extends \Cx\Core\Core\Model\Entity\SystemComponentBackendController {
-    
+
     /**
      * Template object
      */
     protected $template;
-    
-    
+
+
     /**
      * Returns a list of available commands (?act=XY)
      * @return array List of acts
@@ -59,17 +59,17 @@ class BackendController extends \Cx\Core\Core\Model\Entity\SystemComponentBacken
     public function getCommands() {
         return array('Price');
     }
-    
+
     /**
      * Use this to parse your backend page
-     * 
+     *
      * You will get the template located in /View/Template/{CMD}.html
      * You can access Cx class using $this->cx
      * To show messages, use \Message class
      * @param \Cx\Core\Html\Sigma $template Template for current CMD
      * @param array $cmd CMD separated by slashes
      */
-    public function parsePage(\Cx\Core\Html\Sigma $template, array $cmd) {
+    public function parsePage(\Cx\Core\Html\Sigma $template, array $cmd, &$isSingle = false) {
         // this class inherits from Controller, therefore you can get access to
         // Cx like this:
         $this->cx;
@@ -83,24 +83,24 @@ class BackendController extends \Cx\Core\Core\Model\Entity\SystemComponentBacken
            Note: This function (parsePage) can be removed as soon as ViewGenerator has first tab support
         */
         if ($act != '') {
-            parent::parsePage($template, $cmd);
+            parent::parsePage($template, $cmd, $isSingle);
         } else {
             $this->connectToController('Default');
         }
-                
+
         \Message::show();
     }
-    
+
     /**
      * Trigger a controller according the act param from the url
-     * 
+     *
      * @param   string $act
      */
     public function connectToController($act)
     {
         $act = ucfirst($act);
         $controller = $this->getSystemComponentController()->getController($act);
-        $controller->parsePage($this->template);
+        $controller->parsePage($this->template, array());
 
     }
 
@@ -110,9 +110,10 @@ class BackendController extends \Cx\Core\Core\Model\Entity\SystemComponentBacken
      * @access protected
      * @global $_ARRAYLANG
      * @param $entityClassName contains the FQCN from entity
+     * @param $dataSetIdentifier if $entityClassName is DataSet, this is used for better partition
      * @return array with options
      */
-    protected function getViewGeneratorOptions($entityClassName) {
+    protected function getViewGeneratorOptions($entityClassName, $dataSetIdentifier = '') {
         global $_ARRAYLANG;
 
         $classNameParts = explode('\\', $entityClassName);

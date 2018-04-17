@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * This listener ensures slug consistency on Page objects.
  * On Flushing, all entities are scanned and changed where needed.
@@ -60,41 +60,42 @@ class PageEventListenerException extends \Exception {}
  * @subpackage  core_contentmanager
  */
 class PageEventListener implements \Cx\Core\Event\Model\Entity\EventListener {
-    
+
+    /**
+     * lastPreUpdateChangeset
+     *
+     * @var array Entity changeset
+     */
+    protected $lastPreUpdateChangeset;
+
     public function prePersist($eventArgs) {
         $this->setUpdatedByCurrentlyLoggedInUser($eventArgs);
         $this->fixAutoIncrement();
     }
-    
+
     /**
      *
-     * @param \Doctrine\ORM\Event\PreUpdateEventArgs $eventArgs 
+     * @param \Doctrine\ORM\Event\PreUpdateEventArgs $eventArgs
      */
     public function preUpdate($eventArgs) {
         $this->setUpdatedByCurrentlyLoggedInUser($eventArgs);
+        $this->lastPreUpdateChangeset = $eventArgs->getEntityChangeSet();
     }
 
+    /**
+     * The page is updated by currently logged user
+     *
+     * @param \Doctrine\ORM\Event\PreUpdateEventArgs $eventArgs
+     *
+     * @return null
+     */
     protected function setUpdatedByCurrentlyLoggedInUser($eventArgs) {
         $entity = $eventArgs->getEntity();
-        $em     = $eventArgs->getEntityManager();
-        $uow    = $em->getUnitOfWork();
 
         if ($entity instanceof \Cx\Core\ContentManager\Model\Entity\Page) {
             $entity->setUpdatedBy(
                 \FWUser::getFWUserObject()->objUser->getUsername()
             );
-
-            if (\Env::get('em')->contains($entity)) {
-                $uow->recomputeSingleEntityChangeSet(
-                    $em->getClassMetadata('Cx\Core\ContentManager\Model\Entity\Page'),
-                    $entity
-                );
-            } else {
-                $uow->computeChangeSet(
-                    $em->getClassMetadata('Cx\Core\ContentManager\Model\Entity\Page'),
-                    $entity
-                );
-            }
         }
     }
 
@@ -102,7 +103,7 @@ class PageEventListener implements \Cx\Core\Event\Model\Entity\EventListener {
         $em      = $eventArgs->getEntityManager();
         $uow     = $em->getUnitOfWork();
         $entity  = $eventArgs->getEntity();
-        
+
         // remove aliases of page
         $aliases = $entity->getAliases();
         if (!empty($aliases)) {
@@ -119,10 +120,28 @@ class PageEventListener implements \Cx\Core\Event\Model\Entity\EventListener {
 
     public function postPersist($eventArgs) {
         $this->writeXmlSitemap($eventArgs);
+        // drop complete cache on page creation:
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $cx->getComponent('Cache')->clearCache();
     }
 
     public function postUpdate($eventArgs) {
         $this->writeXmlSitemap($eventArgs);
+        // drop complete cache if active or visible flag changed
+        // or if navigation title, navigation CSS name or slug changed:
+        if (
+            $this->lastPreUpdateChangeset &&
+            (
+                isset($this->lastPreUpdateChangeset['active']) ||
+                isset($this->lastPreUpdateChangeset['display']) ||
+                isset($this->lastPreUpdateChangeset['slug']) ||
+                isset($this->lastPreUpdateChangeset['cssNavName']) ||
+                isset($this->lastPreUpdateChangeset['title'])
+            )
+        ) {
+            $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+            $cx->getComponent('Cache')->clearCache();
+        }
     }
 
     public function postRemove($eventArgs) {
@@ -148,16 +167,13 @@ class PageEventListener implements \Cx\Core\Event\Model\Entity\EventListener {
 
         $pageRepo = $em->getRepository('Cx\Core\ContentManager\Model\Entity\Page');
 
-        global $objCache;
-        if ($objCache) {
-            /*
-             * Really unneccessary, because we do not use resultcache 
-             * @see http://bugs.contrexx.com/contrexx/ticket/2339
-             */
-            //$objCache->clearCache();
-        }
-        
-        foreach ($uow->getScheduledEntityUpdates() AS $entity) {            
+        /*
+         * Really unneccessary, because we do not use resultcache
+         * @see http://bugs.contrexx.com/contrexx/ticket/2339
+         */
+        //\Cx\Core\Core\Controller\Cx::instanciate()->getComponent('Cache')->clearCache();
+
+        foreach ($uow->getScheduledEntityUpdates() AS $entity) {
             $this->checkValidPersistingOperation($pageRepo, $entity);
         }
     }
@@ -172,7 +188,7 @@ class PageEventListener implements \Cx\Core\Event\Model\Entity\EventListener {
      */
     protected function checkValidPersistingOperation($pageRepo, $page) {
         global $_CORELANG;
-        
+
         if ($page instanceof Page) {
             if ($page->isVirtual()) {
                 throw new PageEventListenerException('Tried to persist Page "'.$page->getTitle().'" with id "'.$page->getId().'". This Page is virtual and cannot be stored in the DB.');
@@ -193,7 +209,7 @@ class PageEventListener implements \Cx\Core\Event\Model\Entity\EventListener {
                         && current($home)->getId() != $page->getId())
                 ) {
                     throw new PageEventListenerException('Tried to persist Page "'.$page->getTitle().'" with id "'.$page->getId().'". Only one page with module "home" and no cmd is allowed.');
-                    
+
                     // the following is not necessary, since a nice error message
                     // is display by javascript.
                     // find the other page to display a better error message:
@@ -203,9 +219,9 @@ class PageEventListener implements \Cx\Core\Event\Model\Entity\EventListener {
                         $home = current($home);
                     }
                     throw new PageEventListenerException(sprintf($_CORELANG['TXT_CORE_CM_HOME_FAIL'], $home->getId(), $home->getPath()));
-                    
+
                     //SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '1-110-Cx\Model\ContentManager\Page' for key 'log_class_unique_version_idx'
-                    
+
                     //'Tried to persist Page "'.$page->getTitle().'" with id "'.$page->getId().'". Only one page with module "home" and no cmd is allowed.');
                 }
             }
@@ -232,10 +248,10 @@ class PageEventListener implements \Cx\Core\Event\Model\Entity\EventListener {
         }
     }
 
-    public function onEvent($eventName, array $eventArgs) {        
+    public function onEvent($eventName, array $eventArgs) {
         $this->$eventName(current($eventArgs));
     }
-   
+
      public static function SearchFindContent($search) {
         $pageRepo = \Env::get('em')->getRepository('Cx\Core\ContentManager\Model\Entity\Page');
         $result = new \Cx\Core_Modules\Listing\Model\Entity\DataSet(

@@ -122,8 +122,8 @@ class GuestBook extends GuestBookLibrary {
         $this->_objTpl->setVariable("GUESTBOOK_TOTAL_ENTRIES", $count);
 
         $query = "    SELECT         id,
-								forename,
-								name,
+                                forename,
+                                name,
                                 gender,
                                 url,
                                 email,
@@ -209,7 +209,7 @@ class GuestBook extends GuestBookLibrary {
                 $errors .= $error . "<br />";
             }
         }
-        
+
         $checked = "checked=\"checked\"";
 
         if ($_POST['malefemale'] == "F") {
@@ -282,8 +282,8 @@ class GuestBook extends GuestBookLibrary {
 
         $query = "INSERT INTO " . DBPREFIX . "module_guestbook
                         (status,
-	                     forename,
-	                     name,
+                         forename,
+                         name,
                          gender,
                          url,
                          datetime,
@@ -293,8 +293,8 @@ class GuestBook extends GuestBookLibrary {
                          location,
                          lang_id)
                  VALUES ($status,
-						'" . addslashes($name) . "',
-						'" . addslashes($forename) . "',
+                        '" . addslashes($name) . "',
+                        '" . addslashes($forename) . "',
                         '" . addslashes($gender) . "',
                         '" . addslashes($url) . "',
                         '".date('Y-m-d H:i:s')."',
@@ -389,30 +389,16 @@ class GuestBook extends GuestBookLibrary {
         $mailto = $_CONFIG['coreAdminEmail'];
         $subject = $_ARRAYLANG['TXT_NEW_GUESTBOOK_ENTRY'] . " " . $_CONFIG['domainUrl'];
 
-        if (@include_once ASCMS_LIBRARY_PATH . '/phpmailer/class.phpmailer.php') {
-            $objMail = new \phpmailer();
+        $objMail = new \Cx\Core\MailTemplate\Model\Entity\Mail();
 
-            if ($_CONFIG['coreSmtpServer'] > 0 && @include_once ASCMS_CORE_PATH . '/SmtpSettings.class.php') {
-                if (($arrSmtp = \SmtpSettings::getSmtpAccount($_CONFIG['coreSmtpServer'])) !== false) {
-                    $objMail->IsSMTP();
-                    $objMail->Host = $arrSmtp['hostname'];
-                    $objMail->Port = $arrSmtp['port'];
-                    $objMail->SMTPAuth = true;
-                    $objMail->Username = $arrSmtp['username'];
-                    $objMail->Password = $arrSmtp['password'];
-                }
-            }
-
-            $objMail->CharSet = CONTREXX_CHARSET;
-            $from = isset($email) ? $email : $mailto;
-            $objMail->SetFrom($from);
-            $objMail->Subject = $subject;
-            $objMail->IsHTML(false);
-            $objMail->Body = $message;
-            $objMail->AddAddress($mailto);
-            if ($objMail->Send()) {
-                return true;
-            }
+        $from = isset($email) ? $email : $mailto;
+        $objMail->SetFrom($from);
+        $objMail->Subject = $subject;
+        $objMail->IsHTML(false);
+        $objMail->Body = $message;
+        $objMail->AddAddress($mailto);
+        if ($objMail->Send()) {
+            return true;
         }
 
         return false;

@@ -1,0 +1,23 @@
+pipelines:
+  default:
+    - step:
+        script:
+          # from https://medium.com/@jay_proulx/aws-codecommit-from-atlassian-bitbucket-and-bitbucket-pipelines-for-ci-offloading-4f1131695802
+          - echo $CodeCommitKey > ~/.ssh/codecommit-pipelines.tmp
+          - base64 -d ~/.ssh/codecommit-pipelines.tmp > ~/.ssh/codecommit-pipelines
+          - chmod 400 ~/.ssh/codecommit-pipelines
+          - echo $CodeCommitConfig > ~/.ssh/config.tmp
+          - base64 -d  ~/.ssh/config.tmp > ~/.ssh/config
+          - set +e
+          - ssh -o StrictHostKeyChecking=no $CodeCommitHost
+          - set -e
+          - git remote add codecommit ssh://$CodeCommitRepo
+          - git push codecommit $BITBUCKET_BRANCH
+  branches:
+    master:
+      - step:
+          script:
+            - RESULT=`curl -X POST -H "Content-Type:application/json" -u $BITBUCKET_USER:$BITBUCKET_PASS  https://api.bitbucket.org/2.0/repositories/cloudrexx/cloudrexx/pullrequests -d "{\"title\":\"Automatic merge from $SOURCE_BRANCH into $DEST_BRANCH\",\"description\":\"$MERGE_DESCRIPTION\",\"source\":{\"branch\":{\"name\":\"$SOURCE_BRANCH\"}},\"destination\":{\"branch\":{\"name\":\"$DEST_BRANCH\"}},\"close_source_branch\":false }"`
+            - if [[ $RESULT =~ $REGEX ]] ; then MERGE_URI=${BASH_REMATCH[1]}; else echo "Error while creating merge request, aborting. Result was $RESULT"; exit -1; fi
+            - echo "$MERGE_URI"
+            - curl -X POST -H "Content-Type:application/json" -u $BITBUCKET_USER:$BITBUCKET_PASS "$MERGE_URI" -d "{}"

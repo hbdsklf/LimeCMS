@@ -27,7 +27,7 @@
 
 /**
  * Main controller for Jobs
- * 
+ *
  * @copyright   Cloudrexx AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @package     cloudrexx
@@ -38,7 +38,7 @@ namespace Cx\Modules\Jobs\Controller;
 
 /**
  * Main controller for Jobs
- * 
+ *
  * @copyright   Cloudrexx AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @package     cloudrexx
@@ -49,12 +49,21 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
     public function getControllerClasses() {
 // Return an empty array here to let the component handler know that there
 // does not exist a backend, nor a frontend controller of this component.
-        return array();
+        return array('JsonJobs');
+    }
+
+    /**
+     * Returns a list of JsonAdapter class names
+     * 
+     * @return array List of ComponentController classes
+     */
+    public function getControllersAccessableByJson() {
+        return array('JsonJobsController');
     }
 
     /**
      * Load your component.
-     * 
+     *
      * @param \Cx\Core\ContentManager\Model\Entity\Page $page       The resolved page
      */
     public function load(\Cx\Core\ContentManager\Model\Entity\Page $page) {
@@ -88,4 +97,18 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
         }
     }
 
+    /**
+     * Do something after content is loaded from DB
+     * 
+     * @param \Cx\Core\ContentManager\Model\Entity\Page $page The resolved page
+     */
+    public function postContentLoad(\Cx\Core\ContentManager\Model\Entity\Page $page) {
+        if ($this->cx->getMode() !== \Cx\Core\Core\Controller\Cx::MODE_FRONTEND) {
+            return;
+        }
+
+        //Parse the Hot / Latest jobs
+        $jobLib = new JobsLibrary();
+        $jobLib->parseHotOrLatestJobs($this->cx->getTemplate());
+    }
 }

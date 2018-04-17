@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -26,19 +26,29 @@
  */
 
 header("content-type: application/javascript");
-if (strpos(dirname(__FILE__), 'customizing') === false) {
-    $contrexx_path = dirname(dirname(dirname(__FILE__)));
-} else {
+
+// detect system location
+$depth = 3;
+if (strpos(__FILE__, 'customizing/') !== false) {
     // this files resides within the customizing directory, therefore we'll have to strip
     // out one directory more than usually
-    $contrexx_path = dirname(dirname(dirname(dirname(__FILE__))));
+    $depth++;
 }
+if (strpos(__FILE__, 'codeBases/') !== false) {
+    // this files resides in a codeBase directory, therefore we'll have to strip
+    // out two directory more than usually
+    $depth += 2;
+}
+$contrexx_path = dirname(__FILE__, $depth);
 
+/**
+ * @ignore
+ */
 require_once($contrexx_path . '/core/Core/init.php');
 $cx = init('minimal');
 
-$sessionObj = \cmsSession::getInstance();
-$_SESSION->cmsSessionStatusUpdate('backend');
+$sessionObj = $cx->getComponent('Session')->getSession();
+$sessionObj->cmsSessionStatusUpdate('backend');
 
 $pageId = !empty($_GET['pageId']) ? $_GET['pageId'] : null;
 
@@ -47,14 +57,13 @@ $domainRepository = new \Cx\Core\Net\Model\Repository\DomainRepository();
 $mainDomain = $domainRepository->getMainDomain()->getName();
 
 //find the right css files and put it into the wysiwyg
-$em = $cx->getDb()->getEntityManager();
-$componentRepo = $em->getRepository('Cx\Core\Core\Model\Entity\SystemComponent');
-$wysiwyg = $componentRepo->findOneBy(array('name'=>'Wysiwyg'));
-$pageRepo   = $em->getRepository('Cx\Core\ContentManager\Model\Entity\Page');
+$wysiwyg= $cx->getComponent('Wysiwyg');
 \Cx\Core\Setting\Controller\Setting::init('Wysiwyg', 'config', 'Yaml');
 
 $skinId = 0;
 if (!empty($pageId) && $pageId != 'new') {
+    $em = $cx->getDb()->getEntityManager();
+    $pageRepo   = $em->getRepository('Cx\Core\ContentManager\Model\Entity\Page');
     $skinId = $pageRepo->find($pageId)->getSkin();
 }
 
@@ -62,25 +71,28 @@ $ymlOption = $wysiwyg->getCustomCSSVariables($skinId);
 ?>
 //if the wysiwyg css not defined in the session, then load the css variables and put it into the session
 if(!cx.variables.get('css', 'wysiwyg')) {
-    cx.variables.set('css', [<?php echo '\'' . implode($ymlOption['css'], '\',\'') . '\'' ?>], 'wysiwyg');
+    cx.variables.set('css', [<?php if (count($ymlOption['css'])) { echo '\'' . implode($ymlOption['css'], '\',\'') . '\''; } ?>], 'wysiwyg');
     cx.variables.set('bodyClass', <?php echo '\'' . $ymlOption['bodyClass'] . '\'' ?>, 'wysiwyg');
     cx.variables.set('bodyId', <?php echo '\'' . $ymlOption['bodyId'] . '\'' ?>, 'wysiwyg');
 }
 
 CKEDITOR.scriptLoader.load( '<?php echo $cx->getCodeBaseCoreModuleWebPath().'/MediaBrowser/View/Script/MediaBrowserCkeditorPlugin.js'   ?>' );
+CKEDITOR.scriptLoader.load( '<?php echo $cx->getCodeBaseCoreWebPath().'/Wysiwyg/View/Script/ImagePasteCkeditorPlugin.js'; ?>' );
 CKEDITOR.editorConfig = function( config )
 {
-    config.skin = 'moono';
+    config.skin = 'moono-lisa';
 
     config.height = 307;
     config.uiColor = '#ececec';
+
+    <?php if (!empty($_GET['locale'])) echo "config.language = '" . preg_replace('/[^a-z]/', '', $_GET['locale']) . "';";?>
 
     config.forcePasteAsPlainText = false;
     config.enterMode = CKEDITOR.ENTER_BR;
     config.shiftEnterMode = CKEDITOR.ENTER_P;
     config.startupOutlineBlocks = true;
     config.allowedContent = true;
-    
+
     config.ignoreEmptyParagraph = false;
     config.protectedSource.push(/<i[^>]*><\/i>/g);
     config.protectedSource.push(/<span[^>]*><\/span>/g);
@@ -92,83 +104,66 @@ CKEDITOR.editorConfig = function( config )
     config.protectedSource.push(/<a[^>]*><\/a>/g);
 
     config.tabSpaces = 4;
-    config.baseHref = '<?php echo $cx->getRequest()->getUrl()->getProtocol() . '://' . $mainDomain . $cx->getWebsiteOffsetPath(); ?>/';
-
-    config.templates_files = [ '<?php echo $defaultTemplateFilePath; ?>' ];
-    
+    config.baseHref = '<?php echo \Cx\Core\Routing\Url::fromCapturedRequest('', $cx->getWebsiteOffsetPath(), array())->toString(); ?>';
+    config.templates_files = [ '' ];
     config.templates_replaceContent = <?php echo \Cx\Core\Setting\Controller\Setting::getValue('replaceActualContents','Wysiwyg')? 'true' : 'false' ?>;
 
-    config.toolbar_Full = config.toolbar_Small = [
-        ['Source','-','NewPage','Templates'],
-        ['Cut','Copy','Paste','PasteText','PasteFromWord','-','Scayt'],
-        ['Undo','Redo','-','Find','Replace','-','SelectAll','RemoveFormat'],
-        ['Bold','Italic','Underline','Strike','-','Subscript','Superscript'],
-        ['NumberedList','BulletedList','-','Outdent','Indent', 'Blockquote'],
-        ['JustifyLeft','JustifyCenter','JustifyRight','JustifyBlock'],
-        ['Link','Unlink','Anchor'],
-        ['Image','Flash','Table','HorizontalRule','SpecialChar'],
-        ['Format'],
-        ['TextColor','BGColor'],
-        ['ShowBlocks'],
-        ['Maximize'],
-        ['Div','CreateDiv']
-    ];
+    config.toolbar_Full = config.toolbar_Small = <?php echo $wysiwyg->getToolbar() ?>;
 
-    config.toolbar_BBCode = [
-        ['Source','-','NewPage'],
-        ['Undo','Redo','-','Replace','-','SelectAll','RemoveFormat'],
-        ['Bold','Italic','Underline','Link','Unlink','SpecialChar'],
-    ];
+    config.toolbar_BBCode = <?php echo $wysiwyg->getToolbar('bbcode') ?>;
 
-    config.toolbar_FrontendEditingContent = [
-        ['Publish','Save','Templates'],
-        ['Cut','Copy','Paste','PasteText','PasteFromWord','-','Scayt'],
-        ['Undo','Redo','-','Replace','-','SelectAll','RemoveFormat'],
-        ['Bold','Italic','Underline','Strike','-','Subscript','Superscript'],
-        ['NumberedList','BulletedList','-','Outdent','Indent', 'Blockquote'],
-        '/',
-        ['JustifyLeft','JustifyCenter','JustifyRight','JustifyBlock'],
-        ['Link','Unlink','Anchor'],
-        ['Image','Flash','Table','HorizontalRule','SpecialChar'],
-        ['Format'],
-        ['TextColor','BGColor'],
-        ['ShowBlocks']
-    ];
+    config.toolbar_FrontendEditingContent = <?php echo $wysiwyg->getToolbar('frontendEditingContent') ?>;
 
-    config.toolbar_FrontendEditingTitle = [
-        ['Publish','Save'],
-        ['Cut','Copy','Paste','-','Scayt'],
-        ['Undo','Redo']
-    ];
-    config.extraPlugins = 'codemirror';
-    
+    config.toolbar_FrontendEditingTitle = <?php echo $wysiwyg->getToolbar('frontendEditingTitle') ?>;
+
+    // Allow div's within a's
+    CKEDITOR.dtd['a']['div'] = 1;
+
     //Set the CSS Stuff
     config.contentsCss = cx.variables.get('css', 'wysiwyg');
     config.bodyClass = cx.variables.get('bodyClass', 'wysiwyg');
     config.bodyId = cx.variables.get('bodyId', 'wysiwyg');
+    if (
+        window.location.pathname == cx.variables.get('cadminPath') + 'Config/Wysiwyg' ||
+        window.location.pathname == cx.variables.get('cadminPath') + 'Access/group'
+    ) {
+        <?php echo $wysiwyg->getRemovedButtons(); ?>;
+    }
+
+    // load custom config from Wysiwyg.yml of webdesign template 
+    <?php
+        try {
+            echo $wysiwyg->getCustomWysiwygEditorConfig($skinId, 1) . "\n";
+        } catch (\Throwable $t) {
+            \DBG::msg($t->getMessage());
+        }
+    ?>
 };
 
 //loading the templates
 CKEDITOR.on('instanceReady',function(){
-    var loadingTemplates = <?php echo $wysiwyg->getWysiwygTempaltes();?>;
+    var loadingTemplates = <?php
+        try {
+            echo $wysiwyg->getWysiwygTemplates($skinId);
+        } catch (\Throwable $t) {
+            \DBG::msg($t->getMessage());
+        }
+    ?>;
     for(var instanceName in CKEDITOR.instances) {
-        //console.log( CKEDITOR.instances[instanceName] );
         loadingTemplates.button = CKEDITOR.instances[instanceName].getCommand("templates") //Reference to Template-Button
-        
+
         // Define Standard-Path
-        //var path = CKEDITOR.plugins.getPath('templates')
-        //var defaultPath = path.split("lib/ckeditor/")[0]+"customizing/lib/ckeditor"+path.split("lib/ckeditor")[1]+"templates/"
-        //var defaultPath = path.split("lib/ckeditor")[0] //Path to Templates-Folder
-        //var defaultPath = "/"
         loadingTemplates.load = (function(){
-            //this.defaultPath = defaultPath;
             if (typeof this.button != 'undefined') {
                 this.button.setState(CKEDITOR.TRISTATE_DISABLED) // Disable "Template"-Button
             }
             for(var i=0;i<this.length;i++){
                 (function(item){
                     CKEDITOR.addTemplates('default',{
-                        imagesPath: "../../",//CKEDITOR.getUrl(defaultPath),
+                        // CKeditor does not accept an empty imagesPath
+                        // therefore, we have to perform a virtual traversal
+                        // using a random folder path
+                        imagesPath: cx.variables.get('basePath', 'contrexx') + 'random/..',
                         templates: this
                     });
                 }).bind(this)(this[i])
@@ -177,6 +172,18 @@ CKEDITOR.on('instanceReady',function(){
                 this.button.setState(CKEDITOR.TRISTATE_ENABLE) // Enable "Template"-Button
             }
         }).bind(loadingTemplates)();
+    }
+
+    var translations = cx.variables.get('toolbarTranslations', 'toolbarConfigurator');
+    if (translations) {
+        cx.jQuery('div.toolbarModifier ul[data-type="table-body"] > li[data-type="group"] > ul > li[data-type="subgroup"] > p > span').each(
+            function() {
+                if (translations.hasOwnProperty(cx.jQuery(this).text())) {
+                    var translation = cx.jQuery(this).text();
+                    cx.jQuery(this).text(translations[translation]);
+                }
+            }
+        );
     }
 });
 
@@ -219,12 +226,21 @@ if (<?php
             dialogDefinition.getContents('info').remove('browse');
             dialogDefinition.getContents('Link').remove('browse');
         }
-        
+
         if (dialogName == 'flash') {
             dialogDefinition.getContents('info').remove('browse');
         }
     });
 }
+
+// load custom code from Wysiwyg.yml of webdesign template 
+<?php
+    try {
+        echo $wysiwyg->getCustomWysiwygEditorJsCode($skinId) . "\n";
+    } catch (\Throwable $t) {
+        \DBG::msg($t->getMessage());
+    }
+?>
 
 //this script will not be executed at the first round (first wysiwyg call)
 cx.bind("loadingEnd", function(myArgs) {
@@ -232,9 +248,8 @@ cx.bind("loadingEnd", function(myArgs) {
         var data = myArgs['data'];
         if(data.hasOwnProperty('wysiwygCssReload') && (data.wysiwygCssReload).hasOwnProperty('css')) {
             for(var instanceName in CKEDITOR.instances) {
-                //CKEDITOR.instances[instanceName].config.contentsCss =  data.wysiwygCssReload.css;
                 var is_same = (data.wysiwygCssReload.css).equals(cx.variables.get('css', 'wysiwyg')) && cx.variables.get('css', 'wysiwyg').every(function(element, index) {
-                    return element === data.wysiwygCssReload.css[index]; 
+                    return element === data.wysiwygCssReload.css[index];
                 });
                 if(!is_same){
                     //cant set the css on the run, so you must destroy the wysiwyg and recreate it
@@ -245,7 +260,7 @@ cx.bind("loadingEnd", function(myArgs) {
                     var config = {
                         customConfig: cx.variables.get('basePath', 'contrexx') + cx.variables.get('ckeditorconfigpath', 'contentmanager'),
                         toolbar: 'Full',
-                        skin: 'moono',
+                        removePlugins: 'bbcode'
                     };
                     CKEDITOR.replace('page[content]', config);
                 }
@@ -260,8 +275,8 @@ Array.prototype.equals = function (array) {
     if (!array) {
         return false;
     }
-    
-    // compare lengths - can save a lot of time 
+
+    // compare lengths - can save a lot of time
     if (this.length != array.length) {
         return false;
     }
@@ -279,4 +294,4 @@ Array.prototype.equals = function (array) {
         }
     }
     return true;
-}
+};

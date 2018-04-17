@@ -176,7 +176,7 @@ class Transaction {
         } else if (empty($offset) && !empty($limit)) {
             $SQLLimit = ' LIMIT '.intval($limit);
         }
-        
+
         $countries = \Cx\Core\Country\Controller\Country::getNameArray();
 
         $arrTransactions = array();
@@ -207,6 +207,7 @@ class Transaction {
         if ($objResult) {
             $i = 0;
             while (!$objResult->EOF) {
+                $arrTransactions[$i] = array();
                 $arrTransactions[$i]['id'] = $objResult->fields['id'];
                 $arrTransactions[$i]['time'] = $objResult->fields['time'];
                 $arrTransactions[$i]['status'] = $objResult->fields['status'];

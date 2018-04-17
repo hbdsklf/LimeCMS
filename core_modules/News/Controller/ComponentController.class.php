@@ -27,7 +27,7 @@
 
 /**
  * Main controller for News
- * 
+ *
  * @copyright   Cloudrexx AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @package     cloudrexx
@@ -38,7 +38,7 @@ namespace Cx\Core_Modules\News\Controller;
 
 /**
  * Main controller for News
- * 
+ *
  * @copyright   Cloudrexx AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @package     cloudrexx
@@ -46,21 +46,19 @@ namespace Cx\Core_Modules\News\Controller;
  */
 class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentController {
     public function getControllerClasses() {
-        // Return an empty array here to let the component handler know that there
-        // does not exist a backend, nor a frontend controller of this component.
-        return array();
+        return array('JsonNews', 'EsiWidget');
     }
 
      /**
      * {@inheritdoc}
      */
     public function getControllersAccessableByJson() {
-        return array('JsonNews');
+        return array('JsonNewsController', 'EsiWidgetController');
     }
-    
+
     /**
      * Returns a list of command mode commands provided by this component
-     * 
+     *
      * @return array List of command names
      */
     public function getCommandsForCommandMode() {
@@ -69,11 +67,12 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
 
     /**
      * Execute api command
-     * 
+     *
      * @param string $command Name of command to execute
      * @param array  $arguments List of arguments for the command
+     * @param array  $dataArguments (optional) List of data arguments for the command
      */
-    public function executeCommand($command, $arguments) {
+    public function executeCommand($command, $arguments, $dataArguments = array()) {
         $subcommand = null;
         if (!empty($arguments[0])) {
             $subcommand = $arguments[0];
@@ -83,7 +82,7 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
         if (!defined('FRONTEND_LANG_ID')) {
             define('FRONTEND_LANG_ID', 1);
         }
-        
+
         switch ($command) {
             case 'News':
                 switch ($subcommand) {
@@ -100,7 +99,7 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
 
     /**
      * Load your component.
-     * 
+     *
      * @param \Cx\Core\ContentManager\Model\Entity\Page $page       The resolved page
      */
     public function load(\Cx\Core\ContentManager\Model\Entity\Page $page) {
@@ -110,16 +109,25 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
                 $newsObj = new News($page->getContent());
                 $page->setContent($newsObj->getNewsPage());
                 $newsObj->getPageTitle($page->getTitle());
-                
+
                 if (substr($page->getCmd(), 0, 7) == 'details') {
                     $page->setTitle($newsObj->newsTitle);
                     $page->setContentTitle($newsObj->newsTitle);
                     $page->setMetaTitle($newsObj->newsTitle);
+                    $page->setMetakeys($newsObj->newsMetaKeys);
 
                     // Set the meta page description to the teaser text if displaying news details
                     $teaser = $newsObj->getTeaser();
-                    if ($teaser !== null) {
-                        $page->setMetadesc(contrexx_raw2xhtml(contrexx_strip_tags(html_entity_decode($teaser, ENT_QUOTES, CONTREXX_CHARSET))));
+                    if ($teaser) {
+                        $page->setMetadesc(contrexx_strip_tags(html_entity_decode($teaser, ENT_QUOTES, CONTREXX_CHARSET)));
+                    } else {
+                        $page->setMetadesc(contrexx_strip_tags(html_entity_decode($newsObj->newsText, ENT_QUOTES, CONTREXX_CHARSET)));
+                    }
+
+                    // Set the meta page image to the thumbnail if displaying news details
+                    $image = $newsObj->newsThumbnail;
+                    if ($image) {
+                        $page->setMetaimage($image);
                     }
                 }
                 break;
@@ -140,156 +148,163 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
     }
 
     /**
-     * Do something before content is loaded from DB
-     * 
-     * @param \Cx\Core\ContentManager\Model\Entity\Page $page       The resolved page
+     * Do something after system initialization
+     *
+     * USE CAREFULLY, DO NOT DO ANYTHING COSTLY HERE!
+     * CALCULATE YOUR STUFF AS LATE AS POSSIBLE.
+     * This event must be registered in the postInit-Hook definition
+     * file config/postInitHooks.yml.
+     *
+     * @param \Cx\Core\Core\Controller\Cx   $cx The instance of \Cx\Core\Core\Controller\Cx
      */
-    public function preContentLoad(\Cx\Core\ContentManager\Model\Entity\Page $page) {
-        global $themesPages, $page_template;
-        switch ($this->cx->getMode()) {
-            case \Cx\Core\Core\Controller\Cx::MODE_FRONTEND:
-                // Get Headlines
-                $modulespath = ASCMS_CORE_MODULE_PATH.'/News/Controller/NewsHeadlines.class.php';
-                if (file_exists($modulespath)) {
-                    for ($i = 0; $i < 5; $i++) {
-                        $visibleI = '';
-                        if ($i > 0) {
-                            $visibleI = (string) $i;
-                        }
-                        $headlinesNewsPlaceholder = '{HEADLINES' . $visibleI . '_FILE}';
-                        if (
-                            strpos($page->getContent(), $headlinesNewsPlaceholder) !== false
-                            || strpos($themesPages['index'], $headlinesNewsPlaceholder) !== false
-                            || strpos($themesPages['sidebar'], $headlinesNewsPlaceholder) !== false
-                            || strpos($page_template, $headlinesNewsPlaceholder) !== false
-                           ) {
-                                $category = 0;
-                                $matches = array();
-                                if (preg_match('/\{CATEGORY_([0-9]+)\}/', trim($themesPages['headlines' . $visibleI]), $matches)) {
-                                    $category = $matches[1];
-                                }
-                                $newsHeadlinesObj = new NewsHeadlines($themesPages['headlines' . $visibleI]);
-                                $homeHeadlines = $newsHeadlinesObj->getHomeHeadlines($category);
-                                $page->setContent(str_replace($headlinesNewsPlaceholder, $homeHeadlines, $page->getContent()));
-                                $themesPages['index']   = str_replace($headlinesNewsPlaceholder, $homeHeadlines, $themesPages['index']);
-                                $themesPages['sidebar'] = str_replace($headlinesNewsPlaceholder, $homeHeadlines, $themesPages['sidebar']);
-                                $page_template          = str_replace($headlinesNewsPlaceholder, $homeHeadlines, $page_template);
-                        }
-                    }
-                }
+    public function postInit(\Cx\Core\Core\Controller\Cx $cx)
+    {
+        $widgetController = $this->getComponent('Widget');
+        // Get Headlines
+        for ($i = 1; $i <= 20; $i++) {
+            $id = '';
+            if ($i > 1) {
+                $id = $i;
+            }
+            $widget = new \Cx\Core_Modules\Widget\Model\Entity\EsiWidget(
+                $this,
+                'HEADLINES' . $id . '_FILE'
+            );
+            $widget->setEsiVariable(
+                \Cx\Core_Modules\Widget\Model\Entity\EsiWidget::ESI_VAR_ID_USER |
+                \Cx\Core_Modules\Widget\Model\Entity\EsiWidget::ESI_VAR_ID_THEME |
+                \Cx\Core_Modules\Widget\Model\Entity\EsiWidget::ESI_VAR_ID_CHANNEL
+            );
+            $widgetController->registerWidget(
+                $widget
+            );
+        }
 
-                // Get Top news
-                $modulespath = ASCMS_CORE_MODULE_PATH.'/News/Controller/NewsTop.class.php';
-                $topNewsPlaceholder = '{TOP_NEWS_FILE}';
-                if ( file_exists($modulespath)
-                     && (   strpos($page->getContent(), $topNewsPlaceholder) !== false
-                            || strpos($themesPages['index'], $topNewsPlaceholder) !== false
-                            || strpos($themesPages['sidebar'], $topNewsPlaceholder) !== false
-                            || strpos($page_template, $topNewsPlaceholder) !== false)
-                   ) {
-                        $newsTopObj = new NewsTop($themesPages['top_news']);
-                        $homeTopNews = $newsTopObj->getHomeTopNews();
-                        $page->setContent(str_replace($topNewsPlaceholder, $homeTopNews, $page->getContent()));
-                        $themesPages['index']   = str_replace($topNewsPlaceholder, $homeTopNews, $themesPages['index']);
-                        $themesPages['sidebar'] = str_replace($topNewsPlaceholder, $homeTopNews, $themesPages['sidebar']);
-                        $page_template          = str_replace($topNewsPlaceholder, $homeTopNews, $page_template);
-                }
-                        
-                // Get News categories
-                $modulespath = ASCMS_CORE_MODULE_PATH.'/News/Controller/NewsLibrary.class.php';
-                $newsCategoriesPlaceholder = '{NEWS_CATEGORIES}';
-                if ( file_exists($modulespath)
-                     && (   strpos($page->getContent(), $newsCategoriesPlaceholder) !== false
-                            || strpos($themesPages['index'], $newsCategoriesPlaceholder) !== false
-                            || strpos($themesPages['sidebar'], $newsCategoriesPlaceholder) !== false
-                            || strpos($page_template, $newsCategoriesPlaceholder) !== false)
-                   ) {
-                        $newsLib = new NewsLibrary();
-                        $newsCategories = $newsLib->getNewsCategories();
-                            
-                        $page->setContent(str_replace($newsCategoriesPlaceholder, $newsCategories, $page->getContent()));
-                        $themesPages['index']   = str_replace($newsCategoriesPlaceholder, $newsCategories, $themesPages['index']);
-                        $themesPages['sidebar'] = str_replace($newsCategoriesPlaceholder, $newsCategories, $themesPages['sidebar']);
-                        $page_template          = str_replace($newsCategoriesPlaceholder, $newsCategories, $page_template);
-                }
-                        
-                // Get News Archives
-                $modulespath = ASCMS_CORE_MODULE_PATH.'/News/Controller/NewsLibrary.class.php';
-                $newsArchivePlaceholder = '{NEWS_ARCHIVES}';
-                if ( file_exists($modulespath)
-                     && (  strpos($page->getContent(), $newsArchivePlaceholder) !== false
-                           || strpos($themesPages['index'], $newsArchivePlaceholder) !== false
-                           || strpos($themesPages['sidebar'], $newsArchivePlaceholder) !== false
-                           || strpos($page_template, $newsArchivePlaceholder) !== false)
-                   ) {
-                        $newsLib = new NewsLibrary();
-                        $newsArchive = $newsLib->getNewsArchiveList();
-                            
-                        $page->setContent(str_replace($newsArchivePlaceholder, $newsArchive, $page->getContent()));
-                        $themesPages['index']   = str_replace($newsArchivePlaceholder, $newsArchive, $themesPages['index']);
-                        $themesPages['sidebar'] = str_replace($newsArchivePlaceholder, $newsArchive, $themesPages['sidebar']);
-                        $page_template          = str_replace($newsArchivePlaceholder, $newsArchive, $page_template);
-                }
-                    
-                // Get recent News Comments
-                $modulespath = ASCMS_CORE_MODULE_PATH.'/News/Controller/NewsRecentComments.class.php';
-                $newsCommentsPlaceholder = '{NEWS_RECENT_COMMENTS_FILE}';
-                        
-                if ( file_exists($modulespath)
-                     && (  strpos($page->getContent(), $newsCommentsPlaceholder) !== false
-                           || strpos($themesPages['index'], $newsCommentsPlaceholder) !== false
-                           || strpos($themesPages['sidebar'], $newsCommentsPlaceholder) !== false
-                           || strpos($page_template, $newsCommentsPlaceholder) !== false)
-                   ) {
-                        $newsLib = new NewsRecentComments($themesPages['news_recent_comments']);
-                        $newsComments = $newsLib->getRecentNewsComments();
-                            
-                        $page->setContent(str_replace($newsCommentsPlaceholder, $newsComments, $page->getContent()));
-                        $themesPages['index']   = str_replace($newsCommentsPlaceholder, $newsComments, $themesPages['index']);
-                        $themesPages['sidebar'] = str_replace($newsCommentsPlaceholder, $newsComments, $themesPages['sidebar']);
-                        $page_template          = str_replace($newsCommentsPlaceholder, $newsComments, $page_template);
-                }
-                
-                //Teasers
-                 $arrMatches = array();
-                // Set news teasers
-                 $config = \Env::get('config');
-                if ($config['newsTeasersStatus'] == '1') {
-                    // set news teasers in the content
-                    if (preg_match_all('/{TEASERS_([0-9A-Z_-]+)}/', $page->getContent(), $arrMatches)) {
-                        /** @ignore */
-                            $objTeasers = new Teasers();
-                            $content = $page->getContent();
-                            $objTeasers->setTeaserFrames($arrMatches[1], $content);
-                            $page->setContent($content);
-                    }
-                    // set news teasers in the page design
-                    if (preg_match_all('/{TEASERS_([0-9A-Z_-]+)}/', $page_template, $arrMatches)) {
-                        /** @ignore */
-                        $objTeasers = new Teasers();
-                        $objTeasers->setTeaserFrames($arrMatches[1], $page_template);
-                    }
-                    // set news teasers in the website design
-                    if (preg_match_all('/{TEASERS_([0-9A-Z_-]+)}/', $themesPages['index'], $arrMatches)) {
-                        /** @ignore */
-                            $objTeasers = new Teasers();
-                            $objTeasers->setTeaserFrames($arrMatches[1], $themesPages['index']);
-                    }
-                }
-                break;
+        // Get Top news, News categories, News Archives, recent News Comments
+        $widgetNames = array(
+            'TOP_NEWS_FILE'   => true,
+            'NEWS_CATEGORIES' => false,
+            'NEWS_ARCHIVES'   => true,
+            'NEWS_RECENT_COMMENTS_FILE' => false,
+        );
+        foreach ($widgetNames as $widgetName => $esiVariable) {
+            $widget = new \Cx\Core_Modules\Widget\Model\Entity\EsiWidget(
+                $this,
+                $widgetName
+            );
+            $widget->setEsiVariable(
+                \Cx\Core_Modules\Widget\Model\Entity\EsiWidget::ESI_VAR_ID_THEME |
+                \Cx\Core_Modules\Widget\Model\Entity\EsiWidget::ESI_VAR_ID_CHANNEL
+            );
+            if ($esiVariable) {
+                $widget->setEsiVariable(
+                    \Cx\Core_Modules\Widget\Model\Entity\EsiWidget::ESI_VAR_ID_USER
+                );
+            }
+            $widgetController->registerWidget(
+                $widget
+            );
+        }
 
-            default:
-                break;
+        // Register tag-cloud widget
+        $widget = new \Cx\Core_Modules\Widget\Model\Entity\EsiWidget(
+            $this,
+            'news_tag_cloud',
+            \Cx\Core_Modules\Widget\Model\Entity\Widget::TYPE_BLOCK
+        );
+        $widget->setEsiVariable(
+            \Cx\Core_Modules\Widget\Model\Entity\EsiWidget::ESI_VAR_ID_USER
+        );
+        $widgetController->registerWidget(
+            $widget
+        );
+
+        // Set news teasers
+        list($arrTeaserFrames, $arrTeaserFrameNames) = Teasers::getTeaserFrames();
+        if (empty($arrTeaserFrames)) {
+            return;
+        }
+        foreach ($arrTeaserFrames as $arrTeaser) {
+            $widget = new \Cx\Core_Modules\Widget\Model\Entity\EsiWidget(
+                $this,
+                'TEASERS_' . strtoupper($arrTeaser['name'])
+            );
+            $widget->setEsiVariable(
+                \Cx\Core_Modules\Widget\Model\Entity\EsiWidget::ESI_VAR_ID_USER |
+                \Cx\Core_Modules\Widget\Model\Entity\EsiWidget::ESI_VAR_ID_THEME |
+                \Cx\Core_Modules\Widget\Model\Entity\EsiWidget::ESI_VAR_ID_CHANNEL
+            );
+            $widgetController->registerWidget(
+                $widget
+            );
         }
     }
-    
-    
+
     /**
-     * Do something for search the content
-     * 
-     * @param \Cx\Core\ContentManager\Model\Entity\Page $page       The resolved page
+     * Do something with a Response object
+     * You may do page alterations here (like changing the metatitle)
+     * You may do response alterations here (like set headers)
+     * PLEASE MAKE SURE THIS METHOD IS MOCKABLE. IT MAY ONLY INTERACT WITH
+     * resolve() HOOK.
+     *
+     * @param \Cx\Core\Routing\Model\Entity\Response $response Response object to adjust
      */
-    public function preContentParse(\Cx\Core\ContentManager\Model\Entity\Page $page) {
-        $this->cx->getEvents()->addEventListener('SearchFindContent', new \Cx\Core_Modules\News\Model\Event\NewsEventListener());
+    public function adjustResponse(
+        \Cx\Core\Routing\Model\Entity\Response $response
+    ) {
+        // TODO: migrate to use additional path arguments
+        // in case of an ESI request, the request URL will be set through Referer-header
+        $headers = $response->getRequest()->getHeaders();
+        if (isset($headers['Referer'])) {
+            $refUrl = new \Cx\Lib\Net\Model\Entity\Url($headers['Referer']);
+        } else {
+            $refUrl = new \Cx\Lib\Net\Model\Entity\Url($response->getRequest()->getUrl()->toString());
+        }
+
+        if ($refUrl->hasParam('newsid')) {
+            $canonicalUrlArguments = array('newsid');
+        } else {
+            $canonicalUrlArguments = array('category', 'tag', 'pos');
+        }
+
+        $page   = $response->getPage();
+        $params = $refUrl->getParamArray();
+
+        // filter out all non-relevant URL arguments
+        $params = array_filter(
+            $refUrl->getParamArray(),
+            function($key) use ($canonicalUrlArguments) {return in_array($key, $canonicalUrlArguments);},
+            \ARRAY_FILTER_USE_KEY
+        );
+
+        $canonicalUrl = \Cx\Core\Routing\Url::fromPage($page, $params);
+        $response->setHeader(
+            'Link',
+            '<' . $canonicalUrl->toString() . '>; rel="canonical"'
+        );
+    }
+
+    /**
+     * Register the Event listeners
+     */
+    public function registerEventListeners() {
+        $evm = $this->cx->getEvents();
+        $evm->addEventListener(
+            'SearchFindContent',
+            new \Cx\Core_Modules\News\Model\Event\NewsEventListener()
+        );
+
+        // locale event listener
+        $localeLocaleEventListener = new \Cx\Core_Modules\News\Model\Event\LocaleLocaleEventListener($this->cx);
+        $evm->addModelListener(
+            'postPersist',
+            'Cx\\Core\\Locale\\Model\\Entity\\Locale',
+            $localeLocaleEventListener
+        );
+        $evm->addModelListener(
+            'preRemove',
+            'Cx\\Core\\Locale\\Model\\Entity\\Locale',
+            $localeLocaleEventListener
+        );
     }
 }

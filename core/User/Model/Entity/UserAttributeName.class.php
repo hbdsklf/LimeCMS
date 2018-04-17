@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -48,7 +48,7 @@ class UserAttributeName extends \Cx\Model\Base\EntityBase {
     private $name;
 
     /**
-     * @var Cx\Core\User\Model\Entity\UserAttribute
+     * @var \Cx\Core\User\Model\Entity\UserAttribute
      */
     private $userAttribute;
 
@@ -116,7 +116,7 @@ class UserAttributeName extends \Cx\Model\Base\EntityBase {
     /**
      * Set userAttribute
      *
-     * @param Cx\Core\User\Model\Entity\UserAttribute $userAttribute
+     * @param \Cx\Core\User\Model\Entity\UserAttribute $userAttribute
      */
     public function setUserAttribute(\Cx\Core\User\Model\Entity\UserAttribute $userAttribute)
     {
@@ -126,7 +126,7 @@ class UserAttributeName extends \Cx\Model\Base\EntityBase {
     /**
      * Get userAttribute
      *
-     * @return Cx\Core\User\Model\Entity\UserAttribute $userAttribute
+     * @return \Cx\Core\User\Model\Entity\UserAttribute $userAttribute
      */
     public function getUserAttribute()
     {

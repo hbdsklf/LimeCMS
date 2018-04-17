@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,10 +24,10 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
- * Permission 
- * 
+ * Permission
+ *
  * @copyright   Cloudrexx AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @package     cloudrexx
@@ -37,8 +37,19 @@
 namespace Cx\Core_Modules\Access\Model\Entity;
 
 /**
+ * PermissionException
+ *
+ * @copyright   Cloudrexx AG
+ * @author      Project Team SS4U <info@cloudrexx.com>
+ * @package     cloudrexx
+ * @subpackage  core_access
+ */
+
+class PermissionException extends \Exception {}
+
+/**
  * Permission
- * 
+ *
  * @copyright   Cloudrexx AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @package     cloudrexx
@@ -47,57 +58,68 @@ namespace Cx\Core_Modules\Access\Model\Entity;
 
 class Permission extends \Cx\Model\Base\EntityBase {
     /**
+     * Id
+     *
+     * @var integer
+     */
+    protected $id;
+
+    /**
      * Allowed protocols
-     * 
+     *
      * @var array
      */
     protected $allowedProtocols = array();
-    
+
     /**
      * Allowed access methods
-     * 
+     *
      * @var array
      */
     protected $allowedMethods   = array();
-    
+
     /**
      * is Login required or not
-     * 
+     *
      * @var boolean
      */
     protected $requiresLogin    = false;
-    
+
     /**
      * Valid User Groups
-     * 
-     * @var array 
+     *
+     * @var array
      */
     protected $validUserGroups  = array();
 
     /**
      * valid Access ids
-     * 
+     *
      * @var array
      */
     protected $validAccessIds   = array();
-    
+
     /**
-     * Allowed group users
-     * 
-     * @var array 
+     * @var \Doctrine\Common\Collections\Collection
      */
-    protected $allowedGroups    = array();
-    
+    protected $readDataAccesses;
+
+    /**
+     * @var \Doctrine\Common\Collections\Collection
+     */
+    protected $writeDataAccesses;
+
     /**
      * Callback function name
-     * 
+     *
      * @var string
      */
-    public $callback            = null;
-    
+    protected $callback = null;
+
     /**
      * Constructor
-     * 
+     * Calback may only be used for virtual instances
+     *
      * @param Array   $allowedProtocols
      * @param Array   $allowedMethods
      * @param Boolean $requiresLogin
@@ -117,12 +139,251 @@ class Permission extends \Cx\Model\Base\EntityBase {
         if (count($this->validUserGroups) || count($this->validAccessIds)) {
             $this->requiresLogin = true;
         }
-        $this->callback         = $callback;
+        $this->setVirtual(true);
+        $this->setCallback($callback);
+        $this->readDataAccesses  = new \Doctrine\Common\Collections\ArrayCollection();
+        $this->writeDataAccesses = new \Doctrine\Common\Collections\ArrayCollection();
     }
-    
+
+    /**
+     * Get the id
+     *
+     * @return integer
+     */
+    public function getId()
+    {
+        return $this->id;
+    }
+
+    /**
+     * Set the allowed protocols
+     *
+     * @param array $allowedProtocols
+     */
+    public function setAllowedProtocols($allowedProtocols)
+    {
+        $this->allowedProtocols = $allowedProtocols;
+    }
+
+    /**
+     * Get the allowed protocols
+     *
+     * @return array
+     */
+    public function getAllowedProtocols()
+    {
+        return $this->allowedProtocols;
+    }
+
+    /**
+     * Set the allowed methods
+     *
+     * @param array $allowedMethods
+     */
+    public function setAllowedMethods($allowedMethods)
+    {
+        $this->allowedMethods = $allowedMethods;
+    }
+
+    /**
+     * Get the allowed methods
+     *
+     * @return array
+     */
+    public function getAllowedMethods()
+    {
+        return $this->allowedMethods;
+    }
+
+    /**
+     * Set the requires login
+     *
+     * @param boolean $requiresLogin
+     */
+    public function setRequiresLogin($requiresLogin)
+    {
+        $this->requiresLogin = $requiresLogin;
+    }
+
+    /**
+     * Get the requires login
+     *
+     * @return boolean
+     */
+    public function getRequiresLogin()
+    {
+        return $this->requiresLogin;
+    }
+
+    /**
+     * Set the valid user groups
+     *
+     * @param array $validUserGroups
+     */
+    public function setValidUserGroups($validUserGroups)
+    {
+        $this->validUserGroups = $validUserGroups;
+    }
+
+    /**
+     * Get the valid user groups
+     *
+     * @return array
+     */
+    public function getValidUserGroups()
+    {
+        return $this->validUserGroups;
+    }
+
+    /**
+     * Set the valid user groups
+     *
+     * @param array $validAccessIds
+     */
+    public function setValidAccessIds($validAccessIds)
+    {
+        $this->validAccessIds = $validAccessIds;
+    }
+
+    /**
+     * Get the valid access ids
+     *
+     * @return array
+     */
+    public function getvalidAccessIds()
+    {
+        return $this->validAccessIds;
+    }
+
+    /**
+     * Add readDataAccesses
+     *
+     * @param \Cx\Core_Modules\DataAccess\Model\Entity\DataAccess $readDataAccesses
+     * @return Permission
+     */
+    public function addReadDataAccess(\Cx\Core_Modules\DataAccess\Model\Entity\DataAccess $readDataAccesses)
+    {
+        $this->readDataAccesses[] = $readDataAccesses;
+
+        return $this;
+    }
+
+    /**
+     * Remove readDataAccesses
+     *
+     * @param \Cx\Core_Modules\DataAccess\Model\Entity\DataAccess $readDataAccesses
+     */
+    public function removeReadDataAccess(\Cx\Core_Modules\DataAccess\Model\Entity\DataAccess $readDataAccesses)
+    {
+        $this->readDataAccesses->removeElement($readDataAccesses);
+    }
+
+    /**
+     * Set the read data access
+     *
+     * @param \Cx\Core_Modules\DataAccess\Model\Entity\DataAccess $dataAccess
+     */
+    public function setReadDataAccesses(\Cx\Core_Modules\DataAccess\Model\Entity\DataAccess $dataAccess)
+    {
+        $this->readDataAccesses[] = $dataAccess;
+    }
+
+    /**
+     * Get the read data access
+     *
+     * @return type
+     */
+    public function getReadDataAccesses()
+    {
+        return $this->readDataAccesses;
+    }
+
+    /**
+     * Add writeDataAccesses
+     *
+     * @param \Cx\Core_Modules\DataAccess\Model\Entity\DataAccess $writeDataAccesses
+     * @return Permission
+     */
+    public function addWriteDataAccess(\Cx\Core_Modules\DataAccess\Model\Entity\DataAccess $writeDataAccesses)
+    {
+        $this->writeDataAccesses[] = $writeDataAccesses;
+
+        return $this;
+    }
+
+    /**
+     * Remove writeDataAccesses
+     *
+     * @param \Cx\Core_Modules\DataAccess\Model\Entity\DataAccess $writeDataAccesses
+     */
+    public function removeWriteDataAccess(\Cx\Core_Modules\DataAccess\Model\Entity\DataAccess $writeDataAccesses)
+    {
+        $this->writeDataAccesses->removeElement($writeDataAccesses);
+    }
+
+    /**
+     * Set the write data access
+     *
+     * @param \Cx\Core_Modules\DataAccess\Model\Entity\DataAccess $dataAccess
+     */
+    public function setWriteDataAccesses(\Cx\Core_Modules\DataAccess\Model\Entity\DataAccess $dataAccess)
+    {
+        $this->writeDataAccesses[] = $dataAccess;
+    }
+
+    /**
+     * Get the read data access
+     *
+     * @return type
+     */
+    public function getWriteDataAccesses()
+    {
+        return $this->writeDataAccesses;
+    }
+
+    /**
+     * Set the callback
+     * Callback may only be used for virtual instances
+     *
+     * @param mixed array|string $callback
+     */
+    public function setCallback($callback)
+    {
+        //Use callback only for virtual instances otherwise throw exception
+        if (!$this->isVirtual() && $callback) {
+            throw new PermissionException('Permission::setCallback() failed: Could not set callback for non-virtual instance.');
+        }
+        $this->callback = $callback;
+    }
+
+    /**
+     * Get the callback
+     *
+     * @return mixed array|string
+     */
+    public function getCallback()
+    {
+        return $this->callback;
+    }
+
+    /**
+     * Set virtual
+     * Callback may only be used for virtual instances
+     *
+     * @param boolean $virtual
+     */
+    public function setVirtual($virtual)
+    {
+        //While setting instance as non-virtual, check the instance have callback if so throw exception
+        if ($this->callback && !$virtual) {
+            throw new PermissionException('Permission::setVirtual() failed: Could not set instance as non-virtual since instance contains callback.');
+        }
+        parent::setVirtual($virtual);
+    }
+
     /**
      * Check the permissions(Is allowed protocol, Is allowed method, user's group access, user's login status)
-     * 
+     *
      * @return boolean
      */
     public function hasAccess(array $params = array()) {
@@ -131,64 +392,67 @@ class Permission extends \Cx\Model\Base\EntityBase {
         if (php_sapi_name() === 'cli') {
             $method = 'cli';
         }
-        
+
         //protocol check
         if ($method != 'cli' && !empty($this->allowedProtocols) && !in_array($protocol, $this->allowedProtocols)) {
+            \DBG::msg(__METHOD__ . ': protocol check failed: ' . $protocol);
             return false;
         }
-        
+
         //access method check
         if (!empty($this->allowedMethods) && !in_array($method, $this->allowedMethods)) {
+            \DBG::msg(__METHOD__ . ': method check failed: ' . $method);
             return false;
         }
-        
-        // user loggedin or not (OR) user's group access check 
+
+        // user loggedin or not (OR) user's group access check
         if (!empty($this->requiresLogin) && !$this->checkLoginAndUserAccess()) {
             return false;
         }
-        
+
         //callback function check
         if (isset($this->callback) && call_user_func($this->callback, $params) !== true) {
             return false;
         }
-        
+
         return true;
     }
-    
+
     /**
      * Check the user's login status and user's group access
-     * 
+     *
      * @return boolean
      */
     protected function checkLoginAndUserAccess() {
-        
+
         if (!$this->requiresLogin) {
             return true;
         }
-        
+
         //check user logged in or not
+        $this->cx->getComponent('Session')->getSession();
         if (!\FWUser::getFWUserObject()->objUser->login()) {
             return false;
         }
-        
+
         //check user's group access
-        if (   !empty($this->validUserGroups) 
+        if (   !empty($this->validUserGroups)
             && !count(array_intersect($this->validUserGroups, \FWUser::getFWUserObject()->objUser->getAssociatedGroupIds()))
            ) {
             return false;
         }
-        
+
         if (empty($this->validAccessIds)) {
             return true;
         }
-        
+
         //check valid access ids
         foreach ($this->validAccessIds as $accessId) {
             if (\Permission::checkAccess($accessId, 'static', true)) {
                 return true;
             }
         }
-        
+
         return false;
     }
 }

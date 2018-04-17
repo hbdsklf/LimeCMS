@@ -259,21 +259,42 @@ class Payment
     {
         global $_ARRAYLANG;
 
-        if (is_null(self::$arrPayments)) self::init();
-        // Get Payment IDs available in the selected country, if any, or all.
-        $arrPaymentId = ($countryId
-            ? self::getCountriesRelatedPaymentIdArray(
-                  $countryId, Currency::getCurrencyArray())
-            : array_keys(self::$arrPayments));
-        $arrOption =
-            (   empty($arrPaymentId[$selectedId])
-             && count($arrPaymentId) > 1
-              ? array(0 => $_ARRAYLANG['TXT_SHOP_PLEASE_SELECT'])
-              : array());
-        foreach ($arrPaymentId as $id) {
-            $arrOption[$id] = self::$arrPayments[$id]['name'];
+        $paymentMethods = self::getPaymentMethods($countryId);
+        if (empty($paymentMethods[$selectedId]) && count($paymentMethods) > 1) {
+            $paymentMethods[0] = $_ARRAYLANG['TXT_SHOP_PLEASE_SELECT'];
         }
-        return \Html::getOptions($arrOption, $selectedId);
+        return \Html::getOptions($paymentMethods, $selectedId);
+    }
+
+    /**
+     * Get the payment methods based on the country id
+     *
+     * @param integer $countryId Country ID
+     *
+     * @return array array of payment methods
+     */
+    static function getPaymentMethods($countryId = 0)
+    {
+        if (is_null(self::$arrPayments)) {
+            self::init();
+        }
+
+        // Get Payment IDs available in the selected country, if any, or all.
+        $arrPaymentIds = ($countryId
+            ? self::getCountriesRelatedPaymentIdArray(
+                $countryId,
+                Currency::getCurrencyArray())
+            : array_keys(self::$arrPayments));
+
+        if (empty($arrPaymentIds)) {
+            return array();
+        }
+
+        $paymentMethods = array();
+        foreach ($arrPaymentIds as $id) {
+            $paymentMethods[$id] = self::$arrPayments[$id]['name'];
+        }
+        return $paymentMethods;
     }
 
 

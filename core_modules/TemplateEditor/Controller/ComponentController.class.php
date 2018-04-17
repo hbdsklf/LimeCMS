@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 
 /**
  * Class ComponentController
@@ -87,9 +87,18 @@ class ComponentController extends SystemComponentController
             $themeRepository = new ThemeRepository();
             $themeID = isset($_GET['preview']) ? $_GET['preview']
                 : null;
+            // load preview theme or page's custom theme
             $theme = $themeID ? $themeRepository->findById(
                 (int)$themeID
-            ) : $themeRepository->getDefaultTheme();
+            ) : $themeRepository->findById($this->cx->getPage()->getSkin());
+            // fallback: load default theme of active language
+            if (!$theme) {
+                $theme = $themeRepository->getDefaultTheme(\Cx\Core\View\Model\Entity\Theme::THEME_TYPE_WEB, FRONTEND_LANG_ID);
+            }
+            // final fallback: try to load any existing default theme (independent of the language)
+            if (!$theme) {
+                $theme = $themeRepository->getDefaultTheme(\Cx\Core\View\Model\Entity\Theme::THEME_TYPE_WEB);
+            }
             $themeOptions = $themeOptionRepository->get(
                 $theme
             );
@@ -105,7 +114,7 @@ class ComponentController extends SystemComponentController
         } catch (PresetRepositoryException $e) {
 
         }
-        catch (\Symfony\Component\Yaml\ParserException $e) {
+        catch (\Symfony\Component\Yaml\Exception\ParseException $e) {
 
         }
     }

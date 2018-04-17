@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -53,9 +53,19 @@ class AccessId extends \Cx\Model\Base\EntityBase {
     private $contrexxAccessUserAttribute;
 
     /**
+     * @var Cx\Core\User\Model\Entity\UserAttribute
+     */
+    private $contrexxAccessUserAttributeRead;
+
+    /**
      * @var Cx\Core\User\Model\Entity\CoreAttribute
      */
     private $coreAttribute;
+
+    /**
+     * @var Cx\Core\User\Model\Entity\CoreAttribute
+     */
+    private $coreAttributeRead;
 
     /**
      * @var Cx\Core\User\Model\Entity\Group
@@ -70,11 +80,13 @@ class AccessId extends \Cx\Model\Base\EntityBase {
     public function __construct()
     {
         $this->contrexxAccessUserAttribute = new \Doctrine\Common\Collections\ArrayCollection();
-    $this->coreAttribute = new \Doctrine\Common\Collections\ArrayCollection();
-    $this->group2 = new \Doctrine\Common\Collections\ArrayCollection();
-    $this->group = new \Doctrine\Common\Collections\ArrayCollection();
+        $this->contrexxAccessUserAttributeRead = new \Doctrine\Common\Collections\ArrayCollection();
+        $this->coreAttribute = new \Doctrine\Common\Collections\ArrayCollection();
+        $this->coreAttributeRead = new \Doctrine\Common\Collections\ArrayCollection();
+        $this->group2 = new \Doctrine\Common\Collections\ArrayCollection();
+        $this->group = new \Doctrine\Common\Collections\ArrayCollection();
     }
-    
+
     /**
      * Get id
      *
@@ -204,4 +216,45 @@ class AccessId extends \Cx\Model\Base\EntityBase {
     {
         return $this->group;
     }
+
+    /**
+     * Add contrexxAccessUserAttributeRead
+     *
+     * @param Cx\Core\User\Model\Entity\UserAttribute $contrexxAccessUserAttributeRead
+     */
+    public function addContrexxAccessUserAttributeRead(\Cx\Core\User\Model\Entity\UserAttribute $contrexxAccessUserAttributeRead)
+    {
+        $this->contrexxAccessUserAttributeRead[] = $contrexxAccessUserAttributeRead;
+    }
+
+    /**
+     * Get contrexxAccessUserAttributeRead
+     *
+     * @return Doctrine\Common\Collections\Collection $contrexxAccessUserAttribute
+     */
+    public function getContrexxAccessUserAttributeRead()
+    {
+        return $this->contrexxAccessUserAttributeRead;
+    }
+
+    /**
+     * Add coreAttributeRead
+     *
+     * @param Cx\Core\User\Model\Entity\CoreAttribute $coreAttributeRead
+     */
+    public function addCoreAttributeRead(\Cx\Core\User\Model\Entity\CoreAttribute $coreAttributeRead)
+    {
+        $this->coreAttributeRead[] = $coreAttributeRead;
+    }
+
+    /**
+     * Get coreAttributeRead
+     *
+     * @return Doctrine\Common\Collections\Collection $coreAttribute
+     */
+    public function getCoreAttributeRead()
+    {
+        return $this->coreAttributeRead;
+    }
+
 }

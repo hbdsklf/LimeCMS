@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,10 +24,10 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * YamlSettingEventListener
- *  
+ *
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @author      CLOUDREXX Development Team <info@cloudrexx.com>
@@ -39,7 +39,7 @@ namespace Cx\Core\Config\Model\Event;
 
 /**
  * YamlSettingEventListenerException
- * 
+ *
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @author      Thomas Däppen <thomas.daeppen@comvation.com>
@@ -50,20 +50,20 @@ class YamlSettingEventListenerException extends \Exception {}
 
 /**
  * YamlSettingEventListener
- * 
+ *
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @author      Thomas Däppen <thomas.daeppen@comvation.com>
  * @package     cloudrexx
  * @subpackage  core_config
  */
-class YamlSettingEventListener implements \Cx\Core\Event\Model\Entity\EventListener {
+class YamlSettingEventListener extends \Cx\Core\Event\Model\Entity\DefaultEventListener {
     public function preUpdate($eventArgs) {
         global $_CONFIG,$_ARRAYLANG;
         try {
             $objSetting = $eventArgs->getEntity();
             $value = $objSetting->getValue();
-            
+
             switch ($objSetting->getName()) {
                 case 'timezone':
                     if (!in_array($value, timezone_identifiers_list())) {
@@ -71,42 +71,119 @@ class YamlSettingEventListener implements \Cx\Core\Event\Model\Entity\EventListe
                         throw new YamlSettingEventListenerException($_ARRAYLANG['TXT_CORE_TIMEZONE_INVALID']);
                     }
                     break;
-             
-                case 'domainUrl':
-                    $arrMatch = array();
-                    if (preg_match('#^https?://(.*)$#', $value, $arrMatch)) {
-                        $value = $arrMatch[1];
+
+                case 'mainDomainId':
+                    if ($_CONFIG['mainDomainId'] != $value && $_CONFIG['forceDomainUrl'] == 'on') {
+                        $domainRepository = new \Cx\Core\Net\Model\Repository\DomainRepository();
+                        $objMainDomain = $domainRepository->findOneBy(array('id' => $value));
+                        if ($objMainDomain) {
+                            $domainUrl = $objMainDomain->getName();
+                            $protocol = 'http';
+                            if ($_CONFIG['forceProtocolFrontend'] != 'none') {
+                                $protocol = $_CONFIG['forceProtocolFrontend'];
+                            }
+                            if (
+                                php_sapi_name() != 'cli' &&
+                                !\Cx\Core\Config\Controller\Config::checkAccessibility($protocol, $domainUrl)
+                            ) {
+                                \Message::add(sprintf($_ARRAYLANG['TXT_CONFIG_UNABLE_TO_SET_MAINDOMAIN'], $domainUrl), \Message::CLASS_ERROR);
+                                $objSetting->setValue($_CONFIG['mainDomainId']);
+                            } else {
+                                $this->getComponent('Cache')->deleteNonPagePageCache();
+                            }
+                        }
                     }
-                    $value = htmlspecialchars($value, ENT_QUOTES, CONTREXX_CHARSET);
-                    $objSetting->setValue($value);
                     break;
 
                 case 'forceProtocolFrontend':
                     if ($_CONFIG['forceProtocolFrontend'] != $value) {
-                        if (!\Cx\Core\Config\Controller\Config::checkAccessibility($value)) {
-                            $value = 'none';
+                        if (
+                            php_sapi_name() != 'cli' &&
+                            !\Cx\Core\Config\Controller\Config::checkAccessibility($value)
+                        ) {
+                            $domainAddr = $value . '://' . $_CONFIG['domainUrl'] . '/';
+                            \Message::add(sprintf($_ARRAYLANG['TXT_CONFIG_UNABLE_TO_SET_PROTOCOL'], $domainAddr), \Message::CLASS_ERROR);
+                            $objSetting->setValue('none');
                         }
-                        $objSetting->setValue($value);
+                    }
+                    if ($_CONFIG[$objSetting->getName()] != $objSetting->getValue()) {
+                        $this->getComponent('Cache')->deleteNonPagePageCache();
                     }
                     break;
 
                 case 'forceProtocolBackend':
                     if ($_CONFIG['forceProtocolBackend'] != $value) {
-                        if (!\Cx\Core\Config\Controller\Config::checkAccessibility($value)) {
-                            $value = 'none';
+                        if (
+                            php_sapi_name() != 'cli' &&
+                            !\Cx\Core\Config\Controller\Config::checkAccessibility($value)
+                        ) {
+                            $domainAddr = $value . '://' . $_CONFIG['domainUrl'] . '/';
+                            \Message::add(sprintf($_ARRAYLANG['TXT_CONFIG_UNABLE_TO_SET_PROTOCOL'], $domainAddr), \Message::CLASS_ERROR);
+                            $objSetting->setValue('none');
                         }
-                        $objSetting->setValue($value);
                     }
                     break;
 
                 case 'forceDomainUrl':
+                    if ($value == 'off') {
+                        break;
+                    }
                     $useHttps = $_CONFIG['forceProtocolBackend'] == 'https';
                     $protocol = 'http';
                     if ($useHttps == 'https') {
                         $protocol = 'https';
                     }
-                    $value = \Cx\Core\Config\Controller\Config::checkAccessibility($protocol) ? $value : 'off';
-                    $objSetting->setValue($value);
+                    if (
+                        php_sapi_name() != 'cli' &&
+                        !\Cx\Core\Config\Controller\Config::checkAccessibility($protocol)
+                    ) {
+                        \Message::add($_ARRAYLANG['TXT_CONFIG_UNABLE_TO_FORCE_MAINDOMAIN'], \Message::CLASS_ERROR);
+                        $objSetting->setValue('off');
+                    }
+                    if ($_CONFIG[$objSetting->getName()] != $objSetting->getValue()) {
+                        $this->getComponent('Cache')->deleteNonPagePageCache();
+                    }
+                    break;
+                
+                case 'cacheReverseProxy':
+                case 'cacheProxyCacheConfig':
+                    if ($value != $_CONFIG[$objSetting->getName()]) {
+                        // drop reverse proxy cache
+                        \Cx\Core\Core\Controller\Cx::instanciate()->getComponent('Cache')->clearReverseProxyCache('*');
+                    }
+                    break;
+                
+                case 'cacheSsiOutput':
+                case 'cacheSsiType':
+                case 'cacheSsiProcessorConfig':
+                    if ($value != $_CONFIG[$objSetting->getName()]) {
+                        // drop esi/ssi cache
+                        \Cx\Core\Core\Controller\Cx::instanciate()->getComponent('Cache')->clearSsiCache();
+                    }
+
+                case 'googleMapsAPIKey':
+                case 'coreGlobalPageTitle':
+                    $settings = array(
+                        'googleMapsAPIKey'    => 'GOOGLE_MAPS_API_KEY',
+                        'coreGlobalPageTitle' => 'GLOBAL_TITLE'
+                    );
+                    $settingName = $objSetting->getName();
+                    if ($value !== $_CONFIG[$settingName]) {
+                        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+                        $cx->getEvents()->triggerEvent(
+                            'clearEsiCache',
+                            array('Widget', $settings[$settingName])
+                        );
+                    }
+                    break;
+                case 'defaultMetaimage':
+                    if ($value != $_CONFIG[$objSetting->getName()]) {
+                        // drop esi/ssi cache
+                        $this->cx->getEvents()->triggerEvent(
+                            'clearEsiCache',
+                            array('Widget', 'METAIMAGE')
+                        );
+                    }
                     break;
             }
         } catch (YamlSettingEventListenerException $e) {
@@ -121,14 +198,17 @@ class YamlSettingEventListener implements \Cx\Core\Event\Model\Entity\EventListe
             \DBG::msg($e->getMessage());
         }
     }
-    
+
     public function onEvent($eventName, array $eventArgs) {
-        \DBG::msg(__METHOD__);
         if ($eventName == 'postFlush') {
-            if (isset($eventArgs[1]) && !preg_match('#\b(Config.yml)\b#', $eventArgs[1])) {
+            if (
+                !isset($eventArgs[1]) ||
+                (isset($eventArgs[1]) && !preg_match('#\b(Config.yml)\b#', $eventArgs[1]))
+            ) {
                 return false;
             }
         }
+        \DBG::msg(__METHOD__ . ': '. $eventName);
         $this->$eventName(current($eventArgs));
     }
 }

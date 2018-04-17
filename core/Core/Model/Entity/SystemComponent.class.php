@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * A system component (aka "module", "core_module" or "core component")
  *
@@ -62,7 +62,7 @@ class SystemComponent extends \Cx\Model\Base\EntityBase
     const TYPE_CORE = 'core';
     const TYPE_CORE_MODULE = 'core_module';
     const TYPE_MODULE = 'module';
-    
+
     /**
      * Unique ID
      * @var integer $id
@@ -74,7 +74,7 @@ class SystemComponent extends \Cx\Model\Base\EntityBase
      * @var string $name
      */
     private $name;
-    
+
     /**
      * Component type
      * @var enum $type
@@ -185,7 +185,7 @@ class SystemComponent extends \Cx\Model\Base\EntityBase
             $relative
         );
     }
-    
+
     /**
      * Returns the base namespace for this component
      * @return string Namespace
@@ -244,7 +244,7 @@ class SystemComponent extends \Cx\Model\Base\EntityBase
                 break;
         }
     }
-    
+
     /**
      * Returns a list of entity classes for this component
      * @return array List of class names
@@ -252,13 +252,9 @@ class SystemComponent extends \Cx\Model\Base\EntityBase
     public function getEntityClasses() {
         $entities = array();
         $em = $this->cx->getDb()->getEntityManager();
-$ms = microtime(true);
-        $meta = $em->getMetadataFactory()->getAllMetadata();
-$msMeta = microtime(true) - $ms;
-        foreach ($meta as $m) {
-            reset($m->reflFields);
-            $className = current($m->reflFields);
-            $className = $className->class;
+        $config = $em->getConfiguration();
+        $metaDataDriver = $config->getMetadataDriverImpl();
+        foreach ($metaDataDriver->getAllClassNames() as $className) {
             if (!is_subclass_of($className, 'Cx\Model\Base\EntityBase')) {
                 continue;
             }
@@ -267,7 +263,6 @@ $msMeta = microtime(true) - $ms;
             }
             $entities[] = $className;
         }
-//echo 'Needed ' . (microtime(true) - $ms) . 'us (' . $msMeta . 'us for gathering metadata) to gather entity data<br />';
         return $entities;
     }
 }

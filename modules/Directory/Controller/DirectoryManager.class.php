@@ -79,7 +79,7 @@ class DirectoryManager extends DirectoryLibrary
     var $countFeeds;
 
     private $act = '';
-    
+
     /**
     * Constructor
     *
@@ -91,7 +91,7 @@ class DirectoryManager extends DirectoryLibrary
     */
     function __construct()
     {
-        global $objInit; 
+        global $objInit;
 
         $this->_objTpl = new \Cx\Core\Html\Sigma(ASCMS_MODULE_PATH.'/Directory/View/Template/Backend');
         \Cx\Core\Csrf\Controller\Csrf::add_placeholder($this->_objTpl);
@@ -115,7 +115,7 @@ class DirectoryManager extends DirectoryLibrary
 
         //get settings
         $this->settings = $this->getSettings();
-        
+
     }
     private function setNavigation()
     {
@@ -2436,10 +2436,6 @@ EOF;
                 $this->showSettings_inputs();
                 break;
 
-            case 'google':
-                $this->showSettings_google();
-                break;
-
             case 'headlines':
                 $this->showSettings_headlines();
                 break;
@@ -2590,67 +2586,6 @@ EOF;
         $this->_objTpl->parse('requests_block');
         $this->_objTpl->parse('direcoryGoogleMapJavascript');
     }
-
-
-    function showSettings_google()
-    {
-        global $_CONFIG, $objDatabase, $_ARRAYLANG;
-
-        // initialize variables
-        $this->_objTpl->addBlockfile('SYSTEM_REQUESTS_CONTENT', 'requests_block', 'module_directory_settings_google.html');
-
-        $this->_objTpl->setVariable(array(
-            'TXT_GOOGLE_SETTINGS'               => $_ARRAYLANG['TXT_DIRECTORY_GOOGLE_SETTINGS'],
-            'TXT_DESCRIPTION'                   => $_ARRAYLANG['TXT_DIR_DESCRIPTION'],
-            'TXT_VALUE'                         => $_ARRAYLANG['TXT_DIR_SYSTEM_VAlUE'],
-            'TXT_SAVE_CHANGES'                  => $_ARRAYLANG['TXT_DIR_CHANGES_SAVE'],
-        ));
-
-        //get settings
-        $i=0;
-        $objResult = $objDatabase->Execute("SELECT setid,setname,setvalue,settyp FROM ".DBPREFIX."module_directory_settings_google ORDER BY setid");
-        if ($objResult !== false) {
-            while(!$objResult->EOF) {
-                $this->_objTpl->setCurrentBlock('settingsOutput');
-                if ($objResult->fields['settyp']== 1) {
-                    $setValueField =
-                        "<input type=\"text\" name=\"setvalue[".
-                        $objResult->fields['setid']."]\" value=\"".
-                        $objResult->fields['setvalue'].
-                        "\" size='90' maxlength='250' />";
-                } elseif ($objResult->fields['settyp']== 2) {
-                    $true = "";
-                    $false = "";
-                    if ($objResult->fields['setvalue'] == 1) {
-                        $true = "checked";
-                    } else {
-                        $false = "checked";
-                    }
-                    $setValueField =
-                        "<input type=\"radio\" name=\"setvalue[".
-                        $objResult->fields['setid']."]\" value=\"1\" ".$true.
-                        " />&nbsp;true&nbsp;<input type=\"radio\" name=\"setvalue[".
-                        $objResult->fields['setid']."]\" value=\"0\"".$false.
-                        " />&nbsp;false&nbsp;";
-                }
-
-                ($i % 2)? $class = "row2" : $class = "row1";
-
-                // initialize variables
-                $this->_objTpl->setVariable(array(
-                    'SETTINGS_ROWCLASS'     => $class,
-                    'SETTINGS_SETVALUE'     => $setValueField,
-                    'SETTINGS_DESCRIPTION'  => $_ARRAYLANG['TXT_'.strtoupper($objResult->fields['setname'])],
-                ));
-                $this->_objTpl->parseCurrentBlock('settingsOutput');
-                $i++;
-                $objResult->MoveNext();
-            }
-        }
-
-        $this->_objTpl->parse('requests_block');
-    }
-
 
     function showSettings_inputs()
     {
@@ -2981,12 +2916,12 @@ EOF;
             //get post data
             foreach ($_POST['setvalue'] as $id => $value) {
                 //update settings
-                
+
                 // check for description field to be required
                 if ($id == 13 && $value == 1) {
                     $objDatabase->Execute("UPDATE `".DBPREFIX."module_directory_inputfields` SET active='1', is_required='1', active_backend='1' WHERE name='description'");
                 }
-                
+
                 if (ini_get('allow_url_fopen') == false && $id == 19) {
                     $objResult = $objDatabase->Execute("UPDATE ".DBPREFIX."module_directory_settings SET setvalue='0' WHERE setid=".intval($id));
                 } else {
@@ -2996,16 +2931,6 @@ EOF;
             }
             $this->strOkMessage = $_ARRAYLANG['TXT_DIR_SETTINGS_SUCCESFULL_SAVE'];
         }
-
-        if (isset($_POST['set_google_submit'])) {
-            //get post data
-            foreach ($_POST['setvalue'] as $id => $value) {
-                //update settings
-                $objResult = $objDatabase->Execute("UPDATE ".DBPREFIX."module_directory_settings_google SET setvalue='".contrexx_addslashes($value)."' WHERE setid=".intval($id));
-            }
-            $this->strOkMessage = $_ARRAYLANG['TXT_DIR_SETTINGS_SUCCESFULL_SAVE'];
-        }
-
 
         if (isset($_POST['set_homecontent_submit'])) {
             //update settings
@@ -3036,7 +2961,7 @@ EOF;
 
         if (isset($_POST['set_inputs_submit'])) {
             //update settings
-            
+
             // title field should stay active, required and available for search
             $objResult = $objDatabase->Execute("UPDATE ".DBPREFIX."module_directory_inputfields SET active='0' Where id !='1'");
             $objResult = $objDatabase->Execute("UPDATE ".DBPREFIX."module_directory_inputfields SET is_search='0' Where id !='1'");
@@ -3179,7 +3104,7 @@ EOF;
             }
         }
     }
-    
+
     /**
      * check whether the description field is required or not
      * @return boolean true if the description field is required

@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * Block
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
@@ -115,7 +115,7 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
                 $this->_strOkMessage = $_ARRAYLANG['TXT_BLOCK_BLOCK_ADDED_SUCCESSFULLY'];
             }
         }
-        
+
         if (isset($_GET['modified']) && $_GET['modified'] == 'true') {
             if (!empty($_GET['blockname'])) {
                 $this->_strOkMessage = sprintf($_ARRAYLANG['TXT_BLOCK_BLOCK_UPDATED_SUCCESSFULLY'], contrexx_raw2xhtml($_GET['blockname']));
@@ -132,7 +132,7 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
             $this->_saveSettings($arrSettings);
             $this->_strOkMessage = $_ARRAYLANG['TXT_SETTINGS_UPDATED'];
         }
-        
+
     }
     private function setNavigation()
     {
@@ -141,10 +141,10 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
         $objTemplate->setVariable("CONTENT_NAVIGATION", "   "
             .($_CONFIG['blockStatus'] == '1'
                  ? "<a href='index.php?cmd=Block&amp;act=overview' class='".($this->act == '' || $this->act == 'overview' || $this->act == 'del' ? 'active' : '')."'>".$_ARRAYLANG['TXT_BLOCK_OVERVIEW']."</a>
-                    <a href='index.php?cmd=Block&amp;act=modify' class='".($this->act == 'modify' ? 'active' : '')."'>".$_ARRAYLANG['TXT_BLOCK_ADD_BLOCK']."</a>"
+                    <a href='index.php?cmd=Block&amp;act=modify" . (isset($_GET['catId']) ? '&amp;catId=' . contrexx_input2int($_GET['catId']) : '') . "' class='".($this->act == 'modify' ? 'active' : '')."'>".$_ARRAYLANG['TXT_BLOCK_ADD_BLOCK']."</a>"
                  : "")
             ."<a href='index.php?cmd=Block&amp;act=categories' class='".($this->act == 'categories' ? 'active' : '')."'>".$_ARRAYLANG['TXT_BLOCK_CATEGORIES']."</a>"
-     	    ."<a href='index.php?cmd=Block&amp;act=settings' class='".($this->act == 'settings' ? 'active' : '')."'>".$_ARRAYLANG['TXT_BLOCK_SETTINGS']."</a>");
+             ."<a href='index.php?cmd=Block&amp;act=settings' class='".($this->act == 'settings' ? 'active' : '')."'>".$_ARRAYLANG['TXT_BLOCK_SETTINGS']."</a>");
     }
 
     /**
@@ -259,13 +259,23 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
             foreach ($_POST['displayorder'] as $blockId => $value){
                 $query = "UPDATE ".DBPREFIX."module_block_blocks SET `order`='".intval($value)."' WHERE id='".intval($blockId)."'";
                 $objDatabase->Execute($query);
+                // I guess this does not work in this case, but since
+                // the current implementation of block cache will be replaced
+                // in CLX-1547 we just try:
+                \Cx\Core\Core\Controller\Cx::instanciate()->getComponent('Cache')->clearSsiCachePage(
+                    'Block',
+                    'getBlockContent',
+                    array(
+                        'block' => $blockId,
+                    )
+                );
             }
         }
 
         $this->_pageTitle = $_ARRAYLANG['TXT_BLOCK_BLOCKS'];
         $this->_objTpl->loadTemplateFile('module_block_overview.html');
 
-        $catId = !empty($_REQUEST['catId']) ? intval($_REQUEST['catId']) : 0;
+        $catId = !empty($_REQUEST['catId']) ? contrexx_input2int($_REQUEST['catId']) : 0;
 
         $this->_objTpl->setVariable(array(
             'TXT_BLOCK_BLOCKS'                  => $_ARRAYLANG['TXT_BLOCK_BLOCKS'],
@@ -294,6 +304,7 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
             'BLOCK_CATEGORIES_DROPDOWN'         => $this->_getCategoriesDropdown($catId),
             'DIRECTORY_INDEX'                   => CONTREXX_DIRECTORY_INDEX,
             'CSRF_PARAM'                        => \Cx\Core\Csrf\Controller\Csrf::param(),
+            'BLOCK_FILTER_CATEGORY_ID'          => $catId
         ));
 
         $arrBlocks = $this->getBlocks($catId);
@@ -309,9 +320,9 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
         $rowNr = 0;
         foreach ($arrBlocks as $blockId => $arrBlock) {
             if ($arrBlock['active'] ==  '1') {
-                $status = '<a href="index.php?cmd=Block&amp;act=deactivate&amp;blockId='.$blockId.'" title="'.$_ARRAYLANG['TXT_BLOCK_ACTIVE'].'"><img src="../core/Core/View/Media/icons/led_green.gif" width="13" height="13" border="0" alt="'.$_ARRAYLANG['TXT_BLOCK_ACTIVE'].'" /></a>';
+                $status = '<a href="index.php?cmd=Block&amp;act=deactivate&amp;blockId=' . $blockId . '&amp;catId=' . $catId . '" title="'.$_ARRAYLANG['TXT_BLOCK_ACTIVE'].'"><img src="../core/Core/View/Media/icons/led_green.gif" width="13" height="13" border="0" alt="'.$_ARRAYLANG['TXT_BLOCK_ACTIVE'].'" /></a>';
             } else {
-                $status = '<a href="index.php?cmd=Block&amp;act=activate&amp;blockId='.$blockId.'" title="'.$_ARRAYLANG['TXT_BLOCK_INACTIVE'].'"><img src="../core/Core/View/Media/icons/led_red.gif" width="13" height="13" border="0" alt="'.$_ARRAYLANG['TXT_BLOCK_INACTIVE'].'" /></a>';
+                $status = '<a href="index.php?cmd=Block&amp;act=activate&amp;blockId=' . $blockId . '&amp;catId=' . $catId . '" title="'.$_ARRAYLANG['TXT_BLOCK_INACTIVE'].'"><img src="../core/Core/View/Media/icons/led_red.gif" width="13" height="13" border="0" alt="'.$_ARRAYLANG['TXT_BLOCK_INACTIVE'].'" /></a>';
             }
 
             $blockPlaceholder = $this->blockNamePrefix . $blockId;
@@ -373,8 +384,8 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
                 'BLOCK_RANDOM_3_INFO'         => $random3Info,
                 'BLOCK_RANDOM_4_INFO'         => $random4Info,
                 'BLOCK_TARGETING_CLASS'       => $targetingClass,
-                'BLOCK_TARGETING_INFO'        => !empty($targeting) 
-                                                    ? $targetingInfo 
+                'BLOCK_TARGETING_INFO'        => !empty($targeting)
+                                                    ? $targetingInfo
                                                     : $_ARRAYLANG['TXT_BLOCK_LOCATION_BASED_DISPLAY_INFO'],
                 'BLOCK_GLOBAL_CLASS'          => $globalClass,
                 'BLOCK_GLOBAL_INFO'           => ($arrBlock['global'] == 1)
@@ -395,6 +406,7 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
                 'BLOCK_DELETE'                => sprintf($_ARRAYLANG['TXT_BLOCK_DELETE_BLOCK'], contrexx_raw2xhtml($arrBlock['name'])),
                 'BLOCK_STATUS'                => $status,
                 'BLOCK_LANGUAGES_NAME'        => $langString,
+                'BLOCK_CATEGORY_ID'           => $catId
             ));
             $this->_objTpl->parse('blockBlockList');
 
@@ -697,7 +709,8 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
             'type' => 'button',
             'style' => 'display:none'
         ));
-        
+
+        $catId                  = !empty($_GET['catId']) ? contrexx_input2int($_GET['catId']) : 0;
         $blockId                = !empty($_REQUEST['blockId']) ? intval($_REQUEST['blockId']) : 0;
         $blockCat               = 0;
         $blockName              = '';
@@ -743,7 +756,7 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
             'TXT_BLOCK_SELECTED_PAGES'          => $_ARRAYLANG['TXT_BLOCK_SELECTED_PAGES'],
             'TXT_BLOCK_AVAILABLE_PAGES'         => $_ARRAYLANG['TXT_BLOCK_AVAILABLE_PAGES'],
             'TXT_BLOCK_SELECT_ALL'              => $_ARRAYLANG['TXT_BLOCK_SELECT_ALL'],
-            'TXT_BLOCK_UNSELECT_ALL'            => $_ARRAYLANG['TXT_BLOCK_UNSELECT_ALL'], 
+            'TXT_BLOCK_UNSELECT_ALL'            => $_ARRAYLANG['TXT_BLOCK_UNSELECT_ALL'],
             'TXT_BLOCK_GLOBAL_PLACEHOLDERS'     => $_ARRAYLANG['TXT_BLOCK_GLOBAL_PLACEHOLDERS'],
             'TXT_BLOCK_GLOBAL_PLACEHOLDERS_INFO'=> $_ARRAYLANG['TXT_BLOCK_GLOBAL_PLACEHOLDERS_INFO'],
             'TXT_BLOCK_DIRECT_PLACEHOLDERS'     => $_ARRAYLANG['TXT_BLOCK_DIRECT_PLACEHOLDERS'],
@@ -779,6 +792,7 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
             );
         }
 
+        $categoryParam = !empty($catId) ? '&catId=' . $catId : '';
         if (isset($_POST['block_save_block'])) {
             $blockCat               = !empty($_POST['blockCat']) ? intval($_POST['blockCat']) : 0;
             $blockContent           = isset($_POST['blockFormText_']) ? array_map('contrexx_input2raw', $_POST['blockFormText_']) : array();
@@ -809,16 +823,16 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
                 if ($this->_updateBlock($blockId, $blockCat, $blockContent, $blockName, $blockStart, $blockEnd, $blockRandom, $blockRandom2, $blockRandom3, $blockRandom4, $blockWysiwygEditor, $blockLangActive)) {
                     if ($this->storePlaceholderSettings($blockId, $blockGlobal, $blockDirect, $blockCategory, $blockGlobalAssociatedPageIds, $blockDirectAssociatedPageIds, $blockCategoryAssociatedPageIds)) {
                         $this->storeTargetingSettings($blockId, $targetingStatus, $targeting);
-                        \Cx\Core\Csrf\Controller\Csrf::header('location: index.php?cmd=Block&modified=true&blockname='.$blockName);
+                        \Cx\Core\Csrf\Controller\Csrf::redirect('index.php?cmd=Block&modified=true&blockname=' . $blockName . $categoryParam);
                         exit;
                     }
                 }
                 $this->_strErrMessage = $_ARRAYLANG['TXT_BLOCK_BLOCK_COULD_NOT_BE_UPDATED'];
-            } else { 
+            } else {
                 if ($blockId = $this->_addBlock($blockCat, $blockContent, $blockName, $blockStart, $blockEnd, $blockRandom, $blockRandom2, $blockRandom3, $blockRandom4, $blockWysiwygEditor, $blockLangActive)) {
                     if ($this->storePlaceholderSettings($blockId, $blockGlobal, $blockDirect, $blockCategory, $blockGlobalAssociatedPageIds, $blockDirectAssociatedPageIds, $blockCategoryAssociatedPageIds)) {
                         $this->storeTargetingSettings($blockId, $targetingStatus, $targeting);
-                        \Cx\Core\Csrf\Controller\Csrf::header('location: index.php?cmd=Block&added=true&blockname='.$blockName);
+                        \Cx\Core\Csrf\Controller\Csrf::redirect('index.php?cmd=Block&added=true&blockname=' . $blockName . $categoryParam);
                         exit;
                     }
                 }
@@ -857,7 +871,7 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
         if ($copy) {
             $blockId = 0;
         }
-        
+
         $this->_objTpl->setVariable(array(
             'BLOCK_ID'                          => $blockId,
             'BLOCK_MODIFY_TITLE'                => $pageTitle,
@@ -866,6 +880,7 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
             'BLOCK_START'                       => !empty($blockStart) ? strftime('%Y-%m-%d %H:%M', $blockStart) : $blockStart,
             'BLOCK_END'                         => !empty($blockEnd) ? strftime('%Y-%m-%d %H:%M', $blockEnd) : $blockEnd,
             'BLOCK_WYSIWYG_EDITOR'              => $blockWysiwygEditor == 1 ? 'checked="checked"' : '',
+            'BLOCK_FILTER_CATEGORY_ID'          => $catId,
 
             // random placeholders
             'BLOCK_RANDOM'                      => $blockRandom == '1' ? 'checked="checked"' : '',
@@ -900,7 +915,7 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
             'BLOCK_TARGETING_COUNTRY_EXCLUDE'   => !empty($targeting['country']) && $targeting['country']['filter'] == 'exclude'
                                                     ? 'selected="selected"' : '',
         ));
-        
+
         if (!empty($targeting['country']) && !empty($targeting['country']['value'])) {
             foreach ($targeting['country']['value'] as $countryId) {
                 $countryName = \Cx\Core\Country\Controller\Country::getNameById($countryId);
@@ -920,21 +935,34 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
         $pageTitlesTree = $pageTitlesTree['data'];
 
         $objJs = \ContrexxJavascript::getInstance();
-        
+
         $blockGlobalPageSelects   = $this->getPageSelections($pageTitlesTree, $blockGlobalAssociatedPageIds);
         $blockDirectPageSelects   = $this->getPageSelections($pageTitlesTree, $blockDirectAssociatedPageIds);
         $blockCategoryPageSelects = $this->getPageSelections($pageTitlesTree, $blockCategoryAssociatedPageIds);
 
-        $objJs->setVariable('globalPagesUnselectedOptions', $jsonData->json($blockGlobalPageSelects[1]), 'block');
-        $objJs->setVariable('globalPagesSelectedOptions', $jsonData->json($blockGlobalPageSelects[0]), 'block');
+        $objJs->setVariable('globalPagesUnselectedOptions', $jsonData->parse($blockGlobalPageSelects[1]), 'block');
+        $objJs->setVariable('globalPagesSelectedOptions', $jsonData->parse($blockGlobalPageSelects[0]), 'block');
 
-        $objJs->setVariable('directPagesUnselectedOptions', $jsonData->json($blockDirectPageSelects[1]), 'block');
-        $objJs->setVariable('directPagesSelectedOptions', $jsonData->json($blockDirectPageSelects[0]), 'block');
+        $objJs->setVariable('directPagesUnselectedOptions', $jsonData->parse($blockDirectPageSelects[1]), 'block');
+        $objJs->setVariable('directPagesSelectedOptions', $jsonData->parse($blockDirectPageSelects[0]), 'block');
 
-        $objJs->setVariable('categoryPagesUnselectedOptions', $jsonData->json($blockCategoryPageSelects[1]), 'block');
-        $objJs->setVariable('categoryPagesSelectedOptions', $jsonData->json($blockCategoryPageSelects[0]), 'block');
+        $objJs->setVariable('categoryPagesUnselectedOptions', $jsonData->parse($blockCategoryPageSelects[1]), 'block');
+        $objJs->setVariable('categoryPagesSelectedOptions', $jsonData->parse($blockCategoryPageSelects[0]), 'block');
 
-        $objJs->setVariable('ckeditorconfigpath', substr(\Env::get('ClassLoader')->getFilePath(ASCMS_CORE_PATH.'/Wysiwyg/ckeditor.config.js.php'), strlen(ASCMS_DOCUMENT_ROOT)+1), 'block');
+        $objJs->setVariable('ckeditorconfigpath', \Cx\Core\Core\Controller\Cx::instanciate()->getComponent('Wysiwyg')->getConfigPath(), 'block');
+
+        // manually set Wysiwyg variables as the Ckeditor will be
+        // loaded manually through JavaScript (and not properly through the
+        // component interface)
+        $uploader = new \Cx\Core_Modules\Uploader\Model\Entity\Uploader();
+        $mediaSourceManager = \Cx\Core\Core\Controller\Cx::instanciate()
+            ->getMediaSourceManager();
+        $mediaSource        = current($mediaSourceManager->getMediaTypes());
+        $mediaSourceDir     = $mediaSource->getDirectory();
+        $objJs->setVariable(array(
+            'ckeditorUploaderId'   => $uploader->getId(),
+            'ckeditorUploaderPath' => $mediaSourceDir[1] . '/'
+        ), 'wysiwyg');
 
         $arrActiveSystemFrontendLanguages = \FWLanguage::getActiveFrontendLanguages();
         $this->parseLanguageOptionsByPlaceholder($arrActiveSystemFrontendLanguages, 'global');
@@ -948,7 +976,7 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
 
             foreach($arrActiveSystemFrontendLanguages as $langId => $arrLanguage) {
                 $boolLanguageIsActive = $blockId == 0 && $intLanguageCounter == 0 ? true : ((isset($blockLangActive[$langId]) && $blockLangActive[$langId] == 1) ? true : false);
-                
+
                 $arrLanguages[$intLanguageCounter%3] .= '<input id="languagebar_'.$langId.'" '.(($boolLanguageIsActive) ? 'checked="checked"' : '').' type="checkbox" name="blockFormLanguages['.$langId.']" value="1" onclick="switchBoxAndTab(this, \'lang_blockContent_'.$langId.'\');" /><label for="languagebar_'.$langId.'">'.contrexx_raw2xhtml($arrLanguage['name']).' ['.$arrLanguage['lang'].']</label><br />';
                 $strJsTabToDiv .= 'arrTabToDiv["lang_blockContent_'.$langId.'"] = "langTab_'.$langId.'";'."\n";
                 ++$intLanguageCounter;
@@ -961,13 +989,13 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
                 'EDIT_LANGUAGES_3'        => $arrLanguages[2],
                 'EDIT_JS_TAB_TO_DIV'      => $strJsTabToDiv
             ));
-        }        
-        
+        }
+
         $arrLanguages = \FWLanguage::getLanguageArray();
-        $i=0;    
+        $i=0;
         $activeFlag = 0;
-        foreach ($arrLanguages as $langId => $arrLanguage) {            
-            
+        foreach ($arrLanguages as $langId => $arrLanguage) {
+
             if($arrLanguage['frontend'] != 1) {
                 continue;
             }
@@ -975,28 +1003,28 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
             $tmpBlockContent       = isset($blockContent[$langId]) ? $blockContent[$langId] : '';
             $tmpBlockLangActive    = isset($blockLangActive[$langId]) ? $blockLangActive[$langId] : 0;
             $tmpBlockContent       = preg_replace('/\{([A-Z0-9_-]+)\}/', '[[\\1]]' ,$tmpBlockContent);
-            
+
             if ($blockId != 0) {
                 if (!$activeFlag && isset($blockLangActive[$langId])) {
                     $activeClass =  'active';
                     $activeFlag = 1;
                 }
             } elseif (!$activeFlag) {
-                $activeClass = 'active';                
+                $activeClass = 'active';
                 $activeFlag = 1;
             }
-            
+
             $this->_objTpl->setVariable(array(
                 'BLOCK_LANG_TAB_LANG_ID'        => intval($langId),
                 'BLOCK_LANG_TAB_CLASS'          => isset($activeClass) ? $activeClass : '',
-                'TXT_BLOCK_LANG_TAB_LANG_NAME'  => contrexx_raw2xhtml($arrLanguage['name']),            
+                'TXT_BLOCK_LANG_TAB_LANG_NAME'  => contrexx_raw2xhtml($arrLanguage['name']),
                 'BLOCK_LANGTAB_DISPLAY'         => $tmpBlockLangActive == 1 ? 'display:inline;' : ($blockId == 0 && $i == 0 ? 'display:inline;' : 'display:none;')
             ));
             $this->_objTpl->parse('block_language_tabs');
 
             $this->_objTpl->setVariable(array(
-                'BLOCK_LANG_ID'                 => intval($langId),                           
-                'BLOCK_CONTENT_TEXT_HIDDEN'     => contrexx_raw2xhtml($tmpBlockContent),                
+                'BLOCK_LANG_ID'                 => intval($langId),
+                'BLOCK_CONTENT_TEXT_HIDDEN'     => contrexx_raw2xhtml($tmpBlockContent),
             ));
             $this->_objTpl->parse('block_language_content');
             $activeClass = '';
@@ -1107,8 +1135,8 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
      * @return array the content for the html select
      */
     private function getPageSelections($pageTitlesTree, $blockAssociatedPageIds) {
-        $strSelectedPages   = '';
-        $strUnselectedPages = '';
+        $strSelectedPages   = array();
+        $strUnselectedPages = array();
 
         foreach ($pageTitlesTree as $nodeId => $languages) {
             foreach ($languages as $langCode => $pageData) {
@@ -1205,20 +1233,33 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
         global $_ARRAYLANG, $objDatabase;
 
         $arrStatusBlocks = isset($_POST['selectedBlockId']) ? $_POST['selectedBlockId'] : null;
-        if($arrStatusBlocks != null){
-            foreach ($arrStatusBlocks as $blockId){
+        if ($arrStatusBlocks != null) {
+            foreach ($arrStatusBlocks as $blockId) {
                 $query = "UPDATE ".DBPREFIX."module_block_blocks SET active='1' WHERE id=$blockId";
                 $objDatabase->Execute($query);
+                \Cx\Core\Core\Controller\Cx::instanciate()->getComponent('Cache')->clearSsiCachePage(
+                    'Block',
+                    'getBlockContent',
+                    array(
+                        'block' => $blockId,
+                    )
+                );
             }
-        }else{
-            if(isset($_GET['blockId'])){
-                $blockId = $_GET['blockId'];
-                $query = "UPDATE ".DBPREFIX."module_block_blocks SET active='1' WHERE id=$blockId";
-                $objDatabase->Execute($query);
-            }
+        } else if(isset($_GET['blockId'])) {
+            $blockId = $_GET['blockId'];
+            $query = "UPDATE ".DBPREFIX."module_block_blocks SET active='1' WHERE id=$blockId";
+            $objDatabase->Execute($query);
+            \Cx\Core\Core\Controller\Cx::instanciate()->getComponent('Cache')->clearSsiCachePage(
+                'Block',
+                'getBlockContent',
+                array(
+                    'block' => $blockId,
+                )
+            );
         }
 
-        \Cx\Core\Csrf\Controller\Csrf::header("Location: index.php?cmd=Block");
+        $categoryParam = isset($_GET['catId']) ? '&catId=' . contrexx_input2int($_GET['catId']) : '';
+        \Cx\Core\Csrf\Controller\Csrf::redirect('index.php?cmd=Block' . $categoryParam);
     }
 
     /**
@@ -1235,20 +1276,33 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
         global $objDatabase;
 
         $arrStatusBlocks = isset($_POST['selectedBlockId']) ? $_POST['selectedBlockId'] : null;
-        if($arrStatusBlocks != null){
+        if ($arrStatusBlocks != null) {
             foreach ($arrStatusBlocks as $blockId){
                 $query = "UPDATE ".DBPREFIX."module_block_blocks SET active='0' WHERE id=$blockId";
                 $objDatabase->Execute($query);
+                \Cx\Core\Core\Controller\Cx::instanciate()->getComponent('Cache')->clearSsiCachePage(
+                    'Block',
+                    'getBlockContent',
+                    array(
+                        'block' => $blockId,
+                    )
+                );
             }
-        }else{
-            if(isset($_GET['blockId'])){
-                $blockId = $_GET['blockId'];
-                $query = "UPDATE ".DBPREFIX."module_block_blocks SET active='0' WHERE id=$blockId";
-                $objDatabase->Execute($query);
-            }
+        } else if (isset($_GET['blockId'])) {
+            $blockId = $_GET['blockId'];
+            $query = "UPDATE ".DBPREFIX."module_block_blocks SET active='0' WHERE id=$blockId";
+            $objDatabase->Execute($query);
+            \Cx\Core\Core\Controller\Cx::instanciate()->getComponent('Cache')->clearSsiCachePage(
+                'Block',
+                'getBlockContent',
+                array(
+                    'block' => $blockId,
+                )
+            );
         }
 
-        \Cx\Core\Csrf\Controller\Csrf::header("Location: index.php?cmd=Block");
+        $categoryParam = isset($_GET['catId']) ? '&catId=' . contrexx_input2int($_GET['catId']) : '';
+        \Cx\Core\Csrf\Controller\Csrf::redirect('index.php?cmd=Block' . $categoryParam);
     }
 
     /**
@@ -1308,6 +1362,24 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
     {
         global $_ARRAYLANG, $_CONFIG, $objDatabase;
 
+        if (isset($_POST['saveSettings']) && !empty($_POST['blockSettings'])) {
+            $blockGlobalSeperator =   isset($_POST['blockSettings']['blockGlobalSeperator'])
+                                    ? contrexx_input2db($_POST['blockSettings']['blockGlobalSeperator']) : '';
+            $markParsedBlock      = isset($_POST['blockSettings']['markParsedBlock']);
+            $query = '
+                UPDATE
+                    `'. DBPREFIX .'module_block_settings`
+                SET
+                    `value` = (CASE `name`
+                                WHEN "blockGlobalSeperator" THEN "'. $blockGlobalSeperator .'"
+                                WHEN "markParsedBlock" THEN "'. $markParsedBlock .'"
+                               END)
+            ';
+            $objDatabase->Execute($query);
+
+            \Cx\Core\Csrf\Controller\Csrf::header('Location: index.php?cmd=Block&act=settings');
+        }
+
         $this->_pageTitle = $_ARRAYLANG['TXT_BLOCK_SETTINGS'];
         $this->_objTpl->loadTemplateFile('module_block_settings.html');
 
@@ -1321,35 +1393,36 @@ class BlockManager extends \Cx\Modules\Block\Controller\BlockLibrary
             'TXT_BLOCK_BLOCK_GLOBAL'                    => $_ARRAYLANG['TXT_BLOCK_BLOCK_GLOBAL'],
             'TXT_BLOCK_GLOBAL_SEPERATOR'                => $_ARRAYLANG['TXT_BLOCK_GLOBAL_SEPERATOR'],
             'TXT_BLOCK_GLOBAL_SEPERATOR_INFO'           => $_ARRAYLANG['TXT_BLOCK_GLOBAL_SEPERATOR_INFO'],
+            'TXT_BLOCK_MARK_PARSED_BLOCK'               => $_ARRAYLANG['TXT_BLOCK_MARK_PARSED_BLOCK'],
+            'TXT_BLOCK_MARK_PARSED_BLOCK_INFO'          => $_ARRAYLANG['TXT_BLOCK_MARK_PARSED_BLOCK_INFO'],
             'TXT_BLOCK_SAVE'                            => $_ARRAYLANG['TXT_BLOCK_SAVE'],
         ));
 
-        $objResult = $objDatabase->Execute("SELECT  value
-                                            FROM    ".DBPREFIX."module_block_settings
-                                            WHERE   name='blockGlobalSeperator'
-                                            ");
+        $objResult = $objDatabase->Execute('
+            SELECT
+                `name`,
+                `value`
+            FROM
+                `'. DBPREFIX .'module_block_settings`
+            WHERE
+                `name` IN ("blockGlobalSeperator", "markParsedBlock")
+        ');
+        $settings = array();
         if ($objResult !== false) {
             while (!$objResult->EOF) {
-                $blockGlobalSeperator   = $objResult->fields['value'];
+                $settings[$objResult->fields['name']] = $objResult->fields['value'];
                 $objResult->MoveNext();
             }
         }
 
         $this->_objTpl->setVariable(array(
-            'BLOCK_GLOBAL_SEPERATOR'                        => addslashes($blockGlobalSeperator),
+            'BLOCK_GLOBAL_SEPERATOR'  =>   isset($settings['blockGlobalSeperator'])
+                                         ? contrexx_raw2xhtml($settings['blockGlobalSeperator']) : '',
+            'BLOCK_MARK_PARSED_BLOCK' =>   !empty($settings['markParsedBlock'])
+                                         ? 'checked="checked"' : '',
+            'BLOCK_USE_BLOCK_SYSTEM'  => $_CONFIG['blockStatus'] == '1' ? 'checked="checked"' : '',
+            'BLOCK_USE_BLOCK_RANDOM'  => $_CONFIG['blockRandom'] == '1' ? 'checked="checked"' : '',
         ));
 
-        $this->_objTpl->setVariable('BLOCK_USE_BLOCK_SYSTEM', $_CONFIG['blockStatus'] == '1' ? 'checked="checked"' : '');
-        $this->_objTpl->setVariable('BLOCK_USE_BLOCK_RANDOM', $_CONFIG['blockRandom'] == '1' ? 'checked="checked"' : '');
-
-
-        if (isset($_POST['saveSettings'])) {
-            foreach ($_POST['blockSettings'] as $setName => $setValue){
-                $query = "UPDATE ".DBPREFIX."module_block_settings SET value='".contrexx_addslashes($setValue)."' WHERE name='".$setName."'";
-                $objDatabase->Execute($query);
-            }
-
-            \Cx\Core\Csrf\Controller\Csrf::header('Location: index.php?cmd=Block&act=settings');
-        }
     }
 }

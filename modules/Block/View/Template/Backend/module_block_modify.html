@@ -1,4 +1,4 @@
-<!-- START module_block_block.html -->
+<!-- START module_block_modify.html -->
 <script type="text/javascript">
     $J(document).ready(function() {
         $J('#wysiwyg_editor').change(function() {
@@ -107,9 +107,9 @@
         if ($J('#wysiwyg_editor').prop('checked')) {
             if (typeof(CKEDITOR.instances.ckeditor) == 'undefined') {
                 var config = {
-                    customConfig : cx.variables.get('basePath', 'contrexx') + cx.variables.get('ckeditorconfigpath', 'block'),
+                    customConfig : cx.variables.get('ckeditorconfigpath', 'block'),
                     toolbar: 'Full',
-                    skin: 'moono',
+                    removePlugins: 'bbcode',
                     height: 380
                 };
                 CKEDITOR.replace('page[content]', config);
@@ -264,11 +264,11 @@
         changePageTitlesByLang($J('input[name*=pagesLang]:checked').val(), 'global');
         changePageTitlesByLang($J('input[name*=pagesLang]:checked').val(), 'direct');
         changePageTitlesByLang($J('input[name*=pagesLang]:checked').val(), 'category');
-        
+
         cx.jQuery('input.tagit-hidden-field').each(function(i){
             cx.jQuery( this ).val( cx.jQuery( this ).data( 'id' ) );
         });
-        
+
         return true;
     }
     function disableButtons(from,dest,add,remove)
@@ -447,7 +447,13 @@
         // do not overwrite data on first call, but parse it into json object
         if (cachedLang == "") {
             selectedOps = cx.jQuery.parseJSON(cx.variables.get(placeholder + "PagesSelectedOptions", "block"));
+            if (selectedOps instanceof Array && !selectedOps.length) {
+                selectedOps = "";
+            }
             unselectedOps = cx.jQuery.parseJSON(cx.variables.get(placeholder + "PagesUnselectedOptions", "block"));
+            if (unselectedOps instanceof Array && !unselectedOps.length) {
+                unselectedOps = "";
+            }
         } else {
             selectedOps = cx.variables.get(placeholder + "PagesSelectedOptions", "block");
             unselectedOps = cx.variables.get(placeholder + "PagesUnselectedOptions", "block");
@@ -514,7 +520,7 @@
 
 </style>
 {BLOCK_WYSIWYG_MEDIABROWSER}
-<form name="blockFormModifyBlock" action="index.php?cmd=Block&amp;act=modify" method="post" onsubmit="onSubmit();">
+<form name="blockFormModifyBlock" action="index.php?cmd=Block&amp;act=modify&amp;catId={BLOCK_FILTER_CATEGORY_ID}" method="post" onsubmit="onSubmit();">
     <input type="hidden" name="blockId" value="{BLOCK_ID}" size="50" />
     <input type="hidden" id="globalCachedLang" name="globalCachedLang" value="" />
     <input type="hidden" id="directCachedLang" name="directCachedLang" value="" />
@@ -816,4 +822,4 @@
 <br />
 <input type="submit" name="block_save_block" value="{TXT_BLOCK_SAVE}" />
 </form>
-<!-- END module_block_block.html -->
+<!-- END module_block_modify.html -->

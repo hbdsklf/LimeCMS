@@ -81,11 +81,17 @@ class Jobs extends JobsLibrary
     // GET PAGE
     function getjobsPage()
     {
-        if (!isset($_REQUEST['cmd'])) {
-            $_REQUEST['cmd'] = '';
+        $cmd = '';
+        if (!empty($_REQUEST['cmd'])) {
+            $cmd = $_REQUEST['cmd'];
         }
 
-        switch( $_REQUEST['cmd']) {
+        // allow multiple details pages like details2, details3
+        if (substr($cmd, 0, strlen('details')) == 'details') {
+            $cmd = 'details';
+        }
+
+        switch ($cmd) {
             case 'details':
                 return $this->getDetails();
                 break;
@@ -111,6 +117,19 @@ class Jobs extends JobsLibrary
 
         $this->_objTpl->setTemplate($this->pageContent);
 
+        // load source code if cmd value is integer
+        if ($this->_objTpl->placeholderExists('APPLICATION_DATA')) {
+            $page = new \Cx\Core\ContentManager\Model\Entity\Page();
+            $page->setVirtual(true);
+            $page->setType(\Cx\Core\ContentManager\Model\Entity\Page::TYPE_APPLICATION);
+            $page->setModule('Jobs');
+            $page->setCmd('details');
+            // load source code
+            $applicationTemplate = \Cx\Core\Core\Controller\Cx::getContentTemplateOfPage($page);
+            \LinkGenerator::parseTemplate($applicationTemplate);
+            $this->_objTpl->addBlock('APPLICATION_DATA', 'application_data', $applicationTemplate);
+        }
+
         $id = intval($_GET['id']);
 
 
@@ -122,37 +141,10 @@ class Jobs extends JobsLibrary
 
         $footnotetext = "";
         $footnotelink = "";
-    	$footnote = "";
+        $footnotelinkSrc = "";
+        $footnote = "";
         $link = "";
         $url = "";
-
-        if($id > 0) {
-	        $query = "SELECT *
-	                     FROM `".DBPREFIX."module_jobs_settings`
-	                     WHERE name = 'footnote'
-	                     OR name = 'link'
-	                     OR name = 'url'
-	                     ";
-	        $objResult = $objDatabase->Execute($query);
-
-	        while(!$objResult->EOF) {
-
-	            if($objResult->fields['name']== "footnote") {
-	                $footnote = stripslashes($objResult->fields['value']);
-	            }
-	            elseif($objResult->fields['name']== "link") {
-	                $link = stripslashes($objResult->fields['value']);
-	            }
-	            elseif($objResult->fields['name']== "url") {
-	                $url = stripslashes($objResult->fields['value']);
-	            }
-	            $objResult->movenext();
-	        }
-
-        }
-
-
-
 
         $this->_objTpl->setVariable(array(
             'TXT_JOBS_AUTOR' => $_ARRAYLANG['TXT_JOBS_AUTOR'],
@@ -163,6 +155,12 @@ class Jobs extends JobsLibrary
             ));
 
         if ($id > 0) {
+            //Get the settings values from DB
+            $settings = $this->getSettings();
+            $footnote = stripslashes($settings['footnote']);
+            $link     = stripslashes($settings['link']);
+            $url      = stripslashes($settings['url']);
+
             $query = "SELECT id,
                                workloc,
                                changelog,
@@ -206,27 +204,30 @@ class Jobs extends JobsLibrary
 
                 $title = stripslashes($objResult->fields['title']);
 
-		        /*
-		        * Replace self defined placeholders in $url
-		        */
-		        if(!empty($footnote)) {
-					$footnotetext = nl2br($footnote);
-		        }
+                /*
+                * Replace self defined placeholders in $url
+                */
+                if(!empty($footnote)) {
+                    $footnotetext = nl2br($footnote);
+                }
 
-		        if(!empty($link)) {
-			        $url = str_replace("%URL%",urlencode($_SERVER['SERVER_NAME'].$_SERVER['REQUEST_URI']),$url);
-			        $url = htmlspecialchars(str_replace("%TITLE%",urlencode(stripslashes($title)),$url), ENT_QUOTES, CONTREXX_CHARSET);
-			        $footnotelink = "<a href='$url'>$link</a>";
-		        }
+                if(!empty($link)) {
+                    $url = str_replace("%URL%",urlencode($_SERVER['SERVER_NAME'].$_SERVER['REQUEST_URI']),$url);
+                    $url = htmlspecialchars(str_replace("%TITLE%",urlencode(stripslashes($title)),$url), ENT_QUOTES, CONTREXX_CHARSET);
+                    $footnotelink = "<a href='$url'>$link</a>";
+			        $footnotelinkSrc = $url;
+                }
 
 
                 $this->_objTpl->setVariable(array(
+                    'JOBS_ID'	=> $objResult->fields['id'],
                     'JOBS_DATE' => date(ASCMS_DATE_FORMAT,$date),
                     'JOBS_TITLE'=> stripslashes($title),
                     'JOBS_AUTHOR'    => stripslashes($objResult->fields['author']),
                     'JOBS_TEXT' => stripslashes($objResult->fields['text']),
                     'JOBS_FOOTNOTE' => $footnotetext,
                     'JOBS_FOOTNOTE_LINK' => $footnotelink,
+                    'JOBS_FOOTNOTE_LINK_SRC' => $footnotelinkSrc,
                     'JOBS_WORKLOC' => $workloc,
                     'JOBS_WORKLOAD'=> $workload,
                     'JOBS_WORK_START' => $work_start));
@@ -293,7 +294,7 @@ class Jobs extends JobsLibrary
          * This overwrites $_REQUEST['catid'] but it shouldnt be set parallel anyway
          */
         if(isset($_REQUEST['cmd']) && is_numeric($_REQUEST['cmd'])) {
-        	$category = $_REQUEST['cmd'];
+            $category = $_REQUEST['cmd'];
         }
 
 
@@ -310,27 +311,19 @@ class Jobs extends JobsLibrary
             $docFilter =" n.catid='$selectedId' AND ";
         }
 
-
-
-        $objRS = $objDatabase->Execute("SELECT id,value FROM `".DBPREFIX."module_jobs_settings` WHERE name = 'show_location_fe'");
-        if($objRS !== false ) {
-            if(intval($objRS->fields['value']) == 1) {
-                if(!empty($_REQUEST['locid'])) {
-                    $location = intval($_REQUEST['locid']);
-                    $locationFilter = ", `".DBPREFIX."module_jobs_rel_loc_jobs` AS rel WHERE  rel.job = n.id AND rel.location = '".$location."' AND ";
-                }
-
-                $jobslocationform ="
-    <select name=\"locid\" onchange=\"javascript:this.form.submit();\">
-    <option selected=\"selected\" value=''>".$_ARRAYLANG['TXT_JOBS_LOCATION_ALL']."</option>
-    ".$this->getLocationMenu($location)."
-    </select>";
+        $settings = $this->getSettings();
+        if (    isset($settings['show_location_fe']) 
+            &&  ($settings['show_location_fe'] == 1)
+        ) {
+            if(!empty($_REQUEST['locid'])) {
+                $location = contrexx_input2int($_REQUEST['locid']);
+                $locationFilter = ", `".DBPREFIX."module_jobs_rel_loc_jobs` AS rel WHERE  rel.job = n.id AND rel.location = '".$location."' AND ";
             }
+
+            $jobslocationform = "<select name=\"locid\" onchange=\"javascript:this.form.submit();\">
+    <option selected=\"selected\" value=''>".$_ARRAYLANG['TXT_JOBS_LOCATION_ALL']."</option>
+                                ".$this->getLocationMenu($location)."</select>";
         }
-
-
-
-
 
         $jobscategoryform ="
     <select name=\"catid\" onchange=\"javascript:this.form.submit();\">
@@ -392,7 +385,7 @@ class Jobs extends JobsLibrary
         $objResult = $objDatabase->Execute($query);
         $count = $objResult->RecordCount();
         if ($count > intval($_CONFIG['corePagingLimit'])) {
-            $paging = getPaging($count, $pos, "&section=Jobs&catid=".$selectedId."&locid=".$location, $_ARRAYLANG['TXT_DOCUMENTS'], true);
+            $paging = getPaging($count, $pos, "catid=".$selectedId."&locid=".$location, $_ARRAYLANG['TXT_DOCUMENTS'], true);
         }
         $this->_objTpl->setVariable("JOBS_PAGING", $paging);
         $objResult = $objDatabase->SelectLimit($query, $_CONFIG['corePagingLimit'], $pos) ;
@@ -402,12 +395,16 @@ class Jobs extends JobsLibrary
             while (!$objResult->EOF) {
                 ($i % 2) ? $class  = 'row1' : $class  = 'row2';
 
+                $detailUrl = \Cx\Core\Routing\Url::fromModuleAndCmd('Jobs', 'details', FRONTEND_LANG_ID, array('id' => $objResult->fields['docid']));
+
                 $this->_objTpl->setVariable(array(
                     'JOBS_STYLE'      => $class,
-                    'JOBS_ID'			=> $objResult->fields['docid'],
+                    'JOBS_ID'            => $objResult->fields['docid'],
                     'JOBS_LONG_DATE'  => date($this->dateLongFormat,$objResult->fields['date']),
                     'JOBS_DATE'       => date($this->dateFormat,$objResult->fields['date']),
-                    'JOBS_LINK'       => "<a href=\"?section=Jobs&amp;cmd=details&amp;id=".$objResult->fields['docid']."\" title=\"".stripslashes($objResult->fields['title'])."\">".stripslashes($objResult->fields['title'])."</a>",
+                    'JOBS_LINK'         => "<a href=\"" . $detailUrl->toString() . "\" title=\"".stripslashes($objResult->fields['title'])."\">".stripslashes($objResult->fields['title'])."</a>",
+                    'JOBS_TITLE'        => contrexx_raw2xhtml($objResult->fields['title']),
+                    'JOBS_LINK_SRC'     => $detailUrl->toString(),
                     'JOBS_AUTHOR'       => stripslashes($objResult->fields['author']),
                     'JOBS_WORKLOAD' => stripslashes($objResult->fields['workload'])
                 ));
@@ -415,8 +412,7 @@ class Jobs extends JobsLibrary
                 $this->_objTpl->parse("row");
                 $i++;
                 $objResult->MoveNext();
-
-        }
+            }
         }else{
             $this->_objTpl->setVariable('TXT_NO_DOCUMENTS_FOUND',$_ARRAYLANG['TXT_NO_DOCUMENTS_FOUND']);
             $this->_objTpl->parse("alternate_row");

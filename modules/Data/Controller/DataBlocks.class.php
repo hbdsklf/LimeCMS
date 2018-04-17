@@ -66,7 +66,7 @@ class DataBlocks extends \Cx\Modules\Data\Controller\DataLibrary
         global $objInit;
 
         \Cx\Core\Setting\Controller\Setting::init('Config', 'component','Yaml');
-        
+
         if (\Cx\Core\Setting\Controller\Setting::getValue('dataUseModule')) {
             $this->active = true;
         } else {
@@ -215,7 +215,7 @@ class DataBlocks extends \Cx\Modules\Data\Controller\DataLibrary
 
                 $translation = $entry['translation'][$_LANGID];
                 $image = $this->getThumbnailImage($entryId, $translation['image'], $translation['thumbnail'], $translation['thumbnail_type']);
-                
+
                 if ($entry['mode'] == "normal") {
                     $href = $url."&amp;id=".$entryId;
                 } else {
@@ -226,6 +226,19 @@ class DataBlocks extends \Cx\Modules\Data\Controller\DataLibrary
                     $target = "target=\"".$entry['translation'][$_LANGID]['forward_target']."\"";
                 } else {
                     $target = "";
+                }
+
+                if ($entry['translation'][$_LANGID]['attachment']) {
+                    $this->_objTpl->setVariable(array(
+                        'ENTRY_ATTACHMENT_URL'  => $entry['translation'][$_LANGID]['attachment'],
+                        'TXT_DOWNLOAD'          => (empty($entry['translation'][$_LANGID]['attachment_desc'])
+                            ? $this->langVars['TXT_DATA_DOWNLOAD_ATTACHMENT']
+                            : $entry['translation'][$_LANGID]['attachment_desc']
+                        ),
+                    ));
+                    if ($this->_objTpl->blockExists('attachment')) {
+                        $this->_objTpl->parse('attachment');
+                    }
                 }
 
                 $title = $entry['translation'][$_LANGID]['subject'];
@@ -370,4 +383,3 @@ class DataBlocks extends \Cx\Modules\Data\Controller\DataLibrary
     }
 
 }
-

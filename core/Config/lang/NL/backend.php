@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,15 +24,15 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
-/** 
+
+/**
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
  * @author      Cloudrexx Development Team <info@cloudrexx.com>
- * @access      public 
+ * @access      public
  * @package     cloudrexx
  * @subpackage  core_config
- */ 
-global $_ARRAYLANG; 
+ */
+global $_ARRAYLANG;
 $_ARRAYLANG['TXT_SETTINGS_MENU_SYSTEM'] = 'Systeem';
 $_ARRAYLANG['TXT_SETTINGS_MENU_CACHE'] = 'Buffer';
 $_ARRAYLANG['TXT_EMAIL_SERVER'] = 'E-mail server';
@@ -79,8 +79,6 @@ $_ARRAYLANG['TXT_CORE_CONFIG_SESSIONLIFETIME'] = 'Sessieduur';
 $_ARRAYLANG['TXT_CORE_CONFIG_SESSIONLIFETIME_TOOLTIP_HELP'] = 'Sessieduur in seconden';
 $_ARRAYLANG['TXT_CORE_CONFIG_SESSIONLIFETIMEREMEMBERME'] = 'Session length (remember me)';
 $_ARRAYLANG['TXT_CORE_CONFIG_SESSIONLIFETIMEREMEMBERME_TOOLTIP_HELP'] = 'Session length in seconds for users which have set the checkbox "Remember me" at login.';
-$_ARRAYLANG['TXT_CORE_CONFIG_DNSSERVER'] = 'DNS server';
-$_ARRAYLANG['TXT_CORE_CONFIG_DNSSERVER_TOOLTIP_HELP'] = 'Voor een MX record lookup is een DNS benodigd!';
 $_ARRAYLANG['TXT_CORE_CONFIG_COREADMINNAME'] = 'Beheerders titel';
 $_ARRAYLANG['TXT_CORE_CONFIG_COREADMINEMAIL'] = 'E-mailadres beheerder';
 $_ARRAYLANG['TXT_CORE_CONFIG_CONTACTFORMEMAIL'] = 'E-mailadres voor het contactformulier (standaard)';

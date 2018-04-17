@@ -214,8 +214,8 @@ class Product
      */
     private $arrRelations = null;
     /**
-     * Is defined, when a minimum order quantity should be checked 
-     * @var integer 
+     * Is defined, when a minimum order quantity should be checked
+     * @var integer
      */
     private $minimum_order_quantity = null;
 
@@ -379,6 +379,19 @@ class Product
     {
         if (isset($active)) {
             $this->active = (boolean)$active;
+        }
+        return $this->active;
+    }
+
+    /**
+     * Return product status based on the product stock and active settings
+     *
+     * @return boolean True when product is active, false otherwise
+     */
+    public function getStatus()
+    {
+        if ($this->stock_visible && $this->stock <= 0) {
+            return false;
         }
         return $this->active;
     }
@@ -590,7 +603,10 @@ class Product
     {
         if (isset($date_start)) {
             $time_start = strtotime($date_start);
-            if ($time_start) {
+            // strtotime() will return unrecognized date when 0000-00-00 00:00:00
+            if (   $time_start
+                && $time_start != strtotime('0000-00-00 00:00:00')
+            ) {
                 $this->date_start =
                     date(ASCMS_DATE_FORMAT_INTERNATIONAL_DATETIME, $time_start);
             } else {
@@ -611,7 +627,10 @@ class Product
     {
         if (isset($date_end)) {
             $time_end = strtotime($date_end);
-            if ($time_end) {
+            // strtotime() will return unrecognized date when 0000-00-00 00:00:00
+            if (   $time_end
+                && $time_end != strtotime('0000-00-00 00:00:00')
+            ) {
                 $this->date_end =
                     date(ASCMS_DATE_FORMAT_INTERNATIONAL_DATETIME, $time_end);
             } else {
@@ -620,6 +639,41 @@ class Product
             }
         }
         return $this->date_end;
+    }
+
+    /**
+     * Get the status of the product based on the scheduled publishing
+     * Note: This function does not check whether the product is in scheduled publishing,
+     * So make sure the product is in scheduled before calling this method
+     *
+     * @return boolean TRUE|FALSE True when product is active by scheduled publishing
+     */
+    public function getActiveByScheduledPublishing()
+    {
+        $start = null;
+        if ($this->date_start() != '0000-00-00 00:00:00') {
+            $start = \DateTime::createFromFormat(
+                ASCMS_DATE_FORMAT_INTERNATIONAL_DATETIME,
+                $this->date_start()
+            );
+            $start->setTime(0, 0, 0);
+        }
+        $end = null;
+        if ($this->date_end() != '0000-00-00 00:00:00') {
+            $end = \DateTime::createFromFormat(
+                ASCMS_DATE_FORMAT_INTERNATIONAL_DATETIME,
+                $this->date_end()
+            );
+            $end->setTime(23, 59, 59);
+        }
+        if (   (!empty($start) && empty($end) && ($start->getTimestamp() > time()))
+            || (empty($start) && !empty($end) && ($end->getTimestamp() < time()))
+            || (!empty($start) && !empty($end) && !($start->getTimestamp() < time() && $end->getTimestamp() > time()))
+        ) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -696,7 +750,7 @@ class Product
 
     /**
      * The minimum order quantity
-     * @param   string    $minimum_order_quantity The optional minimum order quantity 
+     * @param   string    $minimum_order_quantity The optional minimum order quantity
      * @return  integer   minimum order quanity
      * @author  Kaleb Tschbaold <kaleb.tschabold@comvation.com>
      */
@@ -936,18 +990,18 @@ class Product
         if (!Attributes::removeFromProduct($this->id)) {
             return false;
         }
-        
+
         \Env::get('cx')->getEvents()->triggerEvent('model/preRemove', array(new \Doctrine\ORM\Event\LifecycleEventArgs($this, \Env::get('em'))));
-        
+
         $objResult = $objDatabase->Execute("
             DELETE FROM ".DBPREFIX."module_shop".MODULE_INDEX."_products
                 WHERE id=$this->id");
-        
+
         if (!$objResult) {
             return false;
         }
         \Env::get('cx')->getEvents()->triggerEvent('model/postRemove', array(new \Doctrine\ORM\Event\LifecycleEventArgs($this, \Env::get('em'))));
-        
+
         $objDatabase->Execute("
             OPTIMIZE TABLE ".DBPREFIX."module_shop".MODULE_INDEX."_products");
         return true;
@@ -1042,7 +1096,7 @@ class Product
     function update()
     {
         global $objDatabase;
-        
+
         \Env::get('cx')->getEvents()->triggerEvent('model/preUpdate', array(new \Doctrine\ORM\Event\LifecycleEventArgs($this, \Env::get('em'))));
         $args = array(
             $this->pictures,
@@ -1070,7 +1124,7 @@ class Product
             $this->minimum_order_quantity ? $this->minimum_order_quantity : '0',
             $this->id
         );
-        
+
         $query = '
             UPDATE
                 `' . DBPREFIX . 'module_shop' . MODULE_INDEX . '_products`
@@ -1123,7 +1177,7 @@ class Product
     function insert()
     {
         global $objDatabase;
-        
+
         \Env::get('cx')->getEvents()->triggerEvent('model/prePersist', array(new \Doctrine\ORM\Event\LifecycleEventArgs($this, \Env::get('em'))));
         $query = "
             INSERT INTO ".DBPREFIX."module_shop".MODULE_INDEX."_products (
@@ -1201,7 +1255,7 @@ class Product
                    `product`.`vat_id`,
                    `product`.`flags`,
                    `product`.`usergroup_ids`,
-                   `product`.`group_id`, `product`.`article_id`, 
+                   `product`.`group_id`, `product`.`article_id`,
                    `product`.`minimum_order_quantity`, ".
                    $arrSql['field']."
               FROM `".DBPREFIX."module_shop".MODULE_INDEX."_products` AS `product`".
@@ -1336,7 +1390,7 @@ class Product
     function decreaseStock($quantity)
     {
         global $objDatabase;
-        
+
         $query = "
             UPDATE ".DBPREFIX."module_shop".MODULE_INDEX."_products
                SET stock=stock-$quantity

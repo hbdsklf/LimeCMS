@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * ContactLib
  *
@@ -92,7 +92,7 @@ class ContactLib
     function initContactForms($order = null)
     {
         global $objDatabase;
-        
+
         $this->arrForms = array();
 
         if ($order) {
@@ -110,6 +110,7 @@ class ContactLib
                          `f`.`html_mail`,
                          `f`.`send_attachment`,
                          `f`.`crm_customer_groups`,
+                         `f`.`send_multiple_reply`,
                          (SELECT COUNT(`id`) FROM `'.DBPREFIX.'module_contact_form_data` AS `d` WHERE `d`.`id_form` = `f`.`id`)  AS `numberOfEntries`,
                          (SELECT MAX(`time`) FROM `'.DBPREFIX.'module_contact_form_data` AS `d` WHERE `d`.`id_form` = `f`.`id`) AS `latestEntry`
                     FROM `'.DBPREFIX.'module_contact_form` AS `f`
@@ -132,8 +133,8 @@ class ContactLib
                     'recipients'        => $this->getRecipients($objResult->fields['id'], true),
                     'number'            => 0,
                     'last'              => 0,
-                    'crmCustomerGroups' => $objResult->fields['crm_customer_groups'] ? unserialize($objResult->fields['crm_customer_groups']) : array()
-                );                
+                    'crmCustomerGroups' => $objResult->fields['crm_customer_groups'] ? unserialize($objResult->fields['crm_customer_groups']) : array(),
+                    'sendMultipleReply' => $objResult->fields['send_multiple_reply'],               );
                 $objResult->MoveNext();
             }
         }
@@ -200,8 +201,8 @@ class ContactLib
                 'name'      => 'TXT_CONTACT_REGEX_URL',
                 'modifiers' => 'i'
             ),
-	    /*a bit redundant, because we want a minimum of one non-space character.
-	      the query does a [spaceorchar]*[char]+[spaceorchar]* to ensure this. */
+        /*a bit redundant, because we want a minimum of one non-space character.
+          the query does a [spaceorchar]*[char]+[spaceorchar]* to ensure this. */
             4   => array(
                 'regex'     => '^[a-zäàáüâûôñèöéè\ ]*'.
                                '[a-zäàáüâûôñèöéè]+'.
@@ -239,13 +240,13 @@ class ContactLib
         return $this->_arrSettings;
     }
 
-    function getContactFormDetails($id, &$arrEmails, &$subject, &$feedback, &$mailTemplate, &$showForm, &$useCaptcha, &$sendCopy, &$useEmailOfSender, &$htmlMail, &$sendAttachment, &$saveDataInCRM, &$crmCustomerGroups)
+    function getContactFormDetails($id, &$arrEmails, &$subject, &$feedback, &$mailTemplate, &$showForm, &$useCaptcha, &$sendCopy, &$useEmailOfSender, &$htmlMail, &$sendAttachment, &$saveDataInCRM, &$crmCustomerGroups, &$sendMultipleReply)
     {
         global $objDatabase, $_CONFIG, $_ARRAYLANG, $_LANGID;
 
         $objContactForm = $objDatabase->SelectLimit("SELECT f.mails, l.subject, l.feedback, l.mailTemplate, f.showForm,
                                                             f.use_captcha, f.send_copy, f.use_email_of_sender, f.html_mail, f.send_attachment,
-                                                            f.save_data_in_crm, f.crm_customer_groups
+                                                            f.save_data_in_crm, f.crm_customer_groups, f.send_multiple_reply
                                                      FROM ".DBPREFIX."module_contact_form AS f
                                                      LEFT JOIN ".DBPREFIX."module_contact_form_lang AS l
                                                      ON ( f.id = l.formID )
@@ -267,6 +268,7 @@ class ContactLib
             $sendAttachment      = $objContactForm->fields['send_attachment'];
             $saveDataInCRM       = $objContactForm->fields['save_data_in_crm'];
             $crmCustomerGroups   = $objContactForm->fields['crm_customer_groups'] ? unserialize($objContactForm->fields['crm_customer_groups']) : array();
+            $sendMultipleReply   = $objContactForm->fields['send_multiple_reply'];
             return true;
         } else {
             return false;
@@ -424,7 +426,7 @@ class ContactLib
                     contrexx_stripslashes($recipient['name']);
             }
         }
-        
+
         return $recipients;
     }
 
@@ -540,7 +542,7 @@ class ContactLib
         global $objDatabase;
 
         $arrFieldNames = array();
-        
+
         if (isset($this->arrForms[$id])) {
             $objFields = $objDatabase->Execute("SELECT `f`.`id`, `l`.`name`
                                                  FROM `".DBPREFIX."module_contact_form_field` as `f`
@@ -637,7 +639,8 @@ class ContactLib
         $sendHtmlMail,
         $sendAttachment,
         $saveDataInCrm,
-        $crmCustomerGroups
+        $crmCustomerGroups,
+        $sendMultipleReply
     )
     {
         global $objDatabase;
@@ -652,7 +655,8 @@ class ContactLib
                         $sendHtmlMail,
                         $sendAttachment,
                         $saveDataInCrm,
-                        $crmCustomerGroups
+                        $crmCustomerGroups,
+                        $sendMultipleReply
         );
         \Env::get('cx')->getEvents()->triggerEvent('model/preUpdate', array(new \Doctrine\ORM\Event\LifecycleEventArgs($formEntity, \Env::get('em'))));
         $objDatabase->Execute("
@@ -668,7 +672,8 @@ class ContactLib
                 html_mail           = ".$sendHtmlMail.",
                 send_attachment     = ".$sendAttachment.",
                 `save_data_in_crm`  = ".$saveDataInCrm.",
-                `crm_customer_groups`  = \"" . contrexx_input2db(serialize($crmCustomerGroups)) . "\"
+                `crm_customer_groups`  = \"" . contrexx_input2db(serialize($crmCustomerGroups)) . "\",
+                `send_multiple_reply`= " . $sendMultipleReply . "
             WHERE
                 id = ".$formID
         );
@@ -697,7 +702,8 @@ class ContactLib
         $sendHtmlMail,
         $sendAttachment,
         $saveDataInCrm,
-        $crmCustomerGroups
+        $crmCustomerGroups,
+        $sendMultipleReply
     )
     {
         global $objDatabase, $_FRONTEND_LANGID;
@@ -711,7 +717,8 @@ class ContactLib
                     $sendHtmlMail,
                     $sendAttachment,
                     $saveDataInCrm,
-                    $crmCustomerGroups
+                    $crmCustomerGroups,
+                    $sendMultipleReply
         );
         \Env::get('cx')->getEvents()->triggerEvent('model/prePersist', array(new \Doctrine\ORM\Event\LifecycleEventArgs($entity, \Env::get('em'))));
         $query = "
@@ -727,7 +734,8 @@ class ContactLib
                 `html_mail`,
                 `send_attachment`,
                 `save_data_in_crm`,
-                `crm_customer_groups`
+                `crm_customer_groups`,
+                `send_multiple_reply`
             )
             VALUES
             (
@@ -740,7 +748,8 @@ class ContactLib
                 ".$sendHtmlMail.",
                 ".$sendAttachment.",
                 ".$saveDataInCrm.",
-                \"". contrexx_input2db(serialize($crmCustomerGroups)) . "\"
+                \"". contrexx_input2db(serialize($crmCustomerGroups)) . "\",
+                ". $sendMultipleReply . "
             )";
 
         if ($objDatabase->Execute($query) !== false) {
@@ -761,7 +770,7 @@ class ContactLib
 
     /**
      * Get the form entity
-     * 
+     *
      * @param       int $id
      * @param       string $emails
      * @param       bool $showForm
@@ -780,7 +789,8 @@ class ContactLib
         $sendHtmlMail,
         $sendAttachment,
         $saveDataInCrm,
-        $crmCustomerGroups
+        $crmCustomerGroups,
+        $sendMultipleReply
     ) {
         if($id) {
             $entity = \Env::get('em')->getRepository('Cx\Core_Modules\Contact\Model\Entity\Form')->findOneBy(array('id' => $id));
@@ -797,6 +807,7 @@ class ContactLib
         $entity->setSendAttachment($sendAttachment);
         $entity->setSaveDataInCrm($saveDataInCrm);
         $entity->setCrmCustomerGroups($crmCustomerGroups);
+        $entity->setSendMultipleReply($sendMultipleReply);
         return $entity;
     }
 
@@ -1234,7 +1245,7 @@ class ContactLib
                                              `".DBPREFIX."module_contact_form_field` AS `f`
                                         ON
                                             `f`.`id` = `sd`.`id_field`
-                                        AND 
+                                        AND
                                             `f`.`type` IN ('multi_file', 'file')
                                         WHERE `d`.`id`=".$id);
         if ($rs) {
@@ -1276,7 +1287,7 @@ class ContactLib
                 $rs->MoveNext();
             }
         }
-        
+
         $objDatabase->Execute("DELETE `d`, `sd` FROM
                                 `".DBPREFIX."module_contact_form_data` AS `d`
                                LEFT JOIN
@@ -1337,7 +1348,7 @@ class ContactLib
                 $objEntry->MoveNext();
             }
         }
-        
+
         return $arrEntries;
     }
 
@@ -1351,7 +1362,7 @@ class ContactLib
             FROM `'.DBPREFIX.'module_contact_form_data`
             WHERE `id` = '.$entryId
         , 1);
-    
+
         if ($objEntry !== false) {
             $formId = $objEntry->fields['id'];
 
@@ -1407,7 +1418,7 @@ class ContactLib
      */
     function _getJsSourceCode($id, $formFields, $preview = false, $show = false)
     {
-        global $objInit;
+        global $objInit, $_ARRAYLANG;
         $this->initCheckTypes();
 
         \JS::activate('jqueryui');
@@ -1431,52 +1442,58 @@ class ContactLib
             $code .= "\t'". (($field['type'] != 'special') ? $field['type'] : $field['special_type']) ."');\n";
         }
 
+        $captchaValidationCode = '';
+        if ($this->arrForms[$id]['useCaptcha']) {
+            $captchaValidationCode = \Cx\Core_Modules\Captcha\Controller\Captcha::getInstance()->getJSValidationFn();
+        }
+        $captchaErrorMsg = addslashes($_ARRAYLANG['TXT_CONTACT_RECAPTCHA_ERROR']);
         $code .= <<<JS_checkAllFields
 function checkAllFields() {
-    var isOk = true;
+    var isOk = true, isCaptchaOk = true;
+    var captchaError = '$captchaErrorMsg';
 
     for (var field in fields) {
         var type = fields[field][3];
         if (type != null && type != undefined) {
-        if ((type == 'text') || (type == 'password') || (type == 'textarea') || (type == 'date') || ((type.match(/access_/) != null) && (type != 'access_country') && (type != 'access_title') && (type != 'access_gender'))) {
+        if ((type == 'text') || (type == 'password') || (type == 'textarea') || (type == 'date') || (type == 'datetime') || ((type.match(/access_/) != null) && (type != 'access_country') && (type != 'access_title') && (type != 'access_gender'))) {
             value = document.getElementsByName('contactFormField_' + field)[0].value;
             if ((\$J.trim(value) == '') && isRequiredNorm(fields[field][1], value)) {
                 isOk = false;
-                \$J('#contactFormFieldId_'+field).css('border', '1px solid red');
+                \$J('#contactFormFieldId_'+field).addClass('error');
             } else if ((value != '') && !matchType(fields[field][2], value)) {
                 isOk = false;
-                \$J('#contactFormFieldId_'+field).css('border', '1px solid red');
+                \$J('#contactFormFieldId_'+field).addClass('error');
             } else {
-                \$J('#contactFormFieldId_'+field).attr('style', '');
+                \$J('#contactFormFieldId_'+field).removeClass('error');
             }
         } else if (type == 'checkbox') {
             if (!isRequiredCheckbox(fields[field][1], field)) {
                 isOk = false;
-                \$J('#contactFormFieldId_'+field).css('outline', '1px solid red');
+                \$J('#contactFormFieldId_'+field).addClass('error');
             } else {
-                \$J('#contactFormFieldId_'+field).css('outline', '');
+                \$J('#contactFormFieldId_'+field).removeClass('error');
             }
         } else if (type == 'checkboxGroup') {
             if (!isRequiredCheckBoxGroup(fields[field][1], field)) {
                 isOk = false;
-                \$J('#contactFormFieldId_'+field).css('outline', '1px solid red');
+                \$J('#contactFormFieldId_'+field).addClass('error');
             } else {
-                \$J('#contactFormFieldId_'+field).css('outline', '');
+                \$J('#contactFormFieldId_'+field).removeClass('error');
             }
         } else if (type == 'radio') {
             if (!isRequiredRadio(fields[field][1], field)) {
                 isOk = false;
-                \$J('#contactFormFieldId_'+field).css('outline', '1px solid red');
+                \$J('#contactFormFieldId_'+field).addClass('error');
             } else {
-                \$J('#contactFormFieldId_'+field).css('outline', '');
+                \$J('#contactFormFieldId_'+field).removeClass('error');
             }
         } else if (type == 'file' || type == 'multi_file') {
             var required = fields[field][1];
             if(required && angular.element('#contactFormUpload_'+field+ ' div.mediaBrowserfolderWidget').scope().isEmpty()) {
                 isOk = false;
-                \$J('#contactFormFieldId_'+field).css('outline', '1px solid red');
+                \$J('#contactFormFieldId_'+field).addClass('error');
             } else {
-                \$J('#contactFormFieldId_'+field).css('outline', '');
+                \$J('#contactFormFieldId_'+field).removeClass('error');
             }
         } else if (type == 'select' || type == 'country' || type == 'access_country' || type == 'access_title' || type == 'access_gender') {
             if (!isRequiredSelect(fields[field][1], field)) {
@@ -1485,9 +1502,22 @@ function checkAllFields() {
         }
     }
     }
-
+    $captchaValidationCode
+    document.getElementById('contactFormError').style.display = "none";
     if (!isOk) {
         document.getElementById('contactFormError').style.display = "block";
+    }
+
+    if (\$J('#contactFormCaptchaError').length) {
+        \$J('#contactFormCaptchaError').remove();
+    }
+    if (!isCaptchaOk) {
+        \$J('<div />')
+        .addClass('text-danger')
+        .attr('id', 'contactFormCaptchaError')
+        .text(captchaError)
+        .prependTo('#captcha');
+        return false;
     }
     return isOk;
 }
@@ -1580,11 +1610,11 @@ function isRequiredSelect(required, field){
     if(required == 1){
         menuIndex = document.getElementById('contactFormFieldId_' + field).selectedIndex;
         if (menuIndex == 0) {
-            document.getElementsByName('contactFormField_' + field)[0].style.border = "red 1px solid";
+            jQuery('#contactFormFieldId_' + field).addClass('error');
             return false;
         }
     }
-    document.getElementsByName('contactFormField_' + field)[0].style.borderColor = '';
+    jQuery('#contactFormFieldId_' + field).removeClass('error');
     return true;
 }
 
@@ -1597,7 +1627,7 @@ JS_isRequiredSelect;
 JS_misc;
         return $code;
     }
-    
+
     /*
      * Generates the HTML Source code of the Submission form designed in backend
      * @id      Submission form id
@@ -1633,7 +1663,7 @@ JS_misc;
             if ($arrField['type'] != 'fieldset' && $arrField['type'] != 'hidden') {
                 $sourcecode[] = '<div class="contact row form-group">';
             }
-            
+
             switch ($arrField['type']) {
                 case 'label':
                 case 'hidden':
@@ -1701,7 +1731,7 @@ JS_misc;
                     if ($preview) {
                         $lang = $arrField['lang'][$lang]['name'];
                         $country = \Cx\Core\Country\Controller\Country::getNameArray(true, $lang);
-        
+
                         foreach ($country as $id => $name) {
                             $sourcecode[] = "<option value=\"" . $name . "\" >" . $name . "</option>";
                         }
@@ -1728,7 +1758,7 @@ JS_misc;
                     $sourcecode[] = '<div class="contactFormUpload" id="contactFormUpload_'.$fieldId.'">{CONTACT_UPLOADER_FOLDER_WIDGET_'.$fieldId.'}<input type="hidden" name="contactFormUploadId_'.$fieldId.'" value = "{CONTACT_UPLOADER_ID_'.$fieldId.'}"/>';
                     $sourcecode[] = '<input class="contactFormClass_'.$arrField['type'].'" id="contactFormFieldId_'.$fieldId.'" type="file" name="contactFormField_'.$fieldId.'" disabled="disabled"/></div>';
                     break;
-                
+
                 case 'hidden':
                     $sourcecode[] = '<input class="contactFormClass_'.$arrField['type'].'" id="contactFormFieldId_'.$fieldId.'" type="hidden" name="contactFormField_'.$fieldId.'" value="'.($preview ? contrexx_raw2xhtml($arrField['lang'][$lang]['value']) : "{".$fieldId."_VALUE}").'" />';
                     break;
@@ -1736,7 +1766,7 @@ JS_misc;
                 case 'horizontalLine':
                     $sourcecode[] = '<hr />';
                     break;
-                
+
                 case 'password':
                     $sourcecode[] = '<input class="contactFormClass_'.$arrField['type'].'" id="contactFormFieldId_'.$fieldId.'" type="password" name="contactFormField_'.$fieldId.'" value="" />';
                     break;
@@ -1846,7 +1876,7 @@ JS_misc;
         if ($show) {
             $sourcecode = preg_replace('/\{([A-Z0-9_-]+)\}/', '[[\\1]]', $sourcecode);
         }
-        
+
         return implode("\n", $sourcecode);
     }
 }

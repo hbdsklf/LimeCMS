@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * Contact
  *
@@ -161,7 +161,7 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
         $useCaptcha = !$isLoggedin && $this->getContactFormCaptchaStatus($formId);
         $this->handleUniqueId();
         $uploaderCode = '';
-        
+
         // load requested form's source code if required
         if ($this->objTemplate->placeholderExists('APPLICATION_DATA')) {
             // load form's source code
@@ -169,7 +169,7 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
             \LinkGenerator::parseTemplate($applicationTemplate);
             $this->objTemplate->addBlock('APPLICATION_DATA', 'application_data', $applicationTemplate);
         }
-        
+
         $this->objTemplate->setVariable(array(
             'TXT_NEW_ENTRY_ERORR'   => $_ARRAYLANG['TXT_NEW_ENTRY_ERORR'],
             'TXT_CONTACT_SUBMIT'    => $_ARRAYLANG['TXT_CONTACT_SUBMIT'],
@@ -265,7 +265,7 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
                             break;
                     }
                 }
-                
+
                 $arrField['lang'][$_LANGID]['value'] = preg_replace('/\[\[([A-Z0-9_]+)\]\]/', '{$1}', $arrField['lang'][$_LANGID]['value']);
 
                 $this->objTemplate->setVariable(array(
@@ -405,12 +405,12 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
                     case 'country':
                         if (preg_match($userProfileRegExp, $arrField['lang'][$_LANGID]['value'])) {
                             $arrField['lang'][$_LANGID]['value'] = $this->objTemplate->_globalVariables[trim($arrField['lang'][$_LANGID]['value'],'{}')];
-                        }                        
+                        }
                         $lang = $arrField['lang'][$_LANGID]['value'];
                         $country = \Cx\Core\Country\Controller\Country::getNameArray(true, $lang);
                         foreach ($country as $id => $name) {
                             $this->objTemplate->setVariable($fieldId.'_VALUE', $name);
-                            
+
                             if ((!empty($_POST['contactFormField_'.$fieldId]))) {
                               if (strcasecmp($name, $_POST['contactFormField_'.$fieldId]) == 0) {
                                   $this->objTemplate->setVariable('SELECTED_'.$fieldId, 'selected = "selected"');
@@ -504,7 +504,7 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
         }
 
         $this->objTemplate->setVariable('CONTACT_JAVASCRIPT', $this->_getJsSourceCode($formId, $arrFields) . $uploaderCode);
-        
+
         return $this->objTemplate->get();
     }
 
@@ -512,10 +512,10 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
      * generates an unique id for each form and user.
      * @see Contact::$submissionId
      */
-    protected function handleUniqueId() {        
-        global $sessionObj;
-        if (!isset($sessionObj)) $sessionObj = \cmsSession::getInstance();
-        
+    protected function handleUniqueId() {
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $sessionObj = $cx->getComponent('Session')->getSession();
+
         $id = 0;
         if(isset($_REQUEST['unique_id'])) { //an id is specified - we're handling a page reload
             $id = intval($_REQUEST['unique_id']);
@@ -526,7 +526,7 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
             } else {
                 $_SESSION['contact_last_id'] += 1;
             }
-            
+
             $id = $_SESSION['contact_last_id'];
         }
         $this->objTemplate->setVariable('CONTACT_UNIQUE_ID', $id);
@@ -537,13 +537,10 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
      * Inits the uploader when displaying a contact form.
      */
     protected function initUploader($fieldId, $restrictUpload2SingleFile = true) {
-        global $sessionObj;
-        
         try {
-            if (!isset($sessionObj)) {
-                $sessionObj = \cmsSession::getInstance();
-            }
-            
+            $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+            $sessionObj = $cx->getComponent('Session')->getSession();
+
             $uploader   = new \Cx\Core_Modules\Uploader\Model\Entity\Uploader();
             //set instance name so we are able to catch the instance with js
             $uploader->setCallback('contactFormUploader_'.$fieldId);
@@ -585,7 +582,7 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
                         return false;
                     }).removeAttr('disabled');
             });
-            
+
             //uploader javascript callback function
             function contactFormUploader_$fieldId(callback) {
                     angular.element('#mediaBrowserfolderWidget_$folderWidgetId').scope().refreshBrowser();
@@ -611,6 +608,7 @@ CODE;
 
         $objUser->objAttribute->reset();
         while (!$objUser->objAttribute->EOF) {
+            $value = '';
             $objAttribute = $objUser->objAttribute->getById($objUser->objAttribute->getId());
 
             switch ($objAttribute->getType())
@@ -619,13 +617,22 @@ CODE;
                     if ($objAttribute->isCoreAttribute()) {
                         foreach ($objAttribute->getChildren() as $childAttributeId) {
                             $objChildAtrribute = $objAttribute->getById($childAttributeId);
+                            if (!$objChildAtrribute->getId()) {
+                                continue;
+                            }
                             if ($objChildAtrribute->getMenuOptionValue() == $objUser->getProfileAttribute($objAttribute->getId())) {
                                 $value = $objChildAtrribute->getName();
                                 break;
                             }
                         }
                     } else {
+                        if (!$objUser->getProfileAttribute($objAttribute->getId())) {
+                            break;
+                        }
                         $objSelectedAttribute = $objAttribute->getById($objUser->getProfileAttribute($objAttribute->getId()));
+                        if (!$objSelectedAttribute->getId()) {
+                            break;
+                        }
                         $value = $objSelectedAttribute->getName();
                     }
                 break;
@@ -639,7 +646,7 @@ CODE;
                     $value = $objUser->getProfileAttribute($objAttribute->getId());
                 break;
             }
-            
+
             $this->objTemplate->setGlobalVariable('ACCESS_PROFILE_ATTRIBUTE_'.strtoupper($objAttribute->getId()), htmlentities($value, ENT_QUOTES, CONTREXX_CHARSET));
             $objUser->objAttribute->next();
         }
@@ -683,7 +690,7 @@ CODE;
         if (isset($_POST) && !empty($_POST)) {
             $arrFormData = array();
             $arrFormData['id'] = isset($_GET['cmd']) ? intval($_GET['cmd']) : 0;
-            if ($this->getContactFormDetails($arrFormData['id'], $arrFormData['emails'], $arrFormData['subject'], $arrFormData['feedback'], $arrFormData['mailTemplate'], $arrFormData['showForm'], $arrFormData['useCaptcha'], $arrFormData['sendCopy'], $arrFormData['useEmailOfSender'], $arrFormData['htmlMail'], $arrFormData['sendAttachment'], $arrFormData['saveDataInCRM'], $arrFormData['crmCustomerGroups'])) {
+            if ($this->getContactFormDetails($arrFormData['id'], $arrFormData['emails'], $arrFormData['subject'], $arrFormData['feedback'], $arrFormData['mailTemplate'], $arrFormData['showForm'], $arrFormData['useCaptcha'], $arrFormData['sendCopy'], $arrFormData['useEmailOfSender'], $arrFormData['htmlMail'], $arrFormData['sendAttachment'], $arrFormData['saveDataInCRM'], $arrFormData['crmCustomerGroups'], $arrFormData['sendMultipleReply'])) {
                 $arrFormData['fields'] = $this->getFormFields($arrFormData['id']);
                 foreach ($arrFormData['fields'] as $field) {
                     $this->arrFormFields[] = $field['lang'][$_LANGID]['name'];
@@ -698,9 +705,9 @@ CODE;
             }
 // TODO: check if _uploadFiles does something dangerous with $arrFormData['fields'] (this is raw data!)
             $arrFormData['uploadedFiles'] = $this->_uploadFiles($arrFormData['fields']);
-            
+
             foreach ($_POST as $key => $value) {
-				if ((($value == 0) || !empty($value)) && !in_array($key, array('Submit', 'submitContactForm', 'contactFormCaptcha'))) {
+                if ((($value == 0) || !empty($value)) && !in_array($key, array('Submit', 'submitContactForm', 'contactFormCaptcha'))) {
                     $id = intval(substr($key, 17));
                     if (isset($arrFormData['fields'][$id])) {
                         $key = $arrFormData['fields'][$id]['lang'][$_LANGID]['name'];
@@ -721,11 +728,14 @@ CODE;
                 $arrFormData['meta']['ipaddress'] = contrexx_input2raw($_SERVER["REMOTE_ADDR"]);
             }
 
+            $net = \Cx\Core\Core\Controller\Cx::instanciate()->getComponent('Net');
             $arrFormData['meta']['time'] = time();
-            $arrFormData['meta']['host'] = contrexx_input2raw(@gethostbyaddr($arrFormData['meta']['ipaddress']));
+            $arrFormData['meta']['host'] = contrexx_input2raw(
+                $net->getHostByAddr($arrFormData['meta']['ipaddress'])
+            );
             $arrFormData['meta']['lang'] = contrexx_input2raw($_SERVER["HTTP_ACCEPT_LANGUAGE"]);
             $arrFormData['meta']['browser'] = contrexx_input2raw($_SERVER["HTTP_USER_AGENT"]);
-            
+
             return $arrFormData;
         }
         return false;
@@ -738,7 +748,7 @@ CODE;
     protected function checkLegacyMode() {
         $this->legacyMode = !isset($_REQUEST['unique_id']);
     }
-    
+
     /**
      * Handle uploads
      * @see Contact::_uploadFilesLegacy()
@@ -761,7 +771,7 @@ CODE;
             //new uploader used
             if(!$this->hasFileField) //nothing to do for us, no files
                 return array();
-                
+
             $arrFiles = array(); //we'll collect name => path of all files here and return this
             $documentRootPath = \Env::get('cx')->getWebsiteDocumentRootPath();
             foreach ($arrFields as $fieldId => $arrField) {
@@ -803,7 +813,7 @@ CODE;
                         $suffix = '-'.$suffix;
                     }
                     $folderName .= $suffix;
-                    
+
                     //try to make the folder and change target accordingly on success
                     if(\Cx\Lib\FileSystem\FileSystem::make_folder($documentRootPath.$depositionTarget.$folderName)) {
                         \Cx\Lib\FileSystem\FileSystem::makeWritable($documentRootPath.$depositionTarget.$folderName);
@@ -820,7 +830,7 @@ CODE;
                 if (empty($tmpUploadDir) || !\Cx\Lib\FileSystem\FileSystem::exists($tmpUploadDir)) {
                    continue;
                 }
-                
+
                 $h = opendir(\Env::get('cx')->getWebsitePath().$tmpUploadDir);
                 while(false !== ($f = readdir($h))) {
                     if($f != '..' && $f != '.') {
@@ -832,7 +842,7 @@ CODE;
                             }
                             $prefix ++;
                         }
-                        
+
                         if($move) {
                             // move file
                             try {
@@ -842,7 +852,7 @@ CODE;
                                 \DBG::msg($e->getMessage());
                             }
                         }
-                            
+
                         $arrFiles[$fieldId][] = array(
                             'name'  => $f,
                             'path'  => $depositionTarget.$prefix.$f,
@@ -865,19 +875,21 @@ CODE;
      * @access private
      * @global array
      * @param array Files that have been submited
-     * @see getSettings(), _cleanFileName(), errorMsg, FWSystem::getMaxUploadFileSize()
+     * @see getSettings(), errorMsg, FWSystem::getMaxUploadFileSize()
      * @return array A list of files that have been stored successfully in the system
      */
     function _uploadFilesLegacy($arrFields)
     {
         global $_ARRAYLANG;
-        
+
         $arrSettings = $this->getSettings();
 
         $arrFiles = array();
         if (isset($_FILES) && is_array($_FILES)) {
             foreach (array_keys($_FILES) as $file) {
-                $fileName = !empty($_FILES[$file]['name']) ? $this->_cleanFileName($_FILES[$file]['name']) : '';
+                $fileName    =  !empty($_FILES[$file]['name'])
+                              ? \Cx\Lib\FileSystem\FileSystem::replaceCharacters($_FILES[$file]['name'])
+                              : '';
                 $fileTmpName = !empty($_FILES[$file]['tmp_name']) ? $_FILES[$file]['tmp_name'] : '';
 
                 switch ($_FILES[$file]['error']) {
@@ -912,7 +924,7 @@ CODE;
                                 $suffix = '-'.++$i;
                                 $filePath = $arrSettings['fileUploadDepositionPath'].'/'.$arrFile['filename'].$suffix.'.'.$arrFile['extension'];
                             }
-                            
+
                             $arrMatch = array();
                             if (\FWValidator::is_file_ending_harmless($fileName)) {
                                 if (@move_uploaded_file($fileTmpName, $documentRootPath.$filePath)) {
@@ -932,59 +944,8 @@ CODE;
                 }
             }
         }
-        
+
         return $arrFiles;
-    }
-
-    /**
-    * Format a file name to be safe
-    *
-    * Replace non valid filename chars with a undercore.
-    * @access private
-    * @param string $file   The string file name
-    * @param int    $maxlen Maximun permited string length
-    * @return string Formatted file name
-    */
-    function _cleanFileName($name, $maxlen=250){
-        $noalpha = 'áéíóúàèìòùäëïöüÁÉÍÓÚÀÈÌÒÙÄËÏÖÜâêîôûÂÊÎÔÛñçÇ@';
-        $alpha =   'aeiouaeiouaeiouAEIOUAEIOUAEIOUaeiouAEIOUncCa';
-        $name = substr ($name, 0, $maxlen);
-        $name = $this->_strtr_utf8 ($name, $noalpha, $alpha);
-        $mixChars = array('Þ' => 'th', 'þ' => 'th', 'Ð' => 'dh', 'ð' => 'dh',
-                          'ß' => 'ss', 'Œ' => 'oe', 'œ' => 'oe', 'Æ' => 'ae',
-                          'æ' => 'ae', '$' => 's',  '¥' => 'y');
-        $name = strtr($name, $mixChars);
-        // not permitted chars are replaced with "_"
-        return ereg_replace ('[^a-zA-Z0-9,._\+\()\-]', '_', $name);
-    }
-
-    /**
-     * Workaround for 3-argument-strtr with utf8 characters
-     * used like PHP's strtr() with 3 arguments
-     * @access private
-     * @param string $str where to search
-     * @param string $from which chars to look for and...
-     * @param string $to ...the chars to replace by
-     * @return the strtr()ed result
-     */
-    function _strtr_utf8($str, $from, $to) {
-        if(!isset($to))
-        {
-            //2-argument call. no need to change anything, just pass to strtr
-            return strtr($str, $from);
-        }
-
-        $keys = array();
-        $values = array();
-        
-        //let php put all the symbols into an array based on the current charset
-        //(which is utf8)
-        preg_match_all('/./u', $from, $keys);
-        preg_match_all('/./u', $to, $values);
-        //create a mapping, so strtr() doesn't get confused with the multi-byte chars
-        $mapping = array_combine($keys[0], $values[0]);
-        //finally strtr
-        return strtr($str, $mapping);
     }
 
     /**
@@ -1135,13 +1096,13 @@ CODE;
 
         if (!empty($this->errorMsg))
             return false;
-        
+
         //handle files and collect the filenames
         //for legacy mode this has already been done in the first
         //_uploadFiles() call in getContactPage().
         if(!$this->legacyMode)
             $arrFormData['uploadedFiles'] = $this->_uploadFiles($arrFormData['fields'], true);
-        
+
         $objResult = $objDatabase->Execute("INSERT INTO ".DBPREFIX."module_contact_form_data
                                         (`id_form`, `id_lang`, `time`, `host`, `lang`, `browser`, `ipaddress`)
                                         VALUES
@@ -1207,9 +1168,9 @@ CODE;
     private function sendMail($arrFormData)
     {
         global $_ARRAYLANG, $_CONFIG;
-        
+
         $plaintextBody = '';
-        $replyAddress = '';
+        $replyAddresses = array();
         $firstname = '';
         $lastname = '';
         $senderName = '';
@@ -1239,7 +1200,7 @@ CODE;
 
 // TODO: check if we have to excape $arrRecipients later in the code
         $arrRecipients = $this->getRecipients(intval($_GET['cmd']));
-        
+
         // calculate the longest field label.
         // this will be used to correctly align all user submitted data in the plaintext e-mail
 // TODO: check if the label of upload-fields are taken into account as well
@@ -1252,14 +1213,7 @@ CODE;
         // try to fetch a user submitted e-mail address to which we will send a copy to
         if (!empty($arrFormData['fields'])) {
             foreach ($arrFormData['fields'] as $fieldId => $arrField) {
-                // check if field validation is set to e-mail
-                if ($arrField['check_type'] == '2') {
-                    $mail = trim($arrFormData['data'][$fieldId]);
-                    if (\FWValidator::isEmail($mail)) {
-                        $replyAddress = $mail;
-                        break;
-                    }
-                }
+                // fetch first- and lastname from user attributes
                 if ($arrField['type'] == 'special') {
                     switch ($arrField['special_type']) {
                          case 'access_firstname':
@@ -1274,6 +1228,29 @@ CODE;
                             break;
                     }
                 }
+
+                // in case notification email shall only be sent to one (the
+                // first) recipient, we can stop looking for additional
+                // recipient emails
+                if (count($replyAddresses) == 1 && !$arrFormData['sendMultipleReply']) {
+                    continue;
+                }
+
+                // if the input field validation is set to 'e-mail' (2)
+                // then the field might contain a potential recipient email
+                if ($arrField['check_type'] != '2') {
+                    continue;
+                }
+
+                // check if the input data is a valid email address
+                $mail = trim($arrFormData['data'][$fieldId]);
+                if (!\FWValidator::isEmail($mail)) {
+                    continue;
+                }
+
+                // add email address from submitted form data to list of
+                // recipients that shall receive the notification mail
+                $replyAddresses[] = $mail;
             }
 
         }
@@ -1347,11 +1324,13 @@ CODE;
 
             $fieldLabel = $arrField['lang'][FRONTEND_LANG_ID]['name'];
 
-            // try to fetch an e-mail address from submitted form date in case we were unable to fetch one from an input type with e-mail validation
-            if (empty($replyAddress)) {
+            // try to fetch an e-mail address from submitted form data in case
+            // we were unable to fetch one from an input type with e-mail
+            // validation
+            if (empty($replyAddresses)) {
                 $mail = $this->_getEmailAdressOfString($plaintextValue);
                 if (\FWValidator::isEmail($mail)) {
-                    $replyAddress = $mail;
+                    $replyAddresses[] = $mail;
                 }
             }
 
@@ -1383,11 +1362,6 @@ CODE;
             $tabCount = $maxlength - strlen($fieldLabel);
             $tabs     = ($tabCount == 0) ? 1 : $tabCount +1;
 
-// TODO: what is this all about? - $value is undefined
-            if($arrFormData['fields'][$fieldId]['type'] == 'recipient'){
-                $value  = $arrRecipients[$value]['lang'][FRONTEND_LANG_ID];
-            }
-
             if (in_array($fieldId, $textAreaKeys)) {
                 // we're dealing with a textarea, don't indent value
                 $plaintextBody .= $fieldLabel.":\n".$plaintextValue."\n";
@@ -1396,9 +1370,9 @@ CODE;
             }
 
         }
-        
+
         $arrSettings = $this->getSettings();
-        
+
 // TODO: this is some fixed plaintext message data -> must be ported to html body
         $message  = $_ARRAYLANG['TXT_CONTACT_TRANSFERED_DATA_FROM']." ".$_CONFIG['domainUrl']."\n\n";
         if ($arrSettings['fieldMetaDate']) {
@@ -1416,70 +1390,66 @@ CODE;
         }
         $message .= $_ARRAYLANG['TXT_CONTACT_BROWSER_VERSION']." : ".contrexx_raw2xhtml($arrFormData['meta']['browser'])."\n";
 
-        if (@include_once \Env::get('cx')->getCodeBaseLibraryPath().'/phpmailer/class.phpmailer.php') {
-            $objMail = new \phpmailer();
+        $objMail = new \Cx\Core\MailTemplate\Model\Entity\Mail();
 
-            if ($_CONFIG['coreSmtpServer'] > 0 && @include_once \Env::get('cx')->getCodeBaseCorePath().'/SmtpSettings.class.php') {
-                if (($arrSmtp = \SmtpSettings::getSmtpAccount($_CONFIG['coreSmtpServer'])) !== false) {
-                    $objMail->IsSMTP();
-                    $objMail->Host = $arrSmtp['hostname'];
-                    $objMail->Port = $arrSmtp['port'];
-                    $objMail->SMTPAuth = true;
-                    $objMail->Username = $arrSmtp['username'];
-                    $objMail->Password = $arrSmtp['password'];
+        $objMail->SetFrom($_CONFIG['coreAdminEmail'], $senderName);
+
+        foreach ($replyAddresses as $replyAddress) {
+            if ($arrFormData['sendCopy'] == 1) {
+                $objMail->AddAddress($replyAddress);
+            }
+
+            if ($arrFormData['sendMultipleReply']) {
+                continue;
+            }
+
+            // if option sendMultipleReply is not set,
+            // then $replyAddresses does only contain one address
+            // therefore, the following statement will only be called once
+            $objMail->AddReplyTo($replyAddress);
+
+            if (!$arrFormData['useEmailOfSender']) {
+                break;
+            }
+
+            $objMail->SetFrom(
+                $replyAddress,
+                ($senderName !== $_CONFIG['coreGlobalPageTitle']) ? $senderName : ''
+            );
+            break;
+        }
+
+        $objMail->Subject = $arrFormData['subject'];
+
+        if ($isHtml) {
+            $objMail->Body = $objTemplate->get();
+            $objMail->AltBody = $message;
+        } else {
+            $objMail->IsHTML(false);
+            $objMail->Body = $message;
+        }
+
+        // attach submitted files to email
+        if (count($arrFormData['uploadedFiles']) > 0 && $arrFormData['sendAttachment'] == 1) {
+            foreach ($arrFormData['uploadedFiles'] as $arrFilesOfField) {
+                foreach ($arrFilesOfField as $file) {
+                    $objMail->AddAttachment(\Env::get('cx')->getWebsiteDocumentRootPath().$file['path'], $file['name']);
                 }
             }
+        }
 
-            $objMail->CharSet = CONTREXX_CHARSET;
-            if (!empty($replyAddress)) {
-                $objMail->AddReplyTo($replyAddress);
-
-                if ($arrFormData['sendCopy'] == 1) {
-                    $objMail->AddAddress($replyAddress);
-                }
+        if ($chosenMailRecipient !== null) {
+            if (!empty($chosenMailRecipient)) {
+                $objMail->AddAddress($chosenMailRecipient);
+                $objMail->Send();
+                $objMail->ClearAddresses();
             }
-
-            if (!empty($replyAddress) && $arrFormData['useEmailOfSender'] == 1) {
-                $objMail->SetFrom(
-                    $replyAddress, 
-                    ($senderName !== $_CONFIG['coreGlobalPageTitle']) ? $senderName : ''
-                );
-            } else {
-                $objMail->SetFrom($_CONFIG['coreAdminEmail'], $senderName);
-            }
-
-            $objMail->Subject = $arrFormData['subject'];
-
-            if ($isHtml) {
-                $objMail->Body = $objTemplate->get();
-                $objMail->AltBody = $message;
-            } else {
-                $objMail->IsHTML(false);
-                $objMail->Body = $message;
-            }
-
-            // attach submitted files to email
-            if (count($arrFormData['uploadedFiles']) > 0 && $arrFormData['sendAttachment'] == 1) {
-                foreach ($arrFormData['uploadedFiles'] as $arrFilesOfField) {
-                    foreach ($arrFilesOfField as $file) {
-                        $objMail->AddAttachment(\Env::get('cx')->getWebsiteDocumentRootPath().$file['path'], $file['name']);
-                    }
-                }
-            }
-
-            if ($chosenMailRecipient !== null) {
-                if (!empty($chosenMailRecipient)) {
-                    $objMail->AddAddress($chosenMailRecipient);
+        } else {
+            foreach ($arrFormData['emails'] as $sendTo) {
+                if (!empty($sendTo)) {
+                    $objMail->AddAddress($sendTo);
                     $objMail->Send();
                     $objMail->ClearAddresses();
-                }
-            } else {
-                foreach ($arrFormData['emails'] as $sendTo) {
-                    if (!empty($sendTo)) {
-                        $objMail->AddAddress($sendTo);
-                        $objMail->Send();
-                        $objMail->ClearAddresses();
-                    }
                 }
             }
         }
@@ -1605,16 +1575,15 @@ CODE;
 
     /**
      * Gets the temporary upload location for files.
-     * 
+     *
      * @return array('path','webpath', 'dirname')
      * @throws ContactException
      */
     protected static function getTemporaryUploadPath($fieldId)
     {
-        global $sessionObj;
-        
-        if (!isset($sessionObj)) $sessionObj = \cmsSession::getInstance();
-        
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $sessionObj = $cx->getComponent('Session')->getSession();
+
         $tempPath = $_SESSION->getTempPath();
         $tempWebPath = $_SESSION->getWebTempPath();
         if($tempPath === false || $tempWebPath === false)
@@ -1632,8 +1601,8 @@ CODE;
     }
 
     //Uploader callback
-    public static function uploadFinished($tempPath, $tempWebPath, $data, $uploadId, $fileInfos) 
-    { 
+    public static function uploadFinished($tempPath, $tempWebPath, $data, $uploadId, $fileInfos)
+    {
         // in case uploader has been restricted to only allow one single file to be
         // uploaded, we'll have to clean up any previously uploaded files
         if (isset($data['singleFile'])) {

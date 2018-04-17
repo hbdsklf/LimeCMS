@@ -58,24 +58,18 @@ class ViewGeneratorJsonController extends \Cx\Core\Core\Model\Entity\Controller 
     {
         // at the moment we only allow backend users to edit ViewGenerator over json/ajax.
         // As soon as we have permissions on entity level we can change this, so getViewOverJson can also be used from frontend
+        $objBackendGroups = \FWUser::getFWUserObject()->objGroup->getGroups(
+            array('is_active' => true, 'type' => 'backend'),
+            null,
+            array('group_id')
+        );
+        $backendGroups = array();
+        while (!$objBackendGroups->EOF) {
+            $backendGroups[] = $objBackendGroups->getId();
+            $objBackendGroups->next();
+        }
         return array(
-            'getViewOverJson' => new \Cx\Core_Modules\Access\Model\Entity\Permission(null, null, true, null, null,
-                function () {
-                    $objUser = \FWUser::getFWUserObject()->objUser->getUser($_SESSION->userId);
-                    $objBackendGroups = \FWUser::getFWUserObject()->objGroup->getGroups(
-                        array('is_active' => true, 'type' => 'backend'),
-                        null,
-                        array('group_id')
-                    );
-                    while (!$objBackendGroups->EOF) {
-                        if(in_array($objBackendGroups->getId(), $objUser->getAssociatedGroupIds())){
-                            return true;
-                        }
-                        $objBackendGroups->next();
-                    }
-                    return false;
-                }
-            ),
+            'getViewOverJson' => new \Cx\Core_Modules\Access\Model\Entity\Permission(null, null, true, $backendGroups),
             'updateOrder' => new \Cx\Core_Modules\Access\Model\Entity\Permission(array('http', 'https'), array('post'), true)
         );
     }
@@ -143,22 +137,22 @@ class ViewGeneratorJsonController extends \Cx\Core\Core\Model\Entity\Controller 
         );
         return $entityClassObjectView->render();
     }
-    
+
     /**
      * Update the sort order in DB
-     * 
+     *
      * @param array $params supplied arguments from JsonData-request
-     * 
+     *
      * @return array it contains status and record count
      * @throws \Exception
      */
     public function updateOrder($params) {
         global $_ARRAYLANG, $objInit;
-        
+
         //get the language interface text
         $langData   = $objInit->loadLanguageData($this->getName());
         $_ARRAYLANG = array_merge($_ARRAYLANG, $langData);
-        
+
         $post = is_array($params['post']) ? $params['post'] : array();
         if (    empty($post)
             ||  empty($post['prePosition'])
@@ -169,7 +163,7 @@ class ViewGeneratorJsonController extends \Cx\Core\Core\Model\Entity\Controller 
         ) {
             throw new \Exception($_ARRAYLANG['TXT_CORE_HTML_UPDATE_SORT_ORDER_FAILED']);
         }
-        
+
         //Get all the 'POST' values
         $sortField       = !empty($post['sortField'])
                            ? contrexx_input2raw($post['sortField'])
@@ -186,13 +180,13 @@ class ViewGeneratorJsonController extends \Cx\Core\Core\Model\Entity\Controller 
         $pagingPosition  = !empty($post['pagingPosition'])
                            ? contrexx_input2int($post['pagingPosition'])
                            : 0;
-        $currentPosition = isset($post['curPosition']) 
+        $currentPosition = isset($post['curPosition'])
                            ? contrexx_input2int($post['curPosition'])
                            : 0;
-        $prePosition     = isset($post['prePosition']) 
+        $prePosition     = isset($post['prePosition'])
                            ? contrexx_input2int($post['prePosition'])
                            : 0;
-        $updatedOrder    = (    isset($post['sorting'.$entityName]) 
+        $updatedOrder    = (    isset($post['sorting'.$entityName])
                             &&  is_array($post['sorting'.$entityName])
                            )
                            ? array_map('contrexx_input2int', $post['sorting'.$entityName])
@@ -206,8 +200,8 @@ class ViewGeneratorJsonController extends \Cx\Core\Core\Model\Entity\Controller 
         if (!in_array($entityNameSpace, $objComponent->getEntityClasses())) {
             throw new \Exception(
                 sprintf(
-                    $_ARRAYLANG['TXT_CORE_HTML_SORTING_ENTITY_NOT_FOUND_ERROR'], 
-                    $entityName, 
+                    $_ARRAYLANG['TXT_CORE_HTML_SORTING_ENTITY_NOT_FOUND_ERROR'],
+                    $entityName,
                     $componentName
                 )
             );
@@ -223,9 +217,9 @@ class ViewGeneratorJsonController extends \Cx\Core\Core\Model\Entity\Controller 
         ) {
             throw new \Exception(
                 sprintf(
-                    $_ARRAYLANG['TXT_CORE_HTML_SORTING_GETTER_SETTER_NOT_FOUND_ERROR'], 
-                    $entityName, 
-                    $sortField, 
+                    $_ARRAYLANG['TXT_CORE_HTML_SORTING_GETTER_SETTER_NOT_FOUND_ERROR'],
+                    $entityName,
+                    $sortField,
                     $primaryKeyName
                 )
             );
@@ -254,7 +248,7 @@ class ViewGeneratorJsonController extends \Cx\Core\Core\Model\Entity\Controller 
         if (!$entities) {
             throw new \Exception($_ARRAYLANG['TXT_CORE_HTML_SORTING_NO_ENTITY_FOUND_ERROR']);
         }
-            
+
         try {
             if (    ($oldPosition > $newPosition && empty($updatedOrder))
                 ||  (!empty($updatedOrder) && $sortOrder == 'DESC')

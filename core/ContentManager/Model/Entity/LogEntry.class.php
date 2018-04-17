@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * Log entry
  *
@@ -39,7 +39,7 @@ namespace Cx\Core\ContentManager\Model\Entity;
 use Doctrine\ORM\Mapping\Table;
 use Doctrine\ORM\Mapping\Index;
 use Doctrine\ORM\Mapping\Entity;
-use Gedmo\Loggable\Entity\AbstractLogEntry;
+use Gedmo\Loggable\Entity\MappedSuperclass\AbstractLogEntry;
 
 /**
  * Cx\Core\ContentManager\Model\Entity\LogEntry
@@ -48,18 +48,18 @@ use Gedmo\Loggable\Entity\AbstractLogEntry;
  * @author      CLOUDREXX Development Team <info@cloudrexx.com>
  * @package     cloudrexx
  * @subpackage  core_contentmanager
- * @Table(
+ * @ORM\Table(
  *     name="log_entry",
  *  indexes={
- *      @index(name="log_class_lookup_idx", columns={"object_class"}),
- *      @index(name="log_date_lookup_idx", columns={"logged_at"}),
- *      @index(name="log_user_lookup_idx", columns={"username"})
+ *      @ORM\Index(name="log_class_lookup_idx", columns={"object_class"}),
+ *      @ORM\Index(name="log_date_lookup_idx", columns={"logged_at"}),
+ *      @ORM\Index(name="log_user_lookup_idx", columns={"username"}),
+ *      @ORM\Index(name="log_version_lookup_idx", columns={"object_id", "object_class", "version"})
  *  }
  * )
- * @Entity(repositoryClass="Cx\Core\ContentManager\Model\Repository\PageLogRepository")
+ * @ORM\Entity(repositoryClass="Cx\Core\ContentManager\Model\Repository\PageLogRepository")
  */
-class LogEntry extends AbstractLogEntry
-{
+class LogEntry extends \Gedmo\Loggable\Entity\LogEntry{
     /**
      * All required columns are mapped through inherited superclass
      */
@@ -71,8 +71,8 @@ class LogEntry extends AbstractLogEntry
      * @Id
      * @GeneratedValue
      */
-    private $id;
-    
+    protected $id;
+
     /**
      * Get id
      *
@@ -82,7 +82,7 @@ class LogEntry extends AbstractLogEntry
     {
         return $this->id;
     }
-    
+
     /**
      * Set id
      *

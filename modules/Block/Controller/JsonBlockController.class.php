@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,10 +24,10 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * JSON Adapter for Block
- * 
+ *
  * @copyright   Cloudrexx AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @package     cloudrexx
@@ -73,7 +73,7 @@ class BlockCouldNotBeSavedException extends JsonBlockException {}
 
 /**
  * JSON Adapter for Block
- * 
+ *
  * @copyright   Cloudrexx AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @package     cloudrexx
@@ -91,20 +91,20 @@ class JsonBlockController extends \Cx\Core\Core\Model\Entity\Controller implemen
      * Returns the internal name used as identifier for this adapter
      * @return String Name of this adapter
      */
-    public function getName() 
+    public function getName()
     {
         return 'Block';
     }
-    
+
     /**
      * Returns default permission as object
      * @return Object
      */
     public function getDefaultPermissions()
     {
-        return new \Cx\Core_Modules\Access\Model\Entity\Permission(null, array('get'), true);
+        return new \Cx\Core_Modules\Access\Model\Entity\Permission(null, array('get', 'post'), true);
     }
-    
+
     /**
      * Returns an array of method names accessable from a JSON request
      * @return array List of method names
@@ -114,7 +114,11 @@ class JsonBlockController extends \Cx\Core\Core\Model\Entity\Controller implemen
         return array(
             'getCountries',
             'getBlocks',
-            'getBlockContent',
+            'getBlockContent' => new \Cx\Core_Modules\Access\Model\Entity\Permission(
+                null,
+                array('get', 'cli', 'post'),
+                false
+            ),
             'saveBlockContent' => new \Cx\Core_Modules\Access\Model\Entity\Permission(null, array('post'), true)
         );
     }
@@ -129,9 +133,9 @@ class JsonBlockController extends \Cx\Core\Core\Model\Entity\Controller implemen
 
     /**
      * Get countries from given name
-     * 
-     * @param array $params Get parameters, 
-     * 
+     *
+     * @param array $params Get parameters,
+     *
      * @return array Array of countries
      */
     public function getCountries($params)
@@ -143,7 +147,10 @@ class JsonBlockController extends \Cx\Core\Core\Model\Entity\Controller implemen
                 'countries' => $countries
             );
         }
-        $arrCountries = \Cx\Core\Country\Controller\Country::searchByName($term);
+        if (!defined('FRONTEND_LANG_ID')) {
+            define('FRONTEND_LANG_ID', 1);
+        }
+        $arrCountries = \Cx\Core\Country\Controller\Country::searchByName($term,null,false);
         foreach ($arrCountries as $country) {
             $countries[] = array(
                 'id'    => $country['id'],
@@ -167,6 +174,9 @@ class JsonBlockController extends \Cx\Core\Core\Model\Entity\Controller implemen
         if (!\FWUser::getFWUserObject()->objUser->login() || $objInit->mode != 'backend') {
             throw new \Exception($_CORELANG['TXT_ACCESS_DENIED_DESCRIPTION']);
         }
+        if (!defined('FRONTEND_LANG_ID')) {
+            define('FRONTEND_LANG_ID', 1);
+        }
 
         $blockLib = new \Cx\Modules\Block\Controller\BlockLibrary();
         $blocks = $blockLib->getBlocks();
@@ -184,7 +194,7 @@ class JsonBlockController extends \Cx\Core\Core\Model\Entity\Controller implemen
 
     /**
      * Get the block content as html
-     * 
+     *
      * @param array $params all given params from http request
      * @throws NoPermissionException
      * @throws NotEnoughArgumentsException
@@ -194,20 +204,25 @@ class JsonBlockController extends \Cx\Core\Core\Model\Entity\Controller implemen
     public function getBlockContent($params) {
         global $_CORELANG, $objDatabase;
 
-        // security check
-        if (   !\FWUser::getFWUserObject()->objUser->login()
-            || !\Permission::checkAccess(76, 'static', true)) {
-            throw new NoPermissionException($_CORELANG['TXT_ACCESS_DENIED_DESCRIPTION']);
-        }
-
         // check for necessary arguments
-        if (empty($params['get']['block']) || empty($params['get']['lang'])) {
+        if (
+            empty($params['get']) ||
+            empty($params['get']['block']) ||
+            empty($params['get']['lang']) ||
+            empty($params['get']['page'])
+        ) {
             throw new NotEnoughArgumentsException('not enough arguments');
         }
 
         // get id and langugage id
         $id = intval($params['get']['block']);
         $lang = \FWLanguage::getLanguageIdByCode($params['get']['lang']);
+        if (!defined('FRONTEND_LANG_ID')) {
+            if (!$lang) {
+                $lang = 1;
+            }
+            define('FRONTEND_LANG_ID', $lang);
+        }
         if (!$lang) {
             $lang = FRONTEND_LANG_ID;
         }
@@ -233,7 +248,30 @@ class JsonBlockController extends \Cx\Core\Core\Model\Entity\Controller implemen
             throw new NoBlockFoundException('no block content found with id: ' . $id);
         }
 
-        $ls = new \LinkSanitizer(ASCMS_PATH_OFFSET.\Env::get('virtualLanguageDirectory').'/', $result->fields['content']);
+        $content = $result->fields['content'];
+
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $cx->parseGlobalPlaceholders($content);
+        $template = new \Cx\Core_Modules\Widget\Model\Entity\Sigma();
+        $template->setTemplate($content);
+        $this->getComponent('Widget')->parseWidgets(
+            $template,
+            'Block',
+            'Block',
+            $id
+        );
+        $content = $template->get();
+        $em = $cx->getDb()->getEntityManager();
+        $pageRepo = $em->getRepository('Cx\Core\ContentManager\Model\Entity\Page');
+        $page = $pageRepo->find($params['get']['page']);
+        
+        \Cx\Modules\Block\Controller\Block::setBlocks($content, $page);
+        \LinkGenerator::parseTemplate($content);
+        $ls = new \LinkSanitizer(
+            $cx,
+            $cx->getCodeBaseOffsetPath() . \Env::get('virtualLanguageDirectory') . '/',
+            $content
+        );
         return array('content' => $ls->replace());
     }
 
@@ -263,6 +301,12 @@ class JsonBlockController extends \Cx\Core\Core\Model\Entity\Controller implemen
         // get language and block id
         $id = intval($params['get']['block']);
         $lang = \FWLanguage::getLanguageIdByCode($params['get']['lang']);
+        if (!defined('FRONTEND_LANG_ID')) {
+            if (!$lang) {
+                $lang = 1;
+            }
+            define('FRONTEND_LANG_ID', $lang);
+        }
         if (!$lang) {
             $lang = FRONTEND_LANG_ID;
         }
@@ -281,7 +325,12 @@ class JsonBlockController extends \Cx\Core\Core\Model\Entity\Controller implemen
         }
         \LinkGenerator::parseTemplate($content);
 
-        $ls = new \LinkSanitizer(ASCMS_PATH_OFFSET.\Env::get('virtualLanguageDirectory').'/', $content);
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $ls = new \LinkSanitizer(
+            $cx,
+            $cx->getCodeBaseOffsetPath() . \Env::get('virtualLanguageDirectory') . '/',
+            $content
+        );
         $this->messages[] = $_CORELANG['TXT_CORE_SAVED_BLOCK'];
 
         return array('content' => $ls->replace());

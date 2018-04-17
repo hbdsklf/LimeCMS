@@ -110,4 +110,13 @@ $_ARRAYLANG['TXT_JOBS_SETTINGS'] = "Eigenschaften";
 $_ARRAYLANG['TXT_JOBS_SEARCH'] = "Suchen";
 $_ARRAYLANG['TXT_JOBS_NO_CATEGORY'] = "bitte Kategorie auswählen";
 $_ARRAYLANG['TXT_JOBS_NO_TITLE'] = "bitte Titel eingeben";
-?>
+$_ARRAYLANG['TXT_JOBS_SETTINGS_TEMPLATE_INTEGRATION'] = "Template Einbindung";
+$_ARRAYLANG['TXT_JOBS_SETTINGS_TEMPLATE_INTEGRATION_LABEL'] = "Auflistung der Stellenangebote im Webdesign Template aktivieren";
+$_ARRAYLANG['TXT_JOBS_SETTINGS_SOURCE_OF_JOBS'] = "Quelle der Stellenangebote";
+$_ARRAYLANG['TXT_JOBS_SETTINGS_LATEST_JOBS_LABEL'] = "Neuste Stellenangebote";
+$_ARRAYLANG['TXT_JOBS_SETTINGS_MANUAL_JOBS_LABEL'] = "Manuelle Auswahl von heissen Stellenangebote";
+$_ARRAYLANG['TXT_JOBS_SETTINGS_LISTING_LIMIT'] = "Anzeige Limit";
+$_ARRAYLANG['TXT_JOBS_MODIFY_HOT_OFFER_LABEL'] = "Stellenangebot bei der Template Integration anzeigen";
+$_ARRAYLANG['TXT_JOBS_MODIFY_HOT_OFFER'] = "Heisses Angebot";
+$_ARRAYLANG['TXT_JOBS_OVERVIEW_HOT'] = "Heiss";
+$_ARRAYLANG['TXT_JOBS_RECORD_UPDATE_FAILED'] = "Die Änderung konnte nicht gespeichert werden.";

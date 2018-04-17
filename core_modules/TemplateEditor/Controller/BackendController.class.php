@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 
 /**
  * Class BackendController
@@ -97,13 +97,13 @@ class BackendController extends SystemComponentBackendController
 
     /**
      * This renders the backend overview.
-     * 
+     *
      * @param \Cx\Core\Html\Sigma $template Template for current CMD
      * @param array               $cmd      CMD separated by slashes
      */
-    public function parsePage(\Cx\Core\Html\Sigma $template, array $cmd)
+    public function parsePage(\Cx\Core\Html\Sigma $template, array $cmd, &$isSingle = false)
     {
-        \Permission::checkAccess(47, 'static');
+        \Permission::checkAccess(\Cx\Core\ViewManager\Controller\ViewManager::TEMPLATE_EDITOR_ACCESS_ID, 'static');
         $fileStorage                 = new OptionSetFileStorage(
             $this->cx->getWebsiteThemesPath()
         );
@@ -150,9 +150,9 @@ class BackendController extends SystemComponentBackendController
             // If user opens editor use active preset as active preset.
             if (
                 !isset($_SESSION['TemplateEditor'][$this->theme->getId()]
-                    ['activePreset']) 
+                    ['activePreset'])
                 || !isset($_GET['preset'])) {
-                $_SESSION['TemplateEditor'][$this->theme->getId()]['activePreset'] 
+                $_SESSION['TemplateEditor'][$this->theme->getId()]['activePreset']
                     = $this->themeOptions->getActivePreset()->getName();
             }
             try {
@@ -173,7 +173,7 @@ class BackendController extends SystemComponentBackendController
                     )
                 );
             }
-        } catch (\Symfony\Component\Yaml\ParserException $e) {
+        } catch (\Symfony\Component\Yaml\Exception\ParseException $e) {
 
         }
 

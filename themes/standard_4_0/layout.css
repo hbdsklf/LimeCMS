@@ -467,9 +467,6 @@ body a:hover {text-decoration: none;}
     background-image: url('images/nav-3-inactive.png');
     background-position: 31px 7px;
 }
-#menubuilder3 {
-    padding-top: 0;
-}
 #subnavigation li.level-1 > a {
     display: none;
 }
@@ -1331,7 +1328,7 @@ p#loginerror {
 .mobile-reg:hover {
     background: url('images/user_register.png') no-repeat center #888;
 }
-.mobile-login:hover { 
+.mobile-login:hover {
     background: url('images/login.png') no-repeat center #888;
 }
 .navbar-toggle:hover {

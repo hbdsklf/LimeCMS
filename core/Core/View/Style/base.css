@@ -82,7 +82,7 @@ a:active {
     top: 14px;
     width: 145px;
     height: 25px;
-    background: url(../Media/login_contrexx_logo.png) no-repeat;
+    background: url(../Media/login_cloudrexx_logo.png) no-repeat;
     outline: 0;
 }
 
@@ -381,12 +381,6 @@ a:active {
     height: 23px;
 }
 
-#content_login #captcha #coreCaptchaImage {
-    width: 87px;
-    height: 29px;
-}
-
-
 #content_wrapper td.content_wrapper.left {
     float: left;
     width: 217px;
@@ -506,6 +500,7 @@ textarea.cke_source {
     margin: 0 7px 0 0;
 }
 #captcha #coreCaptchaImage {
+    margin-top: 0;
     float: left;
     width: 93px;
     height: 31px;
@@ -1453,12 +1448,12 @@ table.adminlist td.nowrap {
 }
 
 .warningbox, #warningbox {
-    background: #FEF0D0;
-    color: #DA7A0A;
+    background: #fcf8e3;
+    color: #8a6d3b;
 }
 
 .warningbox a, #warningbox a {
-    color: #DB7A0A;
+    color: #8a6d3b;
 }
 
 .news,
@@ -1914,4 +1909,3 @@ a.cke_dialog_ui_button_ok:hover {
     background-color: #0a85c8;
     color: #fff;
 }
-

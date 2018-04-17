@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,10 +24,10 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * Calendar Language variables
- * 
+ *
  * @package    cloudrexx
  * @subpackage module_calendar
  * @author     Cloudrexx <info@cloudrexx.com>
@@ -92,6 +92,8 @@ $_ARRAYLANG['TXT_CALENDAR_STATUS'] = "Statut";
 $_ARRAYLANG['TXT_CALENDAR_LANG'] = "Langue";
 $_ARRAYLANG['TXT_CALENDAR_INACTIVE'] = "inactif";
 $_ARRAYLANG['TXT_CALENDAR_ACTIVE'] = "actif";
+$_ARRAYLANG['TXT_CALENDAR_NOT_SPECIFIED'] = 'Non spécifié';
+$_ARRAYLANG['TXT_CALENDAR_MORE_INFO'] = "En savoir plus";
 $_ARRAYLANG['TXT_CALENDAR_SAVE'] = "Enregistrer";
 $_ARRAYLANG['TXT_CALENDAR_SORTING'] = "Tri";
 $_ARRAYLANG['TXT_CALENDAR_ID'] = "ID";
@@ -290,9 +292,9 @@ $_ARRAYLANG['TXT_CALENDAR_DAYS_SUN'] = "Di";
 $_ARRAYLANG['TXT_CALENDAR_SERIES_PATTERN'] = "Schéma de la répétition";
 $_ARRAYLANG['TXT_CALENDAR_SERIES_PATTERN_DURANCE'] = "Durée de la répétition";
 $_ARRAYLANG['TXT_CALENDAR_SERIES_PATTERN_FIRST'] = "1er";
-$_ARRAYLANG['TXT_CALENDAR_SERIES_PATTERN_SECOND'] = "2e";
-$_ARRAYLANG['TXT_CALENDAR_SERIES_PATTERN_THIRD'] = "3e";
-$_ARRAYLANG['TXT_CALENDAR_SERIES_PATTERN_FOURTH'] = "4e";
+$_ARRAYLANG['TXT_CALENDAR_SERIES_PATTERN_SECOND'] = "2ème";
+$_ARRAYLANG['TXT_CALENDAR_SERIES_PATTERN_THIRD'] = "3ème";
+$_ARRAYLANG['TXT_CALENDAR_SERIES_PATTERN_FOURTH'] = "4ème";
 $_ARRAYLANG['TXT_CALENDAR_SERIES_PATTERN_LAST'] = "dernier";
 $_ARRAYLANG['TXT_CALENDAR_SERIES_PATTERN_BEGINS'] = "Débute le";
 $_ARRAYLANG['TXT_CALENDAR_SERIES_PATTERN_NO_ENDDATE'] = "pas de date de fin";
@@ -454,7 +456,7 @@ $_ARRAYLANG['TXT_CALENDAR_FORM_SUCCESSFULLY_DELETED'] = "Le formulaire d’inscr
 $_ARRAYLANG['TXT_CALENDAR_FORM_CORRUPT_DELETED'] = "Une erreur est intervenue lors de l’effacement du formulaire d’inscription";
 $_ARRAYLANG['TXT_CALENDAR_INSERT_REGISTRATION_FORM'] = "Remplir le formulaire d‘inscription";
 $_ARRAYLANG['TXT_CALENDAR_MAKE_SELECTION'] = "S’il vous plaît: veuillez saisir un élément au minimum";
-$_ARRAYLANG['TXT_CALENDAR_COPY'] = "copier"; 
+$_ARRAYLANG['TXT_CALENDAR_COPY'] = "copier";
 
 $_ARRAYLANG['TXT_CALENDAR_CATEGORY_COUNT_ENTRIES'] = "Anzahl Einträge im Dropdown anzeigen";
 $_ARRAYLANG['TXT_CALENDAR_EVENT_TYPE'] = "Type d'événement";
@@ -465,7 +467,6 @@ $_ARRAYLANG['TXT_CALENDAR_EVENT_CORRUPT_SAVED'] = "Corrupt save";
 $_ARRAYLANG['TXT_CALENDAR_USE_DATEPICKER'] = "Plugin für Datumauswahl";
 $_ARRAYLANG['TXT_CALENDAR_DATEPICKER'] = "JS DatePickerControl";
 $_ARRAYLANG['TXT_CALENDAR_EVENT_MORE_INVITATIONS_INFO'] = "In diesem Feld kÃ¶nnen weitere E-Mail Adressen (Komma separiert) angegeben werden, an welche eine Einladung per E-Mail geschickt werden soll.";
-$_ARRAYLANG['TXT_CALENDAR_EVENT_NUM_SUBSCRIBER_INFO'] = "Die Anzahl Teilnehmer muss grÃ¶sser als \\\"0\\\" sein.";
 $_ARRAYLANG['TXT_CALENDAR_EVENT_NOTIFICATION_TO_INFO'] = "In diesem Feld kÃ¶nnen E-Mail Adressen (Komma separiert) angegeben werden, an welche eine Benachrichtigung bei An- und Abmeldungen per E-Mail geschickt werden soll.";
 $_ARRAYLANG['TXT_CALENDAR_STEP_BACK'] = "Back";
 $_ARRAYLANG['TXT_PAYMENT_METHODS'] = "On location,Bill,Yellowpay";
@@ -477,7 +478,7 @@ $_ARRAYLANG['TXT_CALENDAR_ACTIVATE_ONLY_COMMUNITY'] = "Aktivieren nur für angem
 $_ARRAYLANG['TXT_CALENDAR_CONFIRM_FRONTEND_EVENTS'] = "Nouveau rendez-vous doit être confirmer";
 $_ARRAYLANG['TXT_CALENDAR_PLACE_DATA'] = "Indication du lieu";
 $_ARRAYLANG['TXT_CALENDAR_PLACE_DATA_STATUS_INFO'] = "Einerseits können die Angaben zur Ortschaft manuell erfasst werden, oder mit dem Medienverzeichnis Modul verknüpft werden. Möchten Sie dies mit dem Medienverzeichnis verknüpfen, wählen Sie bitte die entsprechende Formularvolage aus, aus welcher Sie die Daten auslesen möchten.";
-$_ARRAYLANG['TXT_CALENDAR_PLACE_DATA_DEFAULT'] = "Saisir manuelle";    
+$_ARRAYLANG['TXT_CALENDAR_PLACE_DATA_DEFAULT'] = "Saisir manuelle";
 $_ARRAYLANG['TXT_CALENDAR_CONFIRMLIST'] = "Liste de confirmation";
 $_ARRAYLANG['TXT_PAYMENT_METHODS'] = "Vor Ort,Rechnung,Yellowpay";
 $_ARRAYLANG['TXT_PAYMENT_COMPLETED'] = "Bezahlt";
@@ -492,7 +493,7 @@ $_ARRAYLANG['TXT_CALENDAR_SEPARATOR_NOTHING'] = " ";
 $_ARRAYLANG['TXT_CALENDAR_SEPARATOR_SPACE'] = "Espace";
 $_ARRAYLANG['TXT_CALENDAR_SEPARATOR_HYPHEN'] = "-";
 $_ARRAYLANG['TXT_CALENDAR_SEPARATOR_COLON'] = ":";
-$_ARRAYLANG['TXT_CALENDAR_SEPARATOR_TO'] = "au";
+$_ARRAYLANG['TXT_CALENDAR_SEPARATOR_TO'] = "à";
 $_ARRAYLANG['TXT_CALENDAR_SEPARATOR_BREAK'] = "renvoi à la ligne";
 $_ARRAYLANG['TXT_CALENDAR_SEPARATOR_DATE'] = "Le trait d'union Date";
 $_ARRAYLANG['TXT_CALENDAR_SEPARATOR_TIME'] = "Le trait d'union Heure";
@@ -531,9 +532,9 @@ $_ARRAYLANG['TXT_CALENDAR_FORM_FIELD_AFFILIATION_FORM'] = "Formulaire d'inscript
 $_ARRAYLANG['TXT_CALENDAR_FORM_FIELD_AFFILIATION_CONTACT'] = "Adresse du contact";
 $_ARRAYLANG['TXT_CALENDAR_FORM_FIELD_AFFILIATION_BILLING'] = "Adresse de facturation";
 $_ARRAYLANG['TXT_CALENDAR_FORM_FIELD_TITLE'] = "Titre";
-        
-$_ARRAYLANG['TXT_CALENDAR_TYPE'] = "Type";   
-$_ARRAYLANG['TXT_CALENDAR_FIRST_EXPORT'] = "Exportiert am";   
-$_ARRAYLANG['TXT_CALENDAR_ALL_CAT'] = "Tous les catégories";  
-$_ARRAYLANG['TXT_CALENDAR_SHOW_EVENTS_ONLY_IN_ACTIVE_LANGUAGE'] = "Afficher uniquement les rendez-vous de la langue active";  
+
+$_ARRAYLANG['TXT_CALENDAR_TYPE'] = "Type";
+$_ARRAYLANG['TXT_CALENDAR_FIRST_EXPORT'] = "Exportiert am";
+$_ARRAYLANG['TXT_CALENDAR_ALL_CAT'] = "Tous les catégories";
+$_ARRAYLANG['TXT_CALENDAR_SHOW_EVENTS_ONLY_IN_ACTIVE_LANGUAGE'] = "Afficher uniquement les rendez-vous de la langue active";
 ?>

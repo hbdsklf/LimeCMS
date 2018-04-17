@@ -175,7 +175,6 @@ $_ARRAYLANG['TXT_DOWNLOADS_MANAGE'] = "Verwalten";
 $_ARRAYLANG['TXT_DOWNLOADS_CATEGORY_DELETABLE_BY_OWNER'] = "Der Besitzer darf diese Kategorie löschen.";
 $_ARRAYLANG['TXT_DOWNLOADS_CATEGORY_MANAGE_BY_OWNER'] = "Der Besitzer dieser Kategorie darf dessen Eigenschaften ändern.";
 $_ARRAYLANG['TXT_DOWNLOADS_CATEG0RY_VISIBILITY_DESC'] = "Diese Kategorie immer auflisten, auch wenn der aktuelle Benutzer keine Zugriffsberechtigung auf den Inhalt hat.";
-$_ARRAYLANG['TXT_DOWNLOADS_EMPTY_NAME_ERROR'] = "Sie müssen zwingend einen Namen für die Kategorie definieren!";
 $_ARRAYLANG['TXT_DOWNLOADS_CATEGORY_DELETE_FAILED'] = "Beim Löschen der Kategorie %s trat ein Fehler auf!";
 $_ARRAYLANG['TXT_DOWNLOADS_FUNCTIONS'] = "Funktionen";
 $_ARRAYLANG['TXT_DOWNLOADS_ID'] = "ID";
@@ -260,7 +259,6 @@ $_ARRAYLANG['TXT_DOWNLOADS_UPDATED_FILE_TIME_LIMIT'] = "Timelimit to mark update
 $_ARRAYLANG['TXT_DOWNLOADS_UPDATED_FILE_TIME_LIMIT_DESC'] = "Defines how long (in seconds) a updated download should be marked as recently updated.";
 $_ARRAYLANG['TXT_DOWNLOADS_SECONDS_COMB_EXAMPLES'] = "Examples: 1 day = 86400 seconds / 1 week = 604800 seconds";
 $_ARRAYLANG['TXT_DOWNLOADS_BLOCKS'] = "Template blocks";
-$_ARRAYLANG['TXT_DOWNLOADS_MISCELLANEOUS'] = "Miscellaneous";
 $_ARRAYLANG['TXT_DOWNLOADS_START'] = "Start";
 $_ARRAYLANG['TXT_DOWNLOADS_MORE'] = "mehr";
 $_ARRAYLANG['TXT_DOWNLOADS_KBYTE'] = "KB";
@@ -309,4 +307,5 @@ $_ARRAYLANG['TXT_DOWNLOADS_INTERFACES'] = "Interfaces";
 $_ARRAYLANG['TXT_DOWNLOADS_USER_ADMIN'] = "User Admin";
 $_ARRAYLANG['TXT_DOWNLOADS_AUTOMATIC_CATEGORY_CREATION'] = "Automatic Category Creation";
 $_ARRAYLANG['TXT_DOWNLOADS_AUTOMATIC_CATEGORY_CREATION_DESC'] = "Set the user groups to which a newly created user should be assigned to, if the option to automatically create a category within the Digital Asset Management module has been selected.";
-?>
+$_ARRAYLANG['TXT_DOWNLOADS_SETTINGS_LISTING'] = "Listing";
+$_ARRAYLANG['TXT_DOWNLOADS_SETTINGS_STATISTICS'] = "Statistics";

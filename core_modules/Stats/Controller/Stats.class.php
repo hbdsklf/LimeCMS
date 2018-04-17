@@ -68,7 +68,7 @@ class Stats extends StatsLibrary
 
 
     private $act = '';
-    
+
     /**
     * constructor
     *
@@ -78,25 +78,26 @@ class Stats extends StatsLibrary
     function __construct()
     {
         parent::__construct();
-        
+
         $this->_objTpl = new \Cx\Core\Html\Sigma($this->cx->getCodeBaseCoreModulePath().'/Stats/View/Template/Backend');
         \Cx\Core\Csrf\Controller\Csrf::add_placeholder($this->_objTpl);
-        $this->_objTpl->setErrorHandling(PEAR_ERROR_DIE);       
+        $this->_objTpl->setErrorHandling(PEAR_ERROR_DIE);
 
-        $this->firstDate = time();        
+        $this->firstDate = time();
     }
-    
+
     private function setNavigation()
     {
         global $objTemplate, $_ARRAYLANG;
 
-        $objTemplate->setVariable("CONTENT_NAVIGATION","
-            <a href='index.php?cmd=Stats&amp;stat=visitors' class='".($this->act == 'visitors' ? 'active' : '')."'>".$_ARRAYLANG['TXT_VISITOR_DETAILS']."</a>
-            <a href='index.php?cmd=Stats&amp;stat=requests' class='".($this->act == 'requests' ? 'active' : '')."'>".$_ARRAYLANG['TXT_VISITORS_AND_PAGE_VIEWS']."</a>
-            <a href='index.php?cmd=Stats&amp;stat=referer' class='".($this->act == 'referer' ? 'active' : '')."'>".$_ARRAYLANG['TXT_REFERER']."</a>
-            <a href='index.php?cmd=Stats&amp;stat=spiders' class='".($this->act == 'spiders' ? 'active' : '')."'>".$_ARRAYLANG['TXT_SEARCH_ENGINES']."</a>
-            <a href='index.php?cmd=Stats&amp;stat=search' class='".($this->act == 'search' ? 'active' : '')."'>".$_ARRAYLANG['TXT_SEARCH_TERMS']."</a>
-            <a href='index.php?cmd=Stats&amp;stat=settings' class='".($this->act == 'settings' ? 'active' : '')."'>".$_ARRAYLANG['TXT_SETTINGS']."</a>");
+        $objTemplate->setVariable("CONTENT_NAVIGATION", 
+            (\Permission::checkAccess(166, 'static', true) ? "<a href='index.php?cmd=Stats&amp;stat=visitors' class='".($this->act == 'visitors' ? 'active' : '')."'>".$_ARRAYLANG['TXT_VISITOR_DETAILS']."</a>" : '')
+            .(\Permission::checkAccess(164, 'static', true) ? "<a href='index.php?cmd=Stats&amp;stat=requests' class='".($this->act == 'requests' ? 'active' : '')."'>".$_ARRAYLANG['TXT_VISITORS_AND_PAGE_VIEWS']."</a>" : '')
+            .(\Permission::checkAccess(167, 'static', true) ? "<a href='index.php?cmd=Stats&amp;stat=referer' class='".($this->act == 'referer' ? 'active' : '')."'>".$_ARRAYLANG['TXT_REFERER']."</a>" : '')
+            .(\Permission::checkAccess(168, 'static', true) ? "<a href='index.php?cmd=Stats&amp;stat=spiders' class='".($this->act == 'spiders' ? 'active' : '')."'>".$_ARRAYLANG['TXT_SEARCH_ENGINES']."</a>" : '')
+            .(\Permission::checkAccess(169, 'static', true) ? "<a href='index.php?cmd=Stats&amp;stat=search' class='".($this->act == 'search' ? 'active' : '')."'>".$_ARRAYLANG['TXT_SEARCH_TERMS']."</a>" : '')
+            .(\Permission::checkAccess(170, 'static', true) ? "<a href='index.php?cmd=Stats&amp;stat=settings' class='".($this->act == 'settings' ? 'active' : '')."'>".$_ARRAYLANG['TXT_SETTINGS']."</a>" : '')
+        );
     }
 
 
@@ -118,31 +119,37 @@ class Stats extends StatsLibrary
 
         switch ($_GET['stat']){
             case 'visitors':
+                \Permission::checkAccess(166, 'static');
                 $this->showVisitors();
                 break;
 
             case 'requests': // show request stats
+                \Permission::checkAccess(164, 'static');
                 $this->_showRequests();
                 break;
 
             case 'referer':
+                \Permission::checkAccess(167, 'static');
                 $this->_showReferer();
                 break;
 
             case 'spiders':
+                \Permission::checkAccess(168, 'static');
                 $this->_showSpiders();
                 break;
 
             case 'search': // show search term stats
+                \Permission::checkAccess(169, 'static');
                 $this->_showSearchTerms();
                 break;
 
             case 'settings':
-                \Permission::checkAccess(40, 'static');
+                \Permission::checkAccess(170, 'static');
                 $this->_showSettings();
                 break;
 
             default: // show overview
+                \Permission::checkAccess(166, 'static');
                 $this->showVisitors();
                 break;
         }
@@ -407,7 +414,7 @@ class Stats extends StatsLibrary
         if (count($this->arrCountries)>0) {
             $rowClass = 0;
 
-            // get country names from xml file            
+            // get country names from xml file
             $xmlCountryFilePath  = $this->cx->getClassLoader()->getFilePath($this->cx->getCoreModuleFolderName() . '/Stats/Data/countries.xml');
             $xml_parser = xml_parser_create();
             xml_set_object($xml_parser,$this);
@@ -954,7 +961,7 @@ class Stats extends StatsLibrary
 
         $this->_objTpl->loadTemplateFile('module_stats_spiders.html',true,true);
         $this->pageTitle = $_ARRAYLANG['TXT_SEARCH_ENGINES'];
-        
+
         $this->_initSpiders();
 
         // set language variables
@@ -1152,7 +1159,7 @@ class Stats extends StatsLibrary
             'TXT_COLOUR_DEPTH'                => $_ARRAYLANG['TXT_COLOUR_DEPTH'],
             'TXT_JAVASCRIPT_SUPPORT'        => $_ARRAYLANG['TXT_JAVASCRIPT_SUPPORT'],
             'TXT_REMOVE_REQUESTS'            => $_ARRAYLANG['TXT_REMOVE_REQUESTS'],
-            'TXT_EXCLUDE_IDENTIFYING_INFO'	 => $_ARRAYLANG['TXT_EXCLUDE_IDENTIFYING_INFO'],
+            'TXT_EXCLUDE_IDENTIFYING_INFO'     => $_ARRAYLANG['TXT_EXCLUDE_IDENTIFYING_INFO'],
             'TXT_REMOVE_REQUESTS_INTERVAL'    => $_ARRAYLANG['TXT_REMOVE_REQUESTS_INTERVAL'],
             'TXT_STATS_COUNT_VISIOTR_NUMBER'    => $_ARRAYLANG['TXT_STATS_COUNT_VISIOTR_NUMBER'],
             'TXT_ONLINE_TIMEOUT'            => $_ARRAYLANG['TXT_ONLINE_TIMEOUT'],

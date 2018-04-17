@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,10 +24,10 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * Main controller for JsonData
- * 
+ *
  * @copyright   Cloudrexx AG
  * @author Project Team SS4U <info@cloudrexx.com>
  * @package cloudrexx
@@ -38,13 +38,101 @@ namespace Cx\Core\JsonData\Controller;
 
 /**
  * Main controller for JsonData
- * 
+ *
  * @copyright   Cloudrexx AG
  * @author Project Team SS4U <info@cloudrexx.com>
  * @package cloudrexx
  * @subpackage core_jsondata
  */
 class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentController {
+    const ARGUMENT_INDEX_OUTPUT_MODULE = 0;
+    const ARGUMENT_INDEX_DATA_ADAPTER = 1;
+    const ARGUMENT_INDEX_DATA_METHOD = 2;
+    
+    /**
+     * Returns a list of command mode commands provided by this component
+     *
+     * Data command is deprecated. Use /api/v1/ instead
+     * @return array List of command names
+     */
+    public function getCommandsForCommandMode() {
+        return array('Data');
+    }
+    
+    /**
+     * Returns the description for a command provided by this component
+     *
+     * Data command is deprecated. Use /api/v1/ instead
+     * @param string $command The name of the command to fetch the description from
+     * @param boolean $short Wheter to return short or long description
+     * @return string Command description
+     */
+    public function getCommandDescription($command, $short = false) {
+        switch ($command) {
+            case 'Data':
+                return 'Return data from a data source';
+                break;
+        }
+    }
+
+    /**
+     * Execute one of the commands listed in getCommandsForCommandMode()
+     *
+     * Data command is deprecated. Use /api/v1/ instead
+     * @see getCommandsForCommandMode()
+     * @param string $command Name of command to execute
+     * @param array $arguments List of arguments for the command
+     * @param array  $dataArguments (optional) List of data arguments for the command
+     * @return void
+     */
+    public function executeCommand($command, $arguments, $dataArguments = array()) {
+        switch ($command) {
+            case 'Data':
+                if (
+                    !isset($arguments[static::ARGUMENT_INDEX_OUTPUT_MODULE]) ||
+                    !isset($arguments[static::ARGUMENT_INDEX_DATA_ADAPTER]) ||
+                    !isset($arguments[static::ARGUMENT_INDEX_DATA_METHOD])
+                ) {
+                    throw new \Exception('Not enough arguments');
+                }
+                $outputModule = $arguments[static::ARGUMENT_INDEX_OUTPUT_MODULE];
+                $dataAdapter = $arguments[static::ARGUMENT_INDEX_DATA_ADAPTER];
+                $dataMethod = $arguments[static::ARGUMENT_INDEX_DATA_METHOD];
+                unset($arguments[static::ARGUMENT_INDEX_OUTPUT_MODULE]);
+                unset($arguments[static::ARGUMENT_INDEX_DATA_ADAPTER]);
+                unset($arguments[static::ARGUMENT_INDEX_DATA_METHOD]);
+                $dataArguments = array('get' => $arguments, 'post' => $dataArguments);
+                if (!isset($arguments['response'])) {
+                    $arguments['response'] = $this->cx->getResponse();
+                }
+                
+                $json = new \Cx\Core\Json\JsonData();
+                $data = $json->data($dataAdapter, $dataMethod, $dataArguments);
+                if ($data['status'] != 'success') {
+                    if (empty($data['message'])) {
+                        throw new \Exception('Fetching data failed without message');
+                    }
+                }
+                
+                switch ($outputModule) {
+                    case 'Plain':
+                        echo $data['data']['content'];
+                        break;
+                    case 'Json':
+                        $response = $arguments['response'];
+                        $response->setAbstractContent($data);
+                        $response->setParser($json->getParser());
+                        $response->send();
+                        echo $json->parse($data, true);
+                        break;
+                    default:
+                        throw new \Exception('No such output module: "' . $outputModule . '"');
+                        break;
+                }
+                break;
+        }
+    }
+    
     public function getControllerClasses() {
         // Return an empty array here to let the component handler know that there
         // does not exist a backend, nor a frontend controller of this component.
@@ -53,27 +141,20 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
 
      /**
      * Load your component.
-     * 
+     *
      * @param \Cx\Core\ContentManager\Model\Entity\Page $page       The resolved page
      */
     public function load(\Cx\Core\ContentManager\Model\Entity\Page $page) {
         switch ($this->cx->getMode()) {
             case \Cx\Core\Core\Controller\Cx::MODE_BACKEND:
-                $json = new \Cx\Core\Json\JsonData();
-                // TODO: Verify that the arguments are actually present!
-                $adapter = contrexx_input2raw($_GET['object']);
-                $method = contrexx_input2raw($_GET['act']);
-                // TODO: Replace arguments by something reasonable
-                $arguments = array('get' => $_GET, 'post' => $_POST);
-                echo $json->jsondata($adapter, $method, $arguments);
-                die();
+                $this->routeToJsonData();
                 break;
         }
     }
 
     /**
      * Do something before content is loaded from DB
-     * 
+     *
      * @param \Cx\Core\ContentManager\Model\Entity\Page $page       The resolved page
      */
     public function preContentLoad(\Cx\Core\ContentManager\Model\Entity\Page $page) {
@@ -81,19 +162,40 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
         switch ($this->cx->getMode()) {
             case \Cx\Core\Core\Controller\Cx::MODE_FRONTEND:
                 if ($section == 'JsonData') {
-                    // TODO: move this code to /core/Json/...
-                    // TODO: handle expired sessions in any xhr callers.
-                    $json = new \Cx\Core\Json\JsonData();
-                    // TODO: Verify that the arguments are actually present!
-                    $adapter = contrexx_input2raw($_GET['object']);
-                    $method = contrexx_input2raw($_GET['act']);
-                    // TODO: Replace arguments by something reasonable
-                    $arguments = array('get' => $_GET, 'post' => $_POST);
-                    echo $json->jsondata($adapter, $method, $arguments);
-                    die();
+                    $this->routeToJsonData();
                 }
                 break;
         }
     }
 
+    protected function routeToJsonData() {
+        // TODO: move this code to /core/Json/...
+        // TODO: handle expired sessions in any xhr callers.
+        $json = new \Cx\Core\Json\JsonData();
+        // TODO: Verify that the arguments are actually present!
+        $adapter = contrexx_input2raw($_GET['object']);
+        $method = contrexx_input2raw($_GET['act']);
+        // TODO: Replace arguments by something reasonable
+        $arguments = array(
+            'get' => $_GET,
+            'post' => $_POST,
+            'response' => $this->cx->getResponse(),
+        );
+        echo $json->jsondata($adapter, $method, $arguments);
+
+        $cx = $this->cx;
+        $requestInfo = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+        $requestIp = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '';
+        $requestHost = isset($_SERVER['REMOTE_HOST']) ? $_SERVER['REMOTE_HOST'] : $requestIp;
+        $requestUserAgent = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
+
+        register_shutdown_function(function() use ($cx, $requestInfo, $requestIp, $requestHost, $requestUserAgent) {
+            $parsingTime = $cx->stopTimer();
+            \DBG::log(
+                "(Cx: {$cx->getId()}) Request parsing completed after $parsingTime \"uncached\" \"$requestInfo\" \"$requestIp\" \"$requestHost\" \"$requestUserAgent\" \"" .
+                memory_get_peak_usage(true) . "\" \"json\""
+            );
+        });
+        die();
+    }
 }

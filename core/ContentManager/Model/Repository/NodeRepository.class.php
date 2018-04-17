@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * NodeRepository
  *
@@ -72,8 +72,8 @@ class NodeRepository extends NestedTreeRepository {
      * @return array
      * @override
      */
-    public function findBy(array $criteria)
-    {        
+    public function findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
+    {
         $qb = $this->_em->createQueryBuilder();
         $qb->select('n')
                 ->from('\Cx\Core\ContentManager\Model\Entity\Node', 'n');
@@ -86,7 +86,7 @@ class NodeRepository extends NestedTreeRepository {
             }
             $i++;
         }
-        
+
         try {
             $q = $qb->getQuery();
             $nodes = $q->getResult();
@@ -117,7 +117,7 @@ class NodeRepository extends NestedTreeRepository {
             }
             $i++;
         }
-        
+
         try {
             $q = $qb->getQuery();
             $node = $q->getSingleResult();
@@ -135,7 +135,7 @@ class NodeRepository extends NestedTreeRepository {
     public function getRoot() {
         return $this->findOneBy(array('id'=>1));
     }
-    
+
     /**
      * Translates a branch of the tree recursively
      * @todo This does only work for root node by now
@@ -146,7 +146,7 @@ class NodeRepository extends NestedTreeRepository {
      * @param int $limit (optional) How many nodes should be copied, 0 means all, defaults to 0
      * @param int $offset (optional) How many nodes should be skipped, defaults to 0
      * @return array Returns an array with the following structure: array('count'=>{count of nodes}, 'offset'=>{current offset after copy})
-     * @throws \Cx\Core\ContentManager\ContentManagerException 
+     * @throws \Cx\Core\ContentManager\ContentManagerException
      */
     public function translateRecursive($rootNode, $fromLanguage, $toLanguage, $includingContent, $limit = 0, $offset = 0) {
         $nodes = $this->findAll();
@@ -213,7 +213,7 @@ class NodeRepository extends NestedTreeRepository {
         $this->recoverBranch($startNode, $left);
         return $this->verify();
     }
-    
+
     /**
      * Tries to recover a branch - assuming that level and left of $rootNode are correct!
      * @param \Cx\Core\ContentManager\Model\Entity\Node $rootNode Node to start with
@@ -447,4 +447,3 @@ class NodeRepository extends NestedTreeRepository {
         return $result;
     }
 }
-

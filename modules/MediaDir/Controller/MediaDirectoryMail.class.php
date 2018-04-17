@@ -36,7 +36,7 @@
  */
 namespace Cx\Modules\MediaDir\Controller;
 /**
- * 
+ *
  *
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
  * @author      CLOUDREXX Development Team <info@cloudrexx.com>
@@ -61,7 +61,7 @@ class MediaDirectoryMail extends MediaDirectoryLibrary
     function __construct($intAction, $intEntryId, $name)
     {
         global $objDatabase, $_CONFIG;
-        
+
         parent::__construct('.', $name);
         $this->intAction = intval($intAction);
         $this->intEntryId = intval($intEntryId);
@@ -69,30 +69,30 @@ class MediaDirectoryMail extends MediaDirectoryLibrary
         $objRSCheckAction = $objDatabase->Execute("SELECT default_recipient, need_auth FROM ".DBPREFIX."module_".$this->moduleTablePrefix."_mail_actions WHERE id='".$this->intAction."' LIMIT 1");
         if ($objRSCheckAction !== false) {
             $this->intNeedAuth = $objRSCheckAction->fields['need_auth'];
-            
+
             $objRSEntryUserId = $objDatabase->Execute("SELECT added_by FROM ".DBPREFIX."module_".$this->moduleTablePrefix."_entries WHERE id='".$this->intEntryId."' LIMIT 1");
-            
+
             $objFWUser = \FWUser::getFWUserObject();
             if(!$this->objUser = $objFWUser->objUser->getUser($id = intval($objRSEntryUserId->fields['added_by']))) {
                 $this->objUser = false;
             }
-            
+
             if($objRSCheckAction->fields['default_recipient'] == 'admin') {
                 $this->arrRecipients[] = $_CONFIG['coreAdminEmail'];
             } else {
-            	if($this->objUser != false) {
+                if($this->objUser != false) {
                     $this->arrRecipients[] = $this->objUser->getEmail();
-            	}
+                }
             }
         }
-        
+
         if(!empty($this->arrRecipients)) {
-		    self::loadTemplate();
-	
-	        if(!empty($this->strTemplate) && !empty($this->strTitle)) {
-		        self::parsePlaceholders();
-		        self::sendMail();
-	        }
+            self::loadTemplate();
+
+            if(!empty($this->strTemplate) && !empty($this->strTitle)) {
+                self::parsePlaceholders();
+                self::sendMail();
+            }
         }
     }
 
@@ -100,7 +100,7 @@ class MediaDirectoryMail extends MediaDirectoryLibrary
 
     function loadTemplate()
     {
-        global $objDatabase, $_LANGID;
+        global $objDatabase;
 
         $objRSLoadTemplate = $objDatabase->Execute("SELECT
                                                         title, content, recipients
@@ -109,7 +109,7 @@ class MediaDirectoryMail extends MediaDirectoryLibrary
                                                     WHERE
                                                         action_id='".$this->intAction."'
                                                     AND
-                                                        lang_id='".intval($_LANGID)."'
+                                                        lang_id='" . static::getOutputLocale()->getId() . "'
                                                     AND
                                                         active='1'
                                                     LIMIT 1");
@@ -142,12 +142,12 @@ class MediaDirectoryMail extends MediaDirectoryLibrary
 
     function parsePlaceholders()
     {
-        global $objDatabase, $_LANGID, $_CONFIG;
-        
+        global $objDatabase, $_CONFIG;
+
         if($this->objUser != false) {
-	        $strUserNick = $this->objUser->getUsername();
-	        $strUserFirstname = $this->objUser->getProfileAttribute('firstname');
-	        $strUserLastname = $this->objUser->getProfileAttribute('lastname');
+            $strUserNick = $this->objUser->getUsername();
+            $strUserFirstname = $this->objUser->getProfileAttribute('firstname');
+            $strUserLastname = $this->objUser->getProfileAttribute('lastname');
         }
 
         $objRSEntryFormId = $objDatabase->Execute("SELECT form_id FROM
@@ -158,7 +158,7 @@ class MediaDirectoryMail extends MediaDirectoryLibrary
         if ($objRSEntryFormId !== false) {
             $intEntryFormId = intval($objRSEntryFormId->fields['form_id']);
         }
-        
+
         $strRelQuery = "SELECT inputfield.`id` AS `id` FROM ".DBPREFIX."module_".$this->moduleTablePrefix."_inputfields AS inputfield WHERE (inputfield.`type` != 16 AND inputfield.`type` != 17) AND (inputfield.`form` = ".$intEntryFormId.") ORDER BY inputfield.`order` ASC LIMIT 1";
 
         $objRSEntryTitle = $objDatabase->Execute("SELECT
@@ -167,29 +167,29 @@ class MediaDirectoryMail extends MediaDirectoryLibrary
                                                         ".DBPREFIX."module_".$this->moduleTablePrefix."_entries AS entry,
                                                         ".DBPREFIX."module_".$this->moduleTablePrefix."_rel_entry_inputfields AS rel_inputfield
                                                     WHERE (rel_inputfield.`entry_id`='".$this->intEntryId."')
-                                                    AND (rel_inputfield.`field_id` = (".$strRelQuery.")) 
-                                                    AND (rel_inputfield.`lang_id` = '".$_LANGID."')
+                                                    AND (rel_inputfield.`field_id` = (".$strRelQuery."))
+                                                    AND (rel_inputfield.`lang_id` = '" . static::getOutputLocale()->getId() . "')
                                                     AND (rel_inputfield.`value` != '')
                                                     GROUP BY value
                                                     ");
         if ($objRSEntryTitle !== false) {
             $strEntryTitle = $objRSEntryTitle->fields['value'];
         }
-        
+
         $objEntry = new MediaDirectoryEntry($this->moduleName);
-        if($objEntry->checkPageCmd('detail'.intval($intEntryFormId))) {
-            $strDetailCmd = 'detail'.intval($intEntryFormId);
-        } else {
-            $strDetailCmd = 'detail';
-        }
+        $objEntry->getEntries($this->intEntryId);
+
+        $strDetailUrl = '';
+        try {
+            $strDetailUrl = $objEntry->getDetailUrl(true)->toString();
+        } catch (MediaDirectoryEntryException $e) {}
 
         $strProtocol = ASCMS_PROTOCOL;
         $strDomain = $_CONFIG['domainUrl'].\Cx\Core\Core\Controller\Cx::instanciate()->getWebsiteOffsetPath();
         $strDate = date(ASCMS_DATE_FORMAT);
-        $strEntryLink = urldecode($strProtocol."://".$strDomain.'/index.php?section='.$this->moduleName.'&cmd='.$strDetailCmd.'&eid='.$this->intEntryId);
-        
+
         $arrPlaceholder = array('[[USERNAME]]', '[[FIRSTNAME]]', '[[LASTNAME]]', '[[TITLE]]', '[[LINK]]', '[[URL]]', '[[DATE]]');
-        $arrReplaceContent = array($strUserNick, $strUserFirstname, $strUserLastname, $strEntryTitle, $strEntryLink, $strDomain, $strDate);
+        $arrReplaceContent = array($strUserNick, $strUserFirstname, $strUserLastname, $strEntryTitle, $strDetailUrl, $strDomain, $strDate);
 
         for ($x = 0; $x < 7; $x++) {
             $this->strTitle = str_replace($arrPlaceholder[$x], $arrReplaceContent[$x], $this->strTitle);
@@ -204,36 +204,21 @@ class MediaDirectoryMail extends MediaDirectoryLibrary
 
     function sendMail()
     {
-        global $_ARRAYLANG, $_CONFIG;
+        global $_CONFIG;
         
-        if (\Env::get('ClassLoader')->loadFile(\Cx\Core\Core\Controller\Cx::instanciate()->getCodeBaseLibraryPath().'/phpmailer/class.phpmailer.php')) {
-            $objMail = new \phpmailer();
+        $objMail = new \Cx\Core\MailTemplate\Model\Entity\Mail();
 
-                if ($_CONFIG['coreSmtpServer'] > 0 && \Env::get('ClassLoader')->loadFile(\Cx\Core\Core\Controller\Cx::instanciate()->getCodeBaseCorePath().'/SmtpSettings.class.php')) {
-                $arrSmtp = \SmtpSettings::getSmtpAccount($_CONFIG['coreSmtpServer']);
-                if ($arrSmtp !== false) {
-                    $objMail->IsSMTP();
-                    $objMail->Host = $arrSmtp['hostname'];
-                    $objMail->Port = $arrSmtp['port'];
-                    $objMail->SMTPAuth = true;
-                    $objMail->Username = $arrSmtp['username'];
-                    $objMail->Password = $arrSmtp['password'];
-                }
+        $objMail->SetFrom($_CONFIG['coreAdminEmail'], $_CONFIG['coreGlobalPageTitle']);
+        $objMail->Subject = $this->strTitle;
+        $objMail->IsHTML(false);
+        $objMail->Body = $this->strTemplate;
+
+        foreach ($this->arrRecipients as $key => $strMailAdress) {
+            if(!empty($strMailAdress)) {
+                $objMail->AddAddress($strMailAdress);
+                $objMail->Send();
+                $objMail->ClearAddresses();
             }
-
-            $objMail->CharSet = CONTREXX_CHARSET;
-            $objMail->SetFrom($_CONFIG['coreAdminEmail'], $_CONFIG['coreGlobalPageTitle']);
-            $objMail->Subject = $this->strTitle;
-            $objMail->IsHTML(false);
-            $objMail->Body = $this->strTemplate;
-
-            foreach ($this->arrRecipients as $key => $strMailAdress) {
-                if(!empty($strMailAdress)) {
-                    $objMail->AddAddress($strMailAdress);
-                    $objMail->Send();
-                    $objMail->ClearAddresses();
-                }
-            }
+        }
     }
-}
 }

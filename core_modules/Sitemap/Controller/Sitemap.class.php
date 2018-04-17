@@ -83,7 +83,7 @@ class Sitemap
             $sm->setTemplate($this->_objTpl);
             $sm->render();
         }
-        
+
         /*        if (isset($this->_objTpl->_blocks['sitemap'])) {
             $this->_initialize();
             $this->_doSitemapArray();
@@ -132,12 +132,12 @@ class Sitemap
     */
     function doSitemap()
     {
-        
+
         if ($this->_doSitemap && is_array($this->_sitemapPageName)) {
             $this->_sitemapBlock = trim($this->_objTpl->_blocks['sitemap']);
-            if (ereg('.*{SUB_MENU}.*', $this->_sitemapBlock)) {
+            if (strpos('{SUB_MENU}', $this->_sitemapBlock) !== false) {
                 $nestedSitemap = $this->_subTagStart.$this->_buildNestedSitemap().$this->_subTagEnd."\n";
-                return ereg_replace('<!-- BEGIN sitemap -->.*<!-- END sitemap -->', $nestedSitemap, $this->pageContent);
+                return preg_replace('/<!-- BEGIN sitemap -->.*<!-- END sitemap -->/', $nestedSitemap, $this->pageContent);
             } else {
                 while (list($key,$val) = each($this->_sitemapPageName)) {
                     $lvl = $this->_sitemapPageLevel[$key]+1;

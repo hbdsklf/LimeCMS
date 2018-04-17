@@ -53,6 +53,13 @@ namespace Cx\Modules\Jobs\Controller;
 class JobsLibrary
 {
     /**
+     * Array of setting values
+     * 
+     * @var array 
+     */
+    protected $arrSettings = array();
+
+    /**
     * Gets the categorie option menu string
     *
     * @global    object     $objDatabase
@@ -83,7 +90,7 @@ class JobsLibrary
         }
         return $strMenu;
     }
-    
+
     function getLocationMenu($selectedLocId="")
     {
         global $objDatabase;
@@ -92,7 +99,7 @@ class JobsLibrary
         $query="SELECT id,
                        name
                   FROM ".DBPREFIX."module_jobs_location
-                  WHERE 1 
+                  WHERE 1
               ORDER BY id";
 
         $objResult = $objDatabase->Execute($query);
@@ -106,6 +113,103 @@ class JobsLibrary
         }
         return $strMenu;
     }
-}
 
-?>
+    /**
+     * Parse the Hot / Latest jobs
+     * 
+     * @param \Cx\Core\Html\Sigma $objTemplate template object
+     * 
+     * @return null
+     */
+    public function parseHotOrLatestJobs(\Cx\Core\Html\Sigma $objTemplate)
+    {
+        //If the block 'jobs_list' not exists, then return
+        if (!$objTemplate->blockExists('jobs_list')) {
+            return;
+        }
+
+        //Get the Settings values from DB
+        $objDatabase = \Env::get('cx')->getDb()->getAdoDb();
+        $settings    = $this->getSettings();
+
+        //If the config option 'templateIntegration' is off, then return
+        if (    !isset($settings['templateIntegration']) 
+            ||  empty($settings['templateIntegration'])
+        ) {
+            return;
+        }
+
+        //Set the limit based on the config option 'listingLimit'
+        $limit = '';
+        if (    isset($settings['listingLimit']) 
+            &&  !empty($settings['listingLimit'])
+        ) {
+            $limit = ' LIMIT 0, ' . $settings['listingLimit'];
+        }
+
+        //get all the hot/newset jobs based on the config option 'sourceOfJobs'
+        $query = 'SELECT j.date AS date,
+                         j.id AS docid,
+                         j.title AS title,
+                         j.workload AS workload,
+                         j.workloc AS workloc,
+                         j.author AS author,
+                         jc.name AS name
+                    FROM `' . DBPREFIX . 'module_jobs` AS j,
+                         `' . DBPREFIX . 'module_jobs_categories` AS jc
+                    WHERE j.status  = 1 '
+                        . ((isset($settings['sourceOfJobs']) && $settings['sourceOfJobs'] == 'manual') ? ' AND j.hot = 1 ' : '') . '
+                        AND j.lang  = ' . FRONTEND_LANG_ID . ' 
+                        AND j.catid = jc.catid
+                        AND (j.startdate <= "' . date('Y-m-d') . '" OR j.startdate = "0000-00-00 00:00:00")
+                        AND (j.enddate >= "' . date('Y-m-d') . '" OR j.enddate = "0000-00-00 00:00:00") 
+                    ORDER BY j.date DESC' . $limit;
+        $objResult = $objDatabase->Execute($query);
+        if ($objResult && $objResult->RecordCount() > 0) {
+            while (!$objResult->EOF) {
+                $detailUrl = \Cx\Core\Routing\Url::fromModuleAndCmd('Jobs', 'details', FRONTEND_LANG_ID, array('id' => $objResult->fields['docid']));
+                $objTemplate->setVariable(array(
+                    'JOBS_ID'	     => $objResult->fields['docid'],
+                    'JOBS_LONG_DATE' => date(ASCMS_DATE_FORMAT, $objResult->fields['date']),
+                    'JOBS_DATE'      => date(ASCMS_DATE_FORMAT_DATE, $objResult->fields['date']),
+                    'JOBS_LINK'      => "<a href=\"" . $detailUrl->toString() . "\" title=\"".contrexx_raw2xhtml($objResult->fields['title'])."\">".contrexx_raw2xhtml($objResult->fields['title'])."</a>",
+                    'JOBS_AUTHOR'    => contrexx_raw2xhtml($objResult->fields['author']),
+                    'JOBS_WORKLOAD'  => contrexx_raw2xhtml($objResult->fields['workload']),
+                    'JOBS_TITLE'     => contrexx_raw2xhtml($objResult->fields['title']),
+                    'JOBS_LINK_SRC'  => $detailUrl->toString(),
+                    'JOBS_WORKLOC'   => contrexx_raw2xhtml($objResult->fields['workloc']),
+                ));
+                $objTemplate->parse('jobs_list');
+                $objResult->MoveNext();
+            }
+        }
+    }
+
+    /**
+     * Get all the setting values from DB
+     * 
+     * @return array array of setting values
+     */
+    public function getSettings()
+    {
+        global $objDatabase;
+
+        if ($this->arrSettings) {
+            return $this->arrSettings;
+        }
+
+        //Get the settings values from DB
+        $query = "SELECT `name`, `value`
+              FROM `".DBPREFIX."module_jobs_settings`";
+        $objResult = $objDatabase->Execute($query);
+        
+        if ($objResult && $objResult->RecordCount() > 0) {
+            while (!$objResult->EOF) {
+                $this->arrSettings[$objResult->fields['name']] = $objResult->fields['value'];
+                $objResult->MoveNext();
+            }
+        }
+
+        return $this->arrSettings;
+    }
+}

@@ -126,7 +126,6 @@ $_ARRAYLANG['TXT_PAGE_NAME'] = "Sayfa ismi";
 $_ARRAYLANG['TXT_SECONDS'] = "Saniyeler";
 $_ARRAYLANG['TXT_TRANSLATION'] = "Çeviri";
 $_ARRAYLANG['TXT_BROWSERLANGUAGE'] = "Dil";
-$_ARRAYLANG['TXT_LANGUAGE_SETTINGS'] = "Dil ayarları";
 $_ARRAYLANG['TXT_START_DATE'] = "Başlama tarihi";
 $_ARRAYLANG['TXT_STATS'] = "İstatistik";
 $_ARRAYLANG['TXT_STATS_SETTINGS'] = "Settings";

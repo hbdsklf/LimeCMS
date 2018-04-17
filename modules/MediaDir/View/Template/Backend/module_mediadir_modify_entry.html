@@ -5,14 +5,18 @@ function getMediaBrowser(e) { // e => jQuery element
         isImageField = e.data('isImage'),
         mediaBrowseInputBox = $J('#' + inputId);
     cx.variables.get('jquery','mediabrowser')('#mediabrowser_button').trigger('click', {
-        callback: function(data) {
-            if (data.type == "file") {
+        callback: function (data) {
+            if (data.type === 'file') {
                 var path = data.data[0].datainfo.filepath;
                 mediaBrowseInputBox.val(path);
                 mediaBrowseInputBox.trigger('keyup');
-                if (isImageField && $J('#'+ inputId +'_preview')) {
-                    changeImagePreview($J('#'+ inputId +'_preview'), path);
+                if (isImageField && $J('#' + inputId + '_preview')) {
+                    changeImagePreview($J('#' + inputId + '_preview'), path);
                 }
+            } else if (data.type === 'page') {
+                var node = data.data[0].node;
+                mediaBrowseInputBox.val(node);
+                mediaBrowseInputBox.trigger('keyup');
             }
         },
         cxMbViews : e.data('views'),
@@ -33,7 +37,7 @@ function toggleDisplayDouration(){
     elmLayer = document.getElementById('durationTypePeriod');
 
     if(elmSelect.value == 1) {
-    	elmLayer.style.display = 'none';
+      elmLayer.style.display = 'none';
     } else {
         elmLayer.style.display = 'inline';
     }
@@ -43,6 +47,29 @@ function toggleDisplayDouration(){
 cx.ready(function() {
     $J('input[name=durationStart]').datepicker();
     $J('input[name=durationEnd]').datepicker();
+});
+
+cx.slugify = function(string) {
+    // replace international characters
+    cx.jQuery.each(cx.variables.get("charReplaceList"), function(search, replace) {
+        string = string.replace(search, replace);
+    });
+    // replace spaces
+    string = string.replace(/\s+/g, '-');
+    // replace all non-url characters
+    string = string.replace(/[^a-zA-Z0-9-_]/g, '');
+    return string;
+}
+
+cx.jQuery(document).ready(function() {
+    var slugFieldId = cx.variables.get("slugFieldId", "Mediadir");
+    cx.jQuery("form[name='entryModfyForm'] input[data-id='" + slugFieldId + "']").keyup(function() {
+        var originalSlug  = cx.jQuery(this).val();
+        var slugifiedSlug = cx.slugify(originalSlug);
+        if (originalSlug != slugifiedSlug) {
+            cx.jQuery(this).val(slugifiedSlug);
+        }
+    });
 });
 </script>
 
@@ -68,7 +95,7 @@ cx.ready(function() {
         max-height: 150px;
         overflow-y: auto;
     }
-    
+
     .ui-autocomplete-loading {
         background: #FFFFFF url('../lib/javascript/jquery/ui/images/ui-anim_basic_16x16.gif') 448px center no-repeat !important;
     }
@@ -81,7 +108,7 @@ cx.ready(function() {
         padding-left: 21px !important;
     }
     .mediadirInputfieldFileDisplayName {
-        width: 300px;        
+        width: 300px;
         padding-left: 3px !important;
     }
 </style>
@@ -112,7 +139,7 @@ cx.ready(function() {
         </td>
     </tr>
     <!-- END mediadirEntryStatus -->
-    
+
     <!-- BEGIN mediadirInputfieldList -->
     <tr class="{MEDIADIR_INPUTFIELD_ROW_CLASS}">
         <td width="200" valign="top">{TXT_MEDIADIR_INPUTFIELD_NAME}</td>
@@ -151,7 +178,7 @@ cx.ready(function() {
         </td>
     </tr>
     <!-- END mediadirTranslationStatus -->
-    
+
     <!-- BEGIN mediadirOwner -->
     <tr class="{MEDIADIR_OWNER_ROW}">
         <td width="200" >{TXT_MEDIADIR_OWNER}</td>
@@ -162,11 +189,11 @@ cx.ready(function() {
     <!-- END mediadirOwner -->
 
     <!-- END mediadirSpezfieldList -->
-    
+
 
     <!-- BEGIN mediadirContactData -->
-    
-    <!--      
+
+    <!--
     <tr class="row2">
         <td colspan="2"><br /></td>
     </tr>
@@ -236,7 +263,7 @@ cx.ready(function() {
         </td>
     </tr>
     -->
-    
+
     <!-- END mediadirContactData -->
 </table>
 <br />

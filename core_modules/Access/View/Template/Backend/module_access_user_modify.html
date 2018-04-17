@@ -187,13 +187,17 @@ $J(document).ready(function() {
 					{TXT_ACCESS_BACKEND_DESC}:<br />{ACCESS_USER_BACKEND_LANGUAGE}
 				</td>
 			</tr>
+            <!-- BEGIN access_user_administrator -->
 			<tr class="row2">
 				<td>{TXT_ACCESS_ADMINISTRATOR}</td>
 				<td>
-                    <input type="checkbox" name="access_user_is_admin" id="access_user_is_admin" value="1" {ACCESS_USER_IS_ADMIN} onchange="document.getElementById('access_user_validity_option').style.display = this.checked ? 'none' : ''" /> <label for="access_user_is_admin">{TXT_ACCESS_USER_ADMIN_RIGHTS}</label>
-                    <span class="icon-info tooltip-trigger"></span><span class="tooltip-message">{TXT_ACCESS_USER_ADMIN_RIGHTS_TOOLTIP}</span>
+                    <input type="checkbox" name="access_user_is_admin" id="access_user_is_admin" value="1" {ACCESS_USER_IS_ADMIN} onchange="document.getElementById('access_user_validity_option').style.display = this.checked ? 'none' : ''" />
+                    <label for="access_user_is_admin">{TXT_ACCESS_USER_ADMIN_RIGHTS}</label>
+                    <span class="icon-info tooltip-trigger"></span>
+                    <span class="tooltip-message">{TXT_ACCESS_USER_ADMIN_RIGHTS_TOOLTIP}</span>
                 </td>
 			</tr>
+            <!-- END access_user_administrator -->
 			<tr class="row1" style="display:{CSS_DISPLAY_STATUS};">
 				<td>{TXT_ACCESS_STATUS}</td>
 				<td><input type="checkbox" name="access_user_active" id="access_user_active" value="1" {ACCESS_USER_ACTIVE} <!-- BEGIN access_user_active_notification_function_call -->onchange="confirmUserNotification('access_user_status_notification', this.checked)" <!-- END access_user_active_notification_function_call -->/> <label for="access_user_active">{TXT_ACCESS_ACTIVE}</label> <input type="hidden" name="access_user_status_notification" id="access_user_status_notification" value="0" /></td>

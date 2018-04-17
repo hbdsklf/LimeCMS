@@ -65,7 +65,7 @@ class UploadFactory
             self::$instance = new self;
         return self::$instance;
     }
-    
+
     /**
      * Holds prefixes of all uploaders enabled & available.
      * @var array
@@ -96,14 +96,12 @@ class UploadFactory
     }
 
     protected function initSession() {
-        global $sessionObj;
-        if(empty($sessionObj)) { //session hasn't been initialized so far
-            $sessionObj = \cmsSession::getInstance();
-        }
+        $cx  = \Cx\Core\Core\Controller\Cx::instanciate();
+        $cx->getComponent('Session')->getSession();
         if (!isset($_SESSION['upload'])) {
             $_SESSION['upload'] = array();
             $_SESSION['upload']['handlers'] = array();
-        }        
+        }
     }
 
     /**
@@ -184,7 +182,7 @@ class UploadFactory
             $type = $_REQUEST['uploadType'];
         }
         else {
-            if($typeHint) 
+            if($typeHint)
                 $type=$typeHint;
         }
 
@@ -198,7 +196,7 @@ class UploadFactory
             throw new UploadFactoryException('Invalid upload id.');
         //determine the callback on finishing
         $onFinished = null;
-        
+
         if(isset($_SESSION['upload']['handlers'][$id]['callback'])) {
             $onFinished = $_SESSION['upload']['handlers'][$id]['callback'];
         }
@@ -212,11 +210,11 @@ class UploadFactory
 
         //the uploader has to know what to do if the download is finished
         $theUploader->setFinishedCallback($onFinished, false);
-        
+
         $theUploader->setUploadId($id);
 
         $this->setRedirectUrl($theUploader, $id);
-      
+
         return $theUploader;
     }
 
@@ -287,7 +285,7 @@ class UploadFactory
         $theWidget = new FolderWidget();
         $theWidget->setFolder($folder);
         $theWidget->setBackendRequest($this->isBackendRequest);
-        
+
         if($id == 0) { //new instance, handle initializing
             $id = 1;
             if(!isset($_SESSION['upload']['folder_widget_current_id'])) {
@@ -295,8 +293,8 @@ class UploadFactory
             } else {
                 $_SESSION['upload']['folder_widget_current_id'] += 1;
                 $id = $_SESSION['upload']['folder_widget_current_id'];
-            }              
-          
+            }
+
             if (!isset($_SESSION['upload']['folder_widgets'])) {
                 $_SESSION['upload']['folder_widgets'] = array();
             }
@@ -304,7 +302,7 @@ class UploadFactory
             $_SESSION['upload']['folder_widgets'][$id]['path'] = $folder;
             $theWidget->setId($id);
         }
-        
+
         return $theWidget;
     }
 
@@ -336,11 +334,11 @@ class UploadFactory
             case 'pl': //pluploader
                 $theUploader = new PlUploader($this->isBackendRequest);
                 break;
-            
+
             case 'jump': //jumploader
                 $theUploader = new JumpUploader($this->isBackendRequest);
                 break;
-           
+
             case 'form': //html file input
                 $theUploader = new FormUploader($this->isBackendRequest);
                 break;

@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,9 +24,9 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
- * @copyright   Cloudrexx AG 
+ * @copyright   Cloudrexx AG
  * @author Robin Glauser <robin.glauser@comvation.com>
  * @package     cloudrexx
  */
@@ -51,10 +51,30 @@ class DefaultEventListener implements EventListener {
         $this->cx = $cx;
     }
 
+    /**
+     * Get a component controller object
+     *
+     * @param string $name  component name
+     * @return \Cx\Core\Core\Model\Entity\SystemComponentController
+     * The requested component controller or null if no such component exists
+     */
+    public function getComponent($name)
+    {
+        if (empty($name)) {
+            return null;
+        }
+        $componentRepo = $this->cx->getDb()->getEntityManager()->getRepository('Cx\Core\Core\Model\Entity\SystemComponent');
+        $component     = $componentRepo->findOneBy(array('name' => $name));
+        if (!$component) {
+            return null;
+        }
+        return $component->getSystemComponentController();
+    }
+
     public function onEvent($eventName, array $eventArgs) {
         $methodName = $eventName;
         if (!method_exists($this, $eventName)) {
-            $eventNameParts = explode('.', $eventName);
+            $eventNameParts = preg_split('/[.:\/]/', $eventName);
             $methodName = lcfirst(implode('', array_map('ucfirst',$eventNameParts)));
         }
         $this->$methodName(current($eventArgs));

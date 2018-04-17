@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,9 +24,9 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
- * @copyright   Cloudrexx AG 
+ * @copyright   Cloudrexx AG
  * @author Robin Glauser <robin.glauser@comvation.com>
  * @package     cloudrexx
  */
@@ -47,10 +47,10 @@ class TestEventManager {
      * @param $name
      * @param $callback
      */
-    function triggerEvent($name,$callback){
+    function triggerEvent($name, $callback) {
         $mediaManager = current($callback);
-        foreach ($this->mediaSources as $mediaSource){
-           $mediaManager->addMediaType($mediaSource);
+        foreach ($this->mediaSources as $mediaSource) {
+            $mediaManager->addMediaType($mediaSource);
         }
     }
 

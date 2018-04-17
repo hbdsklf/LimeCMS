@@ -186,7 +186,7 @@ class FileSystem
             ) {
                 self::$ftpAuth = true;
                 return true;
-            } 
+            }
 
             @ftp_close(self::$connection);
         }
@@ -338,19 +338,8 @@ class FileSystem
             return 'error';
         } else {
             @unlink($path.$fileName);
-            clearstatcache();
-            if (@file_exists($path.$fileName)) {
-                $filesys = eregi_replace('/', '\\', $path.$fileName);
-//                @system("del $filesys");
-//                clearstatcache();
-//                // Doesn't work in safe mode
-//                if (@file_exists($path.$fileName)) {
-                    @chmod ($path.$fileName, 0775);
-                    @unlink($path.$fileName);
-                    @system("del $filesys");
-//                }
-            }
-            clearstatcache();
+            // unlink() clears the file status cache automatically
+            //clearstatcache();
             if (@file_exists($path.$fileName)) return 'error';
         }
         return $fileName;
@@ -382,7 +371,7 @@ class FileSystem
 
         // media library special changes; code depends on those
         // replace $change with ''
-        $change = array('+');
+        $change = array('+', '#');
 
         // replace $signs1 with $signs
         $signs1 = array(' ', 'ä', 'ö', 'ü', 'ç');
@@ -637,7 +626,7 @@ class FileSystem
     }
 
     static function path_absolute_to_os_root(&$path) {
-        
+
         // $path is specified by absolute file system path of operating system
         if (   strpos($path, \Env::get('cx')->getWebsiteDocumentRootPath()) === 0
             || strpos($path, \Env::get('cx')->getCodeBaseDocumentRootPath()) === 0
@@ -653,7 +642,7 @@ class FileSystem
         } else {
             $path = \Env::get('cx')->getWebsiteDocumentRootPath() . '/'.$path;
         }
-        
+
     }
 
     /**
@@ -674,7 +663,7 @@ class FileSystem
             }
 //DBG::log("File::make_folder($folder_path): FAIL, a file of the name $folder_path exists already<br />");
             return false;
-        } 
+        }
 
         \Cx\Lib\FileSystem\FileSystem::makeWritable(dirname(\Env::get('cx')->getWebsiteDocumentRootPath().'/'.$folder_path));
         @mkdir(\Env::get('cx')->getWebsiteDocumentRootPath().'/'.$folder_path, self::CHMOD_FOLDER, $recursive ? true : false);
@@ -730,7 +719,7 @@ class FileSystem
                       @ftp_chdir(self::$connection, $part);
                    }
                 }
-            }            
+            }
 //DBG::log("File::make_folder_ftp($folder_path): Failed to create folder ".self::$ftpPath."/$folder_path<br />");
             return false;
         }
@@ -751,10 +740,10 @@ class FileSystem
      */
     public static function copy_folder($source_path, $target_path, $force=false)
     {
-        
+
         self::path_absolute_to_os_root($source_path);
         self::path_absolute_to_os_root($target_path);
-        
+
         if (self::exists($target_path)) {
             if (!$force)
                 return false;
@@ -763,7 +752,7 @@ class FileSystem
                 return false;
             }
         }
-        
+
         $directory = @opendir($source_path);
         $file = @readdir($directory);
         while ($file) {
@@ -977,7 +966,6 @@ class FileSystem
 //DBG::log("File::delete_file_ftp($file_path): Failed to delete file ".self::$ftpPath.'/'.$file_path);
             return false;
         }
-        clearstatcache();
         if (self::exists($file_path)) {
 //DBG::log("File::delete_file_ftp($file_path): File still exists: ".self::$ftpPath.'/'.$file_path);
             return false;
@@ -1140,9 +1128,9 @@ class FileSystem
      */
     static function exists($path)
     {
-        // Clear the file cache.  file_exists() relies on that too much
-        clearstatcache();
         self::path_relative_to_root($path);
+        // Clear the file cache.  file_exists() relies on that too much
+        clearstatcache(true, \Env::get('cx')->getWebsiteDocumentRootPath().'/'.$path);
         $result = file_exists(\Env::get('cx')->getWebsiteDocumentRootPath().'/'.$path);
 //if ($result) {
 //DBG::log("File::exists($path): file ".\Env::get('cx')->getWebsiteDocumentRootPath()."/$path exists<br />");
@@ -1153,4 +1141,3 @@ class FileSystem
     }
 
 }
-

@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * Blog library
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
@@ -113,29 +113,19 @@ class BlogLibrary {
      * Creates an array containing all frontend-languages.
      *
      * Contents:
-     * $arrValue[$langId]['short']      =>  For Example: en, de, fr, ...
+     * $arrValue[$langId]['short']      =>  For Example: en, de, fr, de-CH, ...
      * $arrValue[$langId]['long']       =>  For Example: 'English', 'Deutsch', 'French', ...
      *
-     * @global  ADONewConnection
      * @return  array       $arrReturn
      */
     function createLanguageArray() {
-        global $objDatabase;
 
         $arrReturn = array();
-
-        $objResult = $objDatabase->Execute('SELECT      id,
-                                                        lang,
-                                                        name
-                                            FROM        '.DBPREFIX.'languages
-                                            WHERE       frontend=1
-                                            ORDER BY    id
-                                        ');
-        while (!$objResult->EOF) {
-            $arrReturn[$objResult->fields['id']] = array(   'short' =>  stripslashes($objResult->fields['lang']),
-                                                            'long'  =>  htmlentities(stripslashes($objResult->fields['name']),ENT_QUOTES, CONTREXX_CHARSET)
-                                                        );
-            $objResult->MoveNext();
+        foreach (\FWLanguage::getActiveFrontendLanguages() as $frontendLanguage) {
+            $arrReturn[$frontendLanguage['id']] = array(
+                'short' =>  stripslashes($frontendLanguage['lang']),
+                'long'  =>  htmlentities(stripslashes($frontendLanguage['name']),ENT_QUOTES, CONTREXX_CHARSET)
+            );
         }
 
         return $arrReturn;
@@ -322,7 +312,7 @@ class BlogLibrary {
 
                     $objCategoryResult->MoveNext();
                 }
-				
+
                 //Get existing translations for the current entry
                 $objLangResult = $objDatabase->Execute('SELECT  lang_id,
                                                                     is_active,
@@ -620,7 +610,7 @@ class BlogLibrary {
      *
      * @global  array
      * @param   string      $strUsername
-     * @param   string		$strDate
+     * @param   string        $strDate
      * @return  string
      */
     function getPostedByString($strUsername, $strDate) {
@@ -633,14 +623,14 @@ class BlogLibrary {
     }
 
 
-	/**
+    /**
      * Returns an img-Tag for the "posted by" string.
      *
-	 * @param   string		$strDate
+     * @param   string        $strDate
      * @return  string
      */
     function getPostedByIcon($strDate) {
-    	return '<img src="'.ASCMS_BLOG_IMAGES_WEB_PATH.'/calendar.gif" alt="'.$strDate.'" />';
+        return '<img src="'.ASCMS_BLOG_IMAGES_WEB_PATH.'/calendar.gif" alt="'.$strDate.'" />';
     }
 
 
@@ -901,11 +891,11 @@ class BlogLibrary {
     /**
      * Returns an img-Tag for the "tags"-icon.
      *
-	 * @param   string		$strDate
+     * @param   string        $strDate
      * @return  string
      */
     function getTagsIcon() {
-    	return '<img src="'.ASCMS_BLOG_IMAGES_WEB_PATH.'/tags.gif" alt="Tags" />';
+        return '<img src="'.ASCMS_BLOG_IMAGES_WEB_PATH.'/tags.gif" alt="Tags" />';
     }
 
 
@@ -1222,14 +1212,14 @@ class BlogLibrary {
             }
         }
     }
-    
+
     /**
      * Get mediabrowser button
-     * 
+     *
      * @param string $buttonValue Value of the button
-     * @param string $options     Input button options 
+     * @param string $options     Input button options
      * @param string $callback    Media browser callback function
-     * 
+     *
      * @return null
      */
     public static function getMediaBrowserButton($buttonValue, $options = array(), $callback = '')
@@ -1240,7 +1230,7 @@ class BlogLibrary {
         if ($callback) {
             $mediaBrowser->setCallback($callback);
         }
-        
-        return $mediaBrowser->getXHtml($buttonValue);        
+
+        return $mediaBrowser->getXHtml($buttonValue);
     }
 }

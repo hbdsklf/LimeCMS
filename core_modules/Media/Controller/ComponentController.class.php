@@ -27,7 +27,7 @@
 
 /**
  * Main controller for Media
- * 
+ *
  * @copyright   Cloudrexx AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @package     cloudrexx
@@ -38,7 +38,7 @@ namespace Cx\Core_Modules\Media\Controller;
 
 /**
  * Main controller for Media
- * 
+ *
  * @copyright   Cloudrexx AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @package     cloudrexx
@@ -53,7 +53,7 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
 
      /**
      * Load your component.
-     * 
+     *
      * @param \Cx\Core\ContentManager\Model\Entity\Page $page       The resolved page
      */
     public function load(\Cx\Core\ContentManager\Model\Entity\Page $page) {
@@ -67,7 +67,7 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
             case \Cx\Core\Core\Controller\Cx::MODE_BACKEND:
                 $this->cx->getTemplate()->addBlockfile('CONTENT_OUTPUT', 'content_master', 'LegacyContentMaster.html');
                 $objTemplate = $this->cx->getTemplate();
-                
+
                 $subMenuTitle = $_CORELANG['TXT_MEDIA_MANAGER'];
                 $objMedia = new MediaManager();
                 $objMedia->getMediaPage();
@@ -89,6 +89,69 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
      * $this->cx->getEvents()->addEventListener($eventName, $listener);
      */
     public function registerEventListeners() {
-        $this->cx->getEvents()->addEventListener('mediasource.load', new \Cx\Core_Modules\Media\Model\Event\MediaEventListener($this->cx));
+        $evm = $this->cx->getEvents();
+        $eventListener = new \Cx\Core_Modules\Media\Model\Event\MediaEventListener($this->cx);
+        $evm->addEventListener('SearchFindContent',$eventListener);
+        $evm->addEventListener('mediasource.load', $eventListener);
+    }
+
+    /**
+     * Find Media files by keyword $searchTerm and return them in a
+     * two-dimensional array compatible to be used by Search component.
+     *
+     * @param   string  $searchTerm The keyword to search by
+     * @return  array   Two-dimensional array of Media files found by keyword
+     *                  $searchTerm.
+     */
+    public function getMediaForSearchComponent($searchTerm) {
+
+        $media = new MediaLibrary();
+        $settings = $media->createSettingsArray();
+        $paths = array(
+            'Media1' => $this->cx->getWebsitePath() . ASCMS_MEDIA1_WEB_PATH . '/',
+            'Media2' => $this->cx->getWebsitePath() . ASCMS_MEDIA2_WEB_PATH . '/',
+            'Media3' => $this->cx->getWebsitePath() . ASCMS_MEDIA3_WEB_PATH . '/',
+            'Media4' => $this->cx->getWebsitePath() . ASCMS_MEDIA4_WEB_PATH . '/'
+        );
+        foreach ($paths as $archive => $path) {
+            $settingKey    = strtolower($archive) . '_frontend_search';
+            $searchSetting = isset($settings[$settingKey])
+                                ? $settings[$settingKey]
+                                : '';
+            if ($searchSetting != 'on') {
+                continue;
+            }
+
+            $data = array();
+            $media->getDirectoryTree($path, $searchTerm, $data, true);
+            if (empty($data['file']['name'])) {
+                continue;
+            }
+
+            foreach ($data['file']['name'] as $idx => $name) {
+                if (MediaLibrary::isIllegalFileName($name)) {
+                    continue;
+                }
+
+                $mediaPath    = $data['file']['path'][$idx] .'/';
+                $mediaWebPath = $mediaPath;
+                \Cx\Lib\FileSystem\FileSystem::path_relative_to_root($mediaWebPath);
+                $mediaWebPath = '/'. $mediaWebPath; // Filesysystem removes the beginning slash(/)
+
+                $url = \Cx\Core\Routing\Url::fromModuleAndCmd($archive, '', '', array(
+                    'path' => rawurlencode($mediaWebPath),
+                    'act' => 'download',
+                    'file' => rawurlencode($name),
+                ));
+                $result[] = array(
+                    'Score'   => 100,
+                    'Title'   => $name,
+                    'Content' => '',
+                    'Link'    => $url->toString()
+                );
+            }
+        }
+
+        return $result;
     }
 }

@@ -209,7 +209,7 @@ EOF;
                 SET
                     `entry_id`='".intval($intEnrtyId)."',
                     `added_by`='".intval($intUserId)."',
-                    `date`='".mktime()."',
+                    `date`='".time()."',
                     `ip`='".$strRemoteAddress."',
                     `vote`='".intval($intVote)."'
             ");
