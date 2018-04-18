@@ -1223,13 +1223,13 @@ class AccessLib
 function accessSetWebsite(elInput, elDiv, elLink)
 {
     website = elInput.value;
-    newWebsite = prompt('{$_CORELANG['TXT_ACCESS_SET_ADDRESS_OF_WEBSITE']}', (website != '' ? website : 'http://'));
+    newWebsite = prompt('{$_CORELANG['TXT_ACCESS_SET_ADDRESS_OF_WEBSITE']}', (website != '' ? website : 'https://'));
 
     if (typeof(newWebsite) == 'string') {
-        if (newWebsite == 'http://') {
+        if (newWebsite.match(/^https?:\/\/$/)) {
             newWebsite = '';
-        } else if (newWebsite != '' && newWebsite.substring(0, 7) != 'http://') {
-            newWebsite = 'http://'+newWebsite;
+        } else if (newWebsite != '' && !newWebsite.match(/^https?:\/\//)) {
+            newWebsite = 'https://'+newWebsite;
         }
 
         elInput.value = newWebsite;

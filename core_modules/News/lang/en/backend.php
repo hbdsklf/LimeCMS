@@ -254,6 +254,7 @@ $_ARRAYLANG['TXT_NEWS_CATEGORY_NAME_DESCRIPTION'] = "Name of the associated cate
 $_ARRAYLANG['TXT_NEWS_IMAGE_LINK_DESCRIPTION'] = "Image-Link to the news message";
 $_ARRAYLANG['TXT_NEWS_COUNT_COMMENTS_DESCRIPTION'] = "Number of comments of the news message";
 $_ARRAYLANG['TXT_NEWS_IMAGE_SRC_DESCRIPTION'] = "Picture source/path ";
+$_ARRAYLANG['TXT_NEWS_EXT_LINK_DESCRIPTION'] = "External link of the news message";
 $_ARRAYLANG['TXT_NEWS_IMAGE_ROW_DESCRIPTION'] = "Optional tag to display the image.<br />
 Starttag: &lt!-- BEGIN news_image --&gt;<br />
 Endtag: &lt!-- END news_image --&gt;";
@@ -266,6 +267,9 @@ Endtag: &lt!-- END news_image_detail --&gt;";
 $_ARRAYLANG['TXT_NEWS_IMAGE_THUMBNAIL_ROW_DESCRIPTION'] = "Optional tag to display the teaser thumbnail image.<br />
 Starttag: &lt!-- BEGIN news_image_thumbnail --&gt;<br />
 Endtag: &lt!-- END news_image_thumbnail --&gt;";
+$_ARRAYLANG['TXT_NEWS_TEASER_LINK_ROW_DESCRIPTION'] = "Optional tag to display the news container url.<br />
+Starttag: &lt!-- BEGIN teaser_link --&gt;<br />
+Endtag: &lt!-- END teaser_link --&gt;";
 $_ARRAYLANG['TXT_NEWS_ARCHIVE_IMAGE_DETAIL_ROW_DESCRIPTION'] = "Optional tag to display the teaser image.<br />
 Starttag: &lt!-- BEGIN news_archive_image_detail --&gt;<br />
 Endtag: &lt!-- END news_archive_image_detail --&gt;";

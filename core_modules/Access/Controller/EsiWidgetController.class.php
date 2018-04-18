@@ -208,8 +208,7 @@ class EsiWidgetController extends \Cx\Core_Modules\Widget\Controller\EsiWidgetCo
             } else {
                 $template->hideBlock($name);
             }
-            $dateTime = new \DateTime();
-            $dateTime->setTime(23, 59, 59);
+            $dateTime = new \DateTime('tomorrow');
             $response->setExpirationDate($dateTime);
         }
 
@@ -234,6 +233,9 @@ class EsiWidgetController extends \Cx\Core_Modules\Widget\Controller\EsiWidgetCo
                 if ($template->blockExists('access_next_birthday_members')) {
                     $objAccessBlocks->setNextBirthdayUsers();
                 }
+
+                $dateTime = new \DateTime('tomorrow');
+                $response->setExpirationDate($dateTime);
             } else {
                 $template->hideBlock($name);
             }

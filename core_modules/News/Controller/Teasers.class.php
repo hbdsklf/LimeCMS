@@ -215,12 +215,22 @@ class Teasers extends \Cx\Core_Modules\News\Controller\NewsLibrary
                     }
                     array_push($this->arrFrameTeaserIds[$frameId], $objResult->fields['id']);
                 }
+                $extUrl = '';
                 if (!empty($objResult->fields['redirect'])) {
-                    $extUrl = substr($objResult->fields['redirect'], 7);
-                    $tmp    = explode('/', $extUrl);
-                    $extUrl = "(".$tmp[0].")";
-                } else {
-                    $extUrl = "";
+                    if (
+                        preg_match(
+                            '/\[\['.\Cx\Core\Routing\NodePlaceholder::NODE_URL_PCRE.'\]\]/ix',
+                            $objResult->fields['redirect']
+                        )
+                    ) {
+                        $domainRepo = new \Cx\Core\Net\Model\Repository\DomainRepository();
+                        $extUrl = '(' . $domainRepo->getMainDomain()->getName() . ')';
+                    } else {
+                        try {
+                            $url = \Cx\Core\Routing\Url::fromMagic($objResult->fields['redirect']);
+                            $extUrl = '('.$url->getDomain().')';
+                        } catch (\Cx\Core\Routing\UrlException $e) {}
+                    }
                 }
                 if ($this->administrate == false) {
                     $author = \FWUser::getParsedUserTitle($objResult->fields['author_id'], $objResult->fields['author']);

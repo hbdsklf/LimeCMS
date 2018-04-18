@@ -4661,7 +4661,14 @@ class NewsManager extends \Cx\Core_Modules\News\Controller\NewsLibrary {
             'TXT_NEWS_TITLE_DESCRIPTION'    => $_ARRAYLANG['TXT_NEWS_TITLE_DESCRIPTION'],
             'TXT_NEWS_IMAGE_PATH_DESCRIPTION'   => $_ARRAYLANG['TXT_NEWS_IMAGE_PATH_DESCRIPTION'],
             'TXT_TEASER_ROW_DESCRIPTION'        => $_ARRAYLANG['TXT_TEASER_ROW_DESCRIPTION'],
-            'TXT_CONTINUE'                      => $_ARRAYLANG['TXT_CONTINUE']
+            'TXT_CONTINUE'                      => $_ARRAYLANG['TXT_CONTINUE'],
+            'TXT_NEWS_LONG_DATE_DESCRIPTION'          => $_ARRAYLANG['TXT_NEWS_LONG_DATE_DESCRIPTION'],
+            'TXT_NEWS_TIME_DESCRIPTION'               => $_ARRAYLANG['TXT_NEWS_TIME_DESCRIPTION'],
+            'TXT_NEWS_TEASER_TEXT_DESCRIPTION'        => $_ARRAYLANG['TXT_NEWS_TEASER_TEXT_DESCRIPTION'],
+            'TXT_NEWS_TEXT_DESCRIPTION'               => $_ARRAYLANG['TXT_NEWS_TEXT_DESCRIPTION'],
+            'TXT_NEWS_AUTHOR_DESCRIPTION'             => $_ARRAYLANG['TXT_NEWS_AUTHOR_DESCRIPTION'],
+            'TXT_NEWS_EXT_LINK_DESCRIPTION'           => $_ARRAYLANG['TXT_NEWS_EXT_LINK_DESCRIPTION'],
+            'TXT_NEWS_TEASER_LINK_ROW_DESCRIPTION'    => $_ARRAYLANG['TXT_NEWS_TEASER_LINK_ROW_DESCRIPTION'],
         ));
         $this->_objTpl->setVariable(array(
             'NEWS_TEASER_FRAME_TPL_ID'              => $templateId,
