@@ -18,14 +18,6 @@ Cx\Modules\Calendar\Model\Entity\Registration:
       column: submission_date
       options:
         default: "0000-00-00 00:00:00"
-    hostName:
-      type: string
-      length: 255
-      column: host_name
-    ipAddress:
-      type: string
-      length: 15
-      column: ip_address
     type:
       type: integer
     userId:

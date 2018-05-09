@@ -684,7 +684,11 @@ DBG::log("User_Profile_Attribute::loadCoreAttributes(): Attribute $attributeId, 
                 $this->arrAttributes[$objResult->fields['id']]['sort_type'] = $objResult->fields['sort_type'];
                 $this->arrAttributes[$objResult->fields['id']]['order_id'] = $objResult->fields['order_id'];
                 $this->arrAttributes[$objResult->fields['id']]['mandatory'] = $objResult->fields['mandatory'];
-                $this->arrAttributes[$objResult->fields['id']]['parent_id'] = $objResult->fields['parent_id'];
+                $parentId = $objResult->fields['parent_id'];
+                if ($parentId === null) {
+                    $parentId = 0;
+                }
+                $this->arrAttributes[$objResult->fields['id']]['parent_id'] = $parentId;
                 $this->arrAttributes[$objResult->fields['id']]['access_special'] = $objResult->fields['access_special'];
                 $this->arrAttributes[$objResult->fields['id']]['access_id'] = $objResult->fields['access_id'];
                 $this->arrAttributes[$objResult->fields['id']]['read_access_id'] = $objResult->fields['read_access_id'];
@@ -959,24 +963,64 @@ DBG::log("User_Profile_Attribute::loadCoreAttributes(): Attribute $attributeId, 
         $type =
             ($this->arrTypes[$this->type]['multiline'] && $this->multiline
               ? 'textarea' : $this->type);
+        $parentId = $this->parent_id;
+        if ($parentId == 0) {
+            $parentId = 'NULL';
+        }
         if ($this->id) {
             return (boolean)$objDatabase->Execute("
                 UPDATE `".DBPREFIX."access_user_attribute`
                    SET `type`='$type', `sort_type`='$this->sort_type',
                        `order_id`=$this->order_id,
                        `mandatory`='$this->mandatory',
-                       `parent_id`=$this->parent_id
+                       `parent_id`= $parentId
                  WHERE `id`=$this->id");
         }
-        if (!$objDatabase->Execute("
-            INSERT INTO `".DBPREFIX."access_user_attribute` (
-              `type`, `sort_type`, `order_id`, `mandatory`, `parent_id`
+        $objDatabase->beginTrans();
+        $result = $objDatabase->Execute('
+            INSERT INTO
+                `' . DBPREFIX . 'access_user_attribute`
+            (
+                `type`,
+                `sort_type`,
+                `order_id`,
+                `mandatory`,
+                `parent_id`
             ) VALUES (
-              '$type', '$this->sort_type', $this->order_id, '$this->mandatory',
-              $this->parent_id)")) {
+                "' . $type . '",
+                "' . $this->sort_type . '",
+                ' . $this->order_id . ',
+                "' . $this->mandatory . '",
+                ' . $parentId . '
+            )
+        ');
+        if (!$result) {
+            $objDatabase->rollbackTrans();
             return false;
         }
         $this->id = $objDatabase->Insert_ID();
+        $result = $objDatabase->Execute('
+            INSERT INTO
+                `' . DBPREFIX . 'access_user_attribute_value`
+            (
+                `attribute_id`,
+                `user_id`,
+                `history_id`,
+                `value`
+            )
+            SELECT DISTINCT
+                ' . $this->id . ',
+                `id`,
+                0,
+                ""
+            FROM
+                `' . DBPREFIX . 'access_users`
+        ');
+        if (!$result) {
+            $objDatabase->rollbackTrans();
+            return false;
+        }
+        $objDatabase->commitTrans();
         return true;
     }
 

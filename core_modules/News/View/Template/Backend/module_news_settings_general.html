@@ -294,6 +294,14 @@ function preSubmitCheck(){
         </td>
     </tr>
     <tr class="row2">
+        <td width="15%" nowrap="nowrap">{TXT_NEWS_SETTINGS_USE_THUMBNAILS}</td>
+        <td width="85%" nowrap="nowrap">
+            <input type="checkbox" name="newsUseThumbnails" id="newsUseThumbnails" {NEWS_USE_THUMBNAILS} value="1" />
+            <label for="newsUseThumbnails">{TXT_NEWS_ACTIVE}</label>
+            <br />
+        </td>
+    </tr>
+    <tr class="row1">
         <td style="vertical-align: top;">{TXT_NEWS_AUTHOR_SELECTION}</td>
         <td>
             <input value="0" id="noFilterAuthor" name="newsFilterAuthor" type="radio" onclick="swapBlock('filterAuthorGroups',0);" {NEWS_FILTER_AUTHOR_INACTIVE} />
@@ -337,7 +345,7 @@ function preSubmitCheck(){
             </table>
         </td>
     </tr>
-    <tr class="row1">
+    <tr class="row2">
         <td style="vertical-align: top;">{TXT_NEWS_PUBLISHER_SELECTION}</td>
         <td>
             <input value="0" id="noFilterPublisher" name="newsFilterPublisher" type="radio" onclick="swapBlock('filterPublisherGroups',0);" {NEWS_FILTER_PUBLISHER_INACTIVE} />

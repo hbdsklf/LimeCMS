@@ -1604,6 +1604,9 @@ namespace Cx\Core\Core\Controller {
                     $objCommand->executeCommand($command, $params, $dataArguments);
                     return;
                 } catch (\Exception $e) {
+                    if (php_sapi_name() != 'cli') {
+                        throw $e;
+                    }
                     fwrite(STDERR, 'ERROR: ' . $e->getMessage() . PHP_EOL);
                     return;
                 }
@@ -1617,8 +1620,8 @@ namespace Cx\Core\Core\Controller {
 
             // resolve
             $this->preResolve();                        // Call pre resolve hook scripts
-            $this->adjustRequest();                     // Adjust the protocol and the domain
             $this->resolve();                           // Resolving, Language
+            $this->adjustRequest();                     // Adjust the protocol and the domain
 
             // @TODO: remove this
             $this->legacyGlobalsHook(2);                // $objInit, $_LANGID, $_CORELANG, $url;
@@ -2124,17 +2127,13 @@ namespace Cx\Core\Core\Controller {
                                                             s.parentNode.insertBefore(x, s);
                                                         })(document, "script");
                                                     </script>',
-                'GOOGLE_ANALYTICS'               => '<script type="text/javascript">
-                                                        var _gaq = _gaq || [];
-                                                        _gaq.push([\'_setAccount\', \''.(isset($_CONFIG['googleAnalyticsTrackingId']) ? contrexx_raw2xhtml($_CONFIG['googleAnalyticsTrackingId']) : '').'\']);
-                                                        _gaq.push([\'_trackPageview\']);
-
-                                                        (function() {
-                                                            var ga = document.createElement(\'script\'); ga.type = \'text/javascript\'; ga.async = true;
-                                                            ga.src = (\'https:\' == document.location.protocol ? \'https://ssl\' : \'http://www\') + \'.google-analytics.com/ga.js\';
-                                                            var s = document.getElementsByTagName(\'script\')[0]; s.parentNode.insertBefore(ga, s);
-                                                        })();
-                                                    </script>',
+                'GOOGLE_ANALYTICS'               => '<script>
+                                                        window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+                                                        ga(\'create\', \'' . (isset($_CONFIG['googleAnalyticsTrackingId']) ? contrexx_raw2xhtml($_CONFIG['googleAnalyticsTrackingId']) : '') . '\', \'auto\');
+                                                        ' . ($objCounter->arrConfig['exclude_identifying_info']['status'] ? 'ga(\'set\', \'anonymizeIp\', true);' : '') . '
+                                                        ga(\'send\', \'pageview\');
+                                                    </script>
+                                                    <script async src=\'https://www.google-analytics.com/analytics.js\'></script>',
             ));
         }
 
@@ -2329,19 +2328,7 @@ namespace Cx\Core\Core\Controller {
                 $this->getResponse()->setParsedContent($ls->replace());
             }
 
-            $requestInfo = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
-            $requestIp = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '';
-            $requestHost = isset($_SERVER['REMOTE_HOST']) ? $_SERVER['REMOTE_HOST'] : $requestIp;
-            $requestUserAgent = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
-            
-            $cx = $this;
-            register_shutdown_function(function() use ($cx, $requestInfo, $requestIp, $requestHost, $requestUserAgent) {
-                $parsingTime = $cx->stopTimer();
-                \DBG::log(
-                    "(Cx: {$cx->id}) Request parsing completed after $parsingTime \"uncached\" \"$requestInfo\" \"$requestIp\" \"$requestHost\" \"$requestUserAgent\" \"" .
-                    memory_get_peak_usage(true) . "\""
-                );
-            });
+            \DBG::writeFinishLine($this, false);
         }
 
         /**

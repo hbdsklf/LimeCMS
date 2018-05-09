@@ -142,4 +142,4 @@ Cx\Core\User\Model\Entity\UserProfile:
       joinColumns:
         title:
           referencedColumnName: id
-          nullable: false
+          nullable: true

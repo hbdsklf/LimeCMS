@@ -72,14 +72,19 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
     }
 
     public function getCommandsForCommandMode() {
+        $cliOnlyPermission = new \Cx\Core_Modules\Access\Model\Entity\Permission(
+            array(),
+            array('cli'),
+            false
+        );
         return array(
             'help',
-            'status',
-            'diff',
+            'status' => $cliOnlyPermission,
+            'diff' => $cliOnlyPermission,
             'version',
-            'install',
-            'activate',
-            'deactivate',
+            'install' => $cliOnlyPermission,
+            'activate' => $cliOnlyPermission,
+            'deactivate' => $cliOnlyPermission,
         );
     }
 

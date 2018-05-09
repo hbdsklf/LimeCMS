@@ -357,6 +357,7 @@ $_ARRAYLANG['TXT_NEWS_TYPE_NAME_DESCRIPTION'] = "Name des zugehörigen Typen";
 $_ARRAYLANG['TXT_NEWS_TYPE_ADD_ERROR_EMPTY'] = "Typ konnte nicht hinzugefügt werden, es wurde kein Name angegeben.";
 $_ARRAYLANG['TXT_USE_TEASER_TEXT'] = 'Use teaser text';
 $_ARRAYLANG['TXT_NEWS_SETTINGS_USE_RELATED_NEWS'] = 'Use related articles';
+$_ARRAYLANG['TXT_NEWS_SETTINGS_USE_THUMBNAILS'] = 'Display thumbnails instead of original images';
 $_ARRAYLANG['TXT_NEWS_USE_TAGS'] = 'Use tags';
 
 $_ARRAYLANG['TXT_NO_TYPE'] = "Keine Angabe";

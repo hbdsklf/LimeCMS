@@ -1506,7 +1506,10 @@ class EgovManager extends EgovLibrary
 
         $product_id = intval($_REQUEST['id']);
         $datum_db = date('Y-m-d H:i:s');
-        $ip_adress = $_SERVER['REMOTE_ADDR'];
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $ip_adress = $cx->getComponent(
+            'Stats'
+        )->getCounterInstance()->getUniqueUserId();
 
         $arrFields = EgovLibrary::getFormFields($product_id);
         $FormValue = '';

@@ -210,6 +210,8 @@ class MediaDirectoryInputfieldText extends \Cx\Modules\MediaDir\Controller\Media
         $intEntryDefaultLang = intval($objEntryDefaultLang->fields['lang_id']);
         $langId = static::getOutputLocale()->getId();
 
+        // check if entry has been translated into the current frontend language,
+        // if not, do show in entry's initial language
         if($this->arrSettings['settingsTranslationStatus'] == 1) {
             if(in_array($langId, $arrTranslationStatus)) {
                 $intLangId = $langId;

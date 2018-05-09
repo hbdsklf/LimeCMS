@@ -461,10 +461,14 @@ class Blog extends \Cx\Modules\Blog\Controller\BlogLibrary  {
         }
 
         if ($intMessageId > 0 && $intVoting >= 1 && $intVoting <= 10) {
+            $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+            $userHash = $cx->getComponent(
+                'Stats'
+            )->getCounterInstance()->getUniqueUserId();
             $objDatabase->Execute(' INSERT INTO '.DBPREFIX.'module_blog_votes
                                     SET message_id = '.$intMessageId.',
                                         time_voted = '.time().',
-                                        ip_address = "'.$_SERVER['REMOTE_ADDR'].'",
+                                        ip_address = "' . $userHash . '",
                                         vote = "'.$intVoting.'"
                                 ');
 
@@ -543,12 +547,16 @@ class Blog extends \Cx\Modules\Blog\Controller\BlogLibrary  {
         //Now check error-string
         if (empty($this->_strErrorMessage) && $captchaCheck) {
             //No errors, insert entry
+            $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+            $userHash = $cx->getComponent(
+                'Stats'
+            )->getCounterInstance()->getUniqueUserId();
             $objDatabase->Execute(' INSERT INTO '.DBPREFIX.'module_blog_comments
                                     SET     message_id = '.$intMessageId.',
                                             lang_id = '.$this->_intLanguageId.',
                                             is_active = "'.$intIsActive.'",
                                             time_created = '.time().',
-                                            ip_address = "'.$_SERVER['REMOTE_ADDR'].'",
+                                            ip_address = "' . $userHash . '",
                                             user_id = '.$intUserId.',
                                             user_name = "'.$strName.'",
                                             user_mail = "'.$strEMail.'",
@@ -655,10 +663,14 @@ class Blog extends \Cx\Modules\Blog\Controller\BlogLibrary  {
         }
 
         //Now check database
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $userHash = $cx->getComponent(
+            'Stats'
+        )->getCounterInstance()->getUniqueUserId();
         $objVotingResult = $objDatabase->Execute('  SELECT  vote_id
                                                     FROM    '.DBPREFIX.'module_blog_votes
                                                     WHERE   message_id='.$intMessageId.' AND
-                                                            ip_address="'.$_SERVER['REMOTE_ADDR'].'" AND
+                                                            ip_address="' . $userHash . '" AND
                                                             time_voted > '.(time() - $this->_intVotingDaysBeforeExpire*24*60*60).'
                                                     LIMIT   1
                                                 ');
@@ -691,9 +703,13 @@ class Blog extends \Cx\Modules\Blog\Controller\BlogLibrary  {
         }
 
         //Now check database (make sure the user didn't delete the cookie
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $userHash = $cx->getComponent(
+            'Stats'
+        )->getCounterInstance()->getUniqueUserId();
         $objCommentResult = $objDatabase->Execute(' SELECT  comment_id
                                                     FROM    '.DBPREFIX.'module_blog_comments
-                                                    WHERE   ip_address="'.$_SERVER['REMOTE_ADDR'].'" AND
+                                                    WHERE   ip_address="' . $userHash . '" AND
                                                             time_created > '.(time() - intval($this->_arrSettings['blog_comments_timeout'])).'
                                                     LIMIT   1
                                                 ');
@@ -724,10 +740,14 @@ class Blog extends \Cx\Modules\Blog\Controller\BlogLibrary  {
         }
 
         //Now check database
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $userHash = $cx->getComponent(
+            'Stats'
+        )->getCounterInstance()->getUniqueUserId();
         $objVotingResult = $objDatabase->Execute('  SELECT  vote
                                                     FROM    '.DBPREFIX.'module_blog_votes
                                                     WHERE   message_id='.$intMessageId.' AND
-                                                            ip_address="'.$_SERVER['REMOTE_ADDR'].'" AND
+                                                            ip_address="' . $userHash . '" AND
                                                             time_voted > '.(time() - $this->_intVotingDaysBeforeExpire*24*60*60).'
                                                     LIMIT   1
                                                 ');

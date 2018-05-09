@@ -11,7 +11,7 @@
                     <input type="text" name="term" placeholder="{TXT_CORE_SEARCH_TERM}" class="vg-encode" form="vg-{VG_ID}-searchForm">
                     <input type="<!-- BEGIN submitSearch -->submit<!-- END submitSearch --><!-- BEGIN buttonSearch -->button<!-- END buttonSearch -->" value="{TXT_SEARCH}" class="vg-searchSubmit" form="vg-{VG_ID}-searchForm">
                     <!-- BEGIN showExtendedSearch -->
-                    <a href="#" onclick="cx.jQuery('#vg-{VG_ID}-extendedSearch').toggle(500)">
+                    <a href="#" onclick="cx.jQuery('#vg-{VG_ID}-extendedSearch').toggle(500); return false;">
                         {TXT_EXP_SEARCH}
                     </a>
                     <!-- END showExtendedSearch -->

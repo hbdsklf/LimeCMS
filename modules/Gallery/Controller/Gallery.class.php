@@ -482,7 +482,7 @@ class Gallery
         $showImageSizeOverview   = $this->arrSettings['show_image_size'] == 'on';
         while (!$objResult->EOF) {
             $arrImageSizes[$objResult->fields['catid']][$objResult->fields['id']] = ($showImageSizeOverview) ? round(filesize($this->strImagePath.$objResult->fields['path'])/1024,2) : '';
-            $arrstrImagePaths[$objResult->fields['catid']][$objResult->fields['id']] = $this->strThumbnailWebPath.$objResult->fields['path'];
+            $arrstrImagePaths[$objResult->fields['catid']][$objResult->fields['id']] = $objResult->fields['path'];
             $objResult->MoveNext();
         }
 
@@ -543,30 +543,71 @@ class Gallery
                     $arrCategoryLang[$objSubResult->fields['name']] = $objSubResult->fields['value'];
                     $objSubResult->MoveNext();
                 }
-                
-                if (empty($arrCategoryImages[$objResult->fields['id']])) {
-                    // no pictures in this gallery, show the empty-image
-                    $strName     = $arrCategoryLang['name'];
-                    $strDesc    = $arrCategoryLang['desc'];
-                    $strImage     = '<a href="'.CONTREXX_DIRECTORY_INDEX.'?section=Gallery&amp;cid='.$objResult->fields['id'].$this->strCmd.'" target="_self">';
-                    $strImage     .= '<img border="0" alt="'.$arrCategoryLang['name'].'" src="modules/Gallery/View/Media/no_images.gif" /></a>';
-                    $strInfo     = $_ARRAYLANG['TXT_IMAGE_COUNT'].': 0';
-                    $strInfo    .= $showImageSizeOverview ? '<br />'.$_CORELANG['TXT_SIZE'].': 0kB' : '';
-                } else {
-                    $strName    = $arrCategoryLang['name'];
-                    $strDesc    = $arrCategoryLang['desc'];
-                    $strImage     = '<a href="'.CONTREXX_DIRECTORY_INDEX.'?section=Gallery&amp;cid='.$objResult->fields['id'].$this->strCmd.'" target="_self">';
-                    $strImage     .= '<img border="0" alt="'.$arrCategoryLang['name'].'" src="'.$arrCategoryImages[$objResult->fields['id']].'" /></a>';
-                    $strInfo     = $_ARRAYLANG['TXT_IMAGE_COUNT'].': '.$arrCategoryImageCounter[$objResult->fields['id']];
-                    $strInfo    .= $showImageSizeOverview ? '<br />'.$_CORELANG['TXT_SIZE'].': '.$arrCategorySizes[$objResult->fields['id']].'kB' : '';
+
+                // set default category image
+                $imageSrc =
+                    $imageThumbnailSrc =
+                        'modules/Gallery/View/Media/no_images.gif';
+                $imageCount = 0;
+                $size = 0;
+                if (!empty($arrCategoryImages[$objResult->fields['id']])) {
+                    $imageSrc =
+                        $this->strImageWebPath .
+                        $arrCategoryImages[$objResult->fields['id']];
+                    $imageThumbnailSrc =
+                        $this->strThumbnailWebPath .
+                        $arrCategoryImages[$objResult->fields['id']];
+                    $imageCount =
+                        $arrCategoryImageCounter[$objResult->fields['id']];
+                    $size = $arrCategorySizes[$objResult->fields['id']];
+                }
+
+                $image = new \Cx\Core\Html\Model\Entity\HtmlElement('img');
+                $image->setAttributes(array(
+                    'border'    => '0',
+                    'alt'       => $arrCategoryLang['name'],
+                    'src'       => $imageThumbnailSrc,
+                ));
+
+                $cmd = '';
+                if (!empty($_GET['cmd'])) {
+                    $cmd = intval($_GET['cmd']);
+                }
+                $url = \Cx\Core\Routing\Url::fromModuleAndCmd(
+                    'Gallery',
+                    $cmd,
+                    '',
+                    array('cid' => $objResult->fields['id'])
+                );
+
+                $categoryLink = new \Cx\Core\Html\Model\Entity\HtmlElement('a');
+                $categoryLink->setAttributes(array(
+                    'href'    => $url,
+                    'target'  => '_self',
+                ));
+                $categoryImageLink = clone $categoryLink;
+                $categoryImageLink->addChild($image);
+                $categoryTitle = new \Cx\Core\Html\Model\Entity\TextElement(
+                    $arrCategoryLang['name']
+                );
+                $categoryLink->addChild($categoryTitle);
+
+                $strInfo  = $_ARRAYLANG['TXT_IMAGE_COUNT'] . ': ' . $imageCount;
+                if ($showImageSizeOverview) {
+                    $strInfo .= '<br />' . $_CORELANG['TXT_SIZE'] .
+                        ': ' . $size . 'kB';
                 }
 
                 $this->_objTpl->setVariable(array(
                     'GALLERY_STYLE'                => ($i % 2)+1,
-                    'GALLERY_CATEGORY_NAME'        => $strName,
-                    'GALLERY_CATEGORY_IMAGE'       => $strImage,
+                    'GALLERY_CATEGORY_NAME'        => $arrCategoryLang['name'],
+                    'GALLERY_CATEGORY_IMAGE'       => $categoryImageLink,
+                    'GALLERY_CATEGORY_IMAGE_PATH'  => $imageSrc,
+                    'GALLERY_CATEGORY_IMAGE_THUMBNAIL_PATH'=> $imageThumbnailSrc,
                     'GALLERY_CATEGORY_INFO'        => $strInfo,
-                    'GALLERY_CATEGORY_DESCRIPTION' => nl2br($strDesc)
+                    'GALLERY_CATEGORY_DESCRIPTION' => nl2br($arrCategoryLang['desc']),
+                    'GALLERY_CATEGORY_LINK'        => $categoryLink,
+                    'GALLERY_CATEGORY_LINK_SRC'    => $url,
                 ));
                 $this->_objTpl->parse('galleryCategoryList');
                 $i++;
@@ -981,7 +1022,7 @@ END;
         {
             $objDatabase->Execute(
                 'INSERT INTO '.DBPREFIX.'module_gallery_comments '.
-                'SET picid='.$intPicId.', date='.time().', ip="'.$_SERVER['REMOTE_ADDR'].'", '.
+                'SET picid='.$intPicId.', date='.time().', '.
                 'name="'.$strName.'", email="'.$strEmail.'", www="'.$strWWW.'", comment="'.$strComment.'"');
             \Cx\Core\Core\Controller\Cx::instanciate()->getComponent('Cache')->deleteAllFiles();
         }
@@ -1019,7 +1060,7 @@ END;
 
         $objResult = $objDatabase->Execute(
             "SELECT id FROM ".DBPREFIX."module_gallery_votes ".
-            "WHERE ip='".$_SERVER['REMOTE_ADDR']."' AND md5='".$strMd5.
+            "WHERE md5='".$strMd5.
             "' AND date > $intVotingCheckTime AND picid=$intPicId LIMIT 1");
         if ($objResult->RecordCount() == 1) {
             $boolIpCheck = false;
@@ -1035,7 +1076,7 @@ END;
             !isset($_COOKIE['Gallery_Voting_'.$intPicId])) {
             $objDatabase->Execute(
                 "INSERT INTO ".DBPREFIX."module_gallery_votes ".
-                "SET picid=$intPicId, date=".time().", ip='".$_SERVER['REMOTE_ADDR']."', ".
+                "SET picid=$intPicId, date=".time().", ".
                 "md5='".$strMd5."', mark=$intMark");
             setcookie('Gallery_Voting_'.$intPicId,$intMark,$intCookieTime, ASCMS_PATH_OFFSET.'/');
             $pageId = \Cx\Core\Core\Controller\Cx::instanciate()->getPage()->getId();

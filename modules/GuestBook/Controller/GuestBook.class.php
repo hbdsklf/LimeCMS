@@ -128,7 +128,6 @@ class GuestBook extends GuestBookLibrary {
                                 url,
                                 email,
                                 comment,
-                                ip,
                                 location,
                                 datetime
                     FROM         " . DBPREFIX . "module_guestbook
@@ -168,7 +167,6 @@ class GuestBook extends GuestBookLibrary {
                 'GUESTBOOK_DATE' => date(ASCMS_DATE_FORMAT, strtotime($objResult->fields['datetime'])),
                 'GUESTBOOK_COMMENT' => nl2br($objResult->fields["comment"]),
                 'GUESTBOOK_ID' => $objResult->fields["id"],
-                'GUESTBOOK_IP' => $objResult->fields["ip"]
             ));
             $this->_objTpl->parse('guestbook_row');
             $i++;
@@ -289,7 +287,6 @@ class GuestBook extends GuestBookLibrary {
                          datetime,
                          email,
                          comment,
-                         ip,
                          location,
                          lang_id)
                  VALUES ($status,
@@ -300,7 +297,6 @@ class GuestBook extends GuestBookLibrary {
                         '".date('Y-m-d H:i:s')."',
                         '" . addslashes($mail) . "',
                         '" . addslashes($comment) . "',
-                        '" . addslashes($_SERVER['REMOTE_ADDR']) . "',
                         '" . addslashes($location) . "',
                         " . $this->langId . ")";
         $objDatabase->Execute($query);

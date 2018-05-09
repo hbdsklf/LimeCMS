@@ -26,6 +26,9 @@ Cx\Core_Modules\Sync\Model\Entity\Host:
     state:
       type: integer
       length: 1
+    lastUpdate:
+      type: timestamp
+      column: last_update
   uniqueConstraints:
       host_UNIQUE:
         columns: [ host ]

@@ -901,10 +901,20 @@ class DownloadsManager extends DownloadsLibrary
         $limitOffset = isset($_GET['pos']) ? intval($_GET['pos']) : 0;
         $orderDirection = !empty($_GET['sort']) ? $_GET['sort'] : 'asc';
         $orderBy = !empty($_GET['by']) ? $_GET['by'] : '';
-        $sortOrder = $this->downloadsSortingOptions[$this->arrConfig['downloads_sorting_order']];
-        $arrOrder  = empty($orderBy)
-                    ? $sortOrder
-                    : array_merge(array($orderBy => $orderDirection), $sortOrder);
+        $arrOrder = $this->downloadsSortingOptions[$this->arrConfig['downloads_sorting_order']];
+        if (!empty($orderBy)) {
+            $arrOrder = array_merge(
+                // add custom sort flag as first element to array (to ensure
+                // it has the highest precedence)
+                array($orderBy => $orderDirection),
+                // add default sort flags
+                $arrOrder,
+                // finnaly, do add the custom sort flag again. Adding it again
+                // after the default sort flags will ensure that the custom
+                // sort flags will overwrite the default sort flags
+                array($orderBy => $orderDirection)
+            );
+        }
 
         //$categoryId = !empty($_REQUEST['category_id']) ? intval($_REQUEST['category_id']) : 0;
         $actualSearchTerm = !empty($_GET['search_term']) ? $_GET['search_term'] : Null;
@@ -2091,10 +2101,20 @@ class DownloadsManager extends DownloadsLibrary
 
         $objFWUser = \FWUser::getFWUserObject();
 
-        $sortOrder = $this->categoriesSortingOptions[$this->arrConfig['categories_sorting_order']];
-        $arrOrder  = empty($categoryOrderBy)
-                    ? $sortOrder
-                    : array_merge(array($categoryOrderBy => $categoryOrderDirection), $sortOrder);
+        $arrOrder = $this->categoriesSortingOptions[$this->arrConfig['categories_sorting_order']];
+        if (!empty($categoryOrderBy)) {
+            $arrOrder = array_merge(
+                // add custom sort flag as first element to array (to ensure
+                // it has the highest precedence)
+                array($categoryOrderBy => $categoryOrderDirection),
+                // add default sort flags
+                $arrOrder,
+                // finnaly, do add the custom sort flag again. Adding it again
+                // after the default sort flags will ensure that the custom
+                // sort flags will overwrite the default sort flags
+                array($categoryOrderBy => $categoryOrderDirection)
+            );
+        }
 
         $minColspan = 7;
 
@@ -2391,12 +2411,23 @@ class DownloadsManager extends DownloadsLibrary
         $arrDownloadOrder = $objCategory->getAssociatedDownloadIds();
         $objFWUser = \FWUser::getFWUserObject();
 
-        $sortOrder = $this->downloadsSortingOptions[$this->arrConfig['downloads_sorting_order']];
-        $arrSort   = empty($downloadOrderBy)
-                    ? $sortOrder
-                    : array_merge(array($downloadOrderBy => $downloadOrderDirection), $sortOrder);
+        $arrOrder = $this->downloadsSortingOptions[$this->arrConfig['downloads_sorting_order']];
+        if (!empty($downloadOrderBy)) {
+            $arrOrder = array_merge(
+                // add custom sort flag as first element to array (to ensure
+                // it has the highest precedence)
+                array($downloadOrderBy => $downloadOrderDirection),
+                // add default sort flags
+                $arrOrder,
+                // finnaly, do add the custom sort flag again. Adding it again
+                // after the default sort flags will ensure that the custom
+                // sort flags will overwrite the default sort flags
+                array($downloadOrderBy => $downloadOrderDirection)
+            );
+        }
+
         $objDownload = new Download();
-        $objDownload->loadDownloads(array('category_id' => $objCategory->getId()), $searchTerm, $arrSort, null, $_CONFIG['corePagingLimit'], $downloadLimitOffset, true);
+        $objDownload->loadDownloads(array('category_id' => $objCategory->getId()), $searchTerm, $arrOrder, null, $_CONFIG['corePagingLimit'], $downloadLimitOffset, true);
         $downloadsAvailable = $objDownload->EOF ? false : true;
         while (!$objDownload->EOF) {
 //            if (!\Permission::checkAccess(143, 'static', true) && !$objDownload->getVisibility() && $objDownload->getOwnerId() != $objFWUser->objUser->getId()) {

@@ -44,6 +44,7 @@ namespace Cx\Core_Modules\Cache\Controller;
  */
 class Cache extends \Cx\Core_Modules\Cache\Controller\CacheLib
 {
+    const HTTP_STATUS_CODE_HEADER = 'X-StatusCode';
     var $boolIsEnabled = false; //Caching enabled?
     var $intCachingTime; //Expiration time for cached file
 
@@ -266,6 +267,10 @@ class Cache extends \Cx\Core_Modules\Cache\Controller\CacheLib
                 $headers = unserialize(file_get_contents($headerFile));
                 if (is_array($headers)) {
                     foreach ($headers as $name=>$value) {
+                        if ($name == static::HTTP_STATUS_CODE_HEADER) {
+                            http_response_code($value);
+                            continue;
+                        }
                         if (is_numeric($name)) {
                             // This allows headers without a ':'
                             header($value);
@@ -297,18 +302,7 @@ class Cache extends \Cx\Core_Modules\Cache\Controller\CacheLib
             echo $this->internalEsiParsing($endcode, true);
             $parsingTime = $cx->stopTimer();
 
-            $requestInfo = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
-            $requestIp = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '';
-            $requestHost = isset($_SERVER['REMOTE_HOST']) ? $_SERVER['REMOTE_HOST'] : $requestIp;
-            $requestUserAgent = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
-            
-            register_shutdown_function(function() use ($cx, $requestInfo, $requestIp, $requestHost, $requestUserAgent) {
-                $parsingTime = $cx->stopTimer();
-                \DBG::log(
-                    "(Cx: {$cx->getId()}) Request parsing completed after $parsingTime \"cached\" \"$requestInfo\" \"$requestIp\" \"$requestHost\" \"$requestUserAgent\" \"" .
-                    memory_get_peak_usage(true) . "\""
-                );
-            });
+            \DBG::writeFinishLine($cx, true);
             exit;
         } else {
             if (file_exists($headerFile)) {
@@ -423,6 +417,10 @@ class Cache extends \Cx\Core_Modules\Cache\Controller\CacheLib
         // write header cache file
         $resolver = \Env::get('Resolver');
         $headers = $resolver->getHeaders();
+        $httpStatusCode = http_response_code();
+        if (is_int(http_response_code()) && $httpStatusCode != 200) {
+            $headers[static::HTTP_STATUS_CODE_HEADER] = $httpStatusCode;
+        }
         $this->writeCacheFileForRequest(
             $page,
             $headers,

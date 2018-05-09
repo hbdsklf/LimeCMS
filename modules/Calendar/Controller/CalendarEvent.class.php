@@ -2355,46 +2355,33 @@ class CalendarEvent extends CalendarLibrary
         $placeUrl       = '';
         $placeUrlSource = '';
 
-        if (!empty($intMediaDirId)) {
-            $objMediadirEntry = new \Cx\Modules\MediaDir\Controller\MediaDirectoryEntry('MediaDir');
-            $objMediadirEntry->getEntries(intval($intMediaDirId));
-
-            $pageRepo = \Env::get('em')->getRepository('Cx\Core\ContentManager\Model\Entity\Page');
-            $pages = $pageRepo->findBy(array(
-                'cmd'    => contrexx_addslashes('detail'.intval($objMediadirEntry->arrEntries[$intMediaDirId]['entryFormId'])),
-                'lang'   => $_LANGID,
-                'type'   => \Cx\Core\ContentManager\Model\Entity\Page::TYPE_APPLICATION,
-                'module' => 'MediaDir',
-            ));
-
-            if(count($pages)) {
-                $strDetailCmd = 'detail'.intval($objMediadirEntry->arrEntries[$intMediaDirId]['entryFormId']);
-            } else {
-                $strDetailCmd = 'detail';
-            }
-
-            $pages = \Env::get('em')->getRepository('Cx\Core\ContentManager\Model\Entity\Page')->getFromModuleCmdByLang('MediaDir', $strDetailCmd);
-
-            $arrActiveFrontendLanguages = \FWLanguage::getActiveFrontendLanguages();
-            if (isset($arrActiveFrontendLanguages[FRONTEND_LANG_ID]) && isset($pages[FRONTEND_LANG_ID])) {
-                $langId = FRONTEND_LANG_ID;
-            } else if (isset($arrActiveFrontendLanguages[BACKEND_LANG_ID]) && isset($pages[BACKEND_LANG_ID])) {
-                $langId = BACKEND_LANG_ID;
-            } else {
-                foreach ($arrActiveFrontendLanguages as $lang) {
-                    if (isset($pages[$lang['id']])) {
-                        $langId = $lang['id'];
-                        break;
-                    }
-                }
-            }
-
-            $url = $pages[$langId]->getUrl(ASCMS_PROTOCOL."://".$_CONFIG['domainUrl'].ASCMS_PATH_OFFSET, "?eid={$intMediaDirId}");
-
-            $place          = ($type = 'place') ? $this->place : $this->org_name;
-            $placeUrl       = "<a href='".$url."' target='_blank' >". (!empty($place) ? $place : $url) ."</a>";
-            $placeUrlSource = $url;
+        if (empty($intMediaDirId)) {
+            return array('', '');
         }
+
+        $objMediadirEntry = new \Cx\Modules\MediaDir\Controller\MediaDirectoryEntry('MediaDir');
+        $objMediadirEntry->getEntries(intval($intMediaDirId));
+
+        // abort in case entry is unknown or invalid
+        if (!$objMediadirEntry->countEntries()) {
+            return array('', '');
+        }
+
+        try {
+            $url = $objMediadirEntry->getDetailUrl();
+        } catch (\Cx\Modules\MediaDir\Controller\MediaDirectoryEntryException $e) {
+            return array('', '');
+        }
+
+        // MediaDir might throw an exception if it doesn't find a detail URL,
+        // however it might also return NULL
+        if (!$url) {
+            return array('', '');
+        }
+
+        $place          = ($type = 'place') ? $this->place : $this->org_name;
+        $placeUrl       = "<a href='".$url."' target='_blank' >". (!empty($place) ? $place : $url) ."</a>";
+        $placeUrlSource = $url;
 
         return array($placeUrl, $placeUrlSource);
     }

@@ -605,7 +605,9 @@ class ViewGenerator {
                     $relationClass = $associationMapping['targetEntity'];
                     $relationRepo = $em->getRepository($relationClass);
                     $relationEntity = $relationRepo->find($searchCriteria[$relationField]);
-                    $searchCriteria[$relationField] = $relationEntity;
+                    if ($relationEntity) {
+                        $searchCriteria[$relationField] = $relationEntity;
+                    }
                 }
             }
 

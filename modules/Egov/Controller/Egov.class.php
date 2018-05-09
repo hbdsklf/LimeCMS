@@ -98,7 +98,10 @@ class Egov extends EgovLibrary
 
         $product_id = intval($_REQUEST['id']);
         $datum_db = date('Y-m-d H:i:s');
-        $ip_adress = $_SERVER['REMOTE_ADDR'];
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $ip_adress = $cx->getComponent(
+            'Stats'
+        )->getCounterInstance()->getUniqueUserId();
 
         $arrFields = self::getFormFields($product_id);
         $FormValue = '';

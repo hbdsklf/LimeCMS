@@ -545,7 +545,24 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
         $i = 0;
         $severity = 'INFO';
         // for as long as there are changes of non-locked hosts
-        $query = $em->createQuery('SELECT h FROM ' . $this->getNamespace() . '\Model\Entity\Host h WHERE h.state = 0');
+        $fiveMinutesAgo = $this->getComponent(
+            'DateTime'
+        )->createDateTimeForDb('5 minutes ago');
+        $query = $em->createQuery('
+            SELECT
+                h
+            FROM
+                ' . $this->getNamespace() . '\Model\Entity\Host h
+            WHERE
+                h.state = 0 OR
+                (
+                    h.state = 1 AND
+                    h.lastUpdate < :fiveMinutesAgo
+                )
+        ')->setParameter(
+            'fiveMinutesAgo',
+            $fiveMinutesAgo->format('Y-m-d H:i:s')
+        );
         $query->useResultCache(false);
         $nonLockedHosts = $query->getResult();
         $hasNonLockedChanges = false;

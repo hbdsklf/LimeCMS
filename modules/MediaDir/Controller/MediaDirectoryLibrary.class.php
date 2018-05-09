@@ -156,7 +156,7 @@ class MediaDirectoryLibrary
 
     function checkDisplayduration()
     {
-        self::getSettings();
+        $this->getSettings();
 
         if($this->arrSettings['settingsEntryDisplaydurationNotification'] >= 1) {
 
@@ -207,7 +207,7 @@ class MediaDirectoryLibrary
             $accessId = 0; //used to remember which access id the user needs to have. this is passed to Permission::checkAccess() later.
 
             if(!$intUserIsAdmin) {
-                self::getSettings();
+                $this->getSettings();
 
                 switch($strAction) {
                     case 'add_entry':
@@ -236,7 +236,7 @@ class MediaDirectoryLibrary
                                     $objGroup->next();
                                 }
 
-                                self::getCommunityGroups();
+                                $this->getCommunityGroups();
                                 $strMaxEntries = 0;
                                 $bolFormAllowed = false;
 
@@ -394,7 +394,7 @@ class MediaDirectoryLibrary
         $arrLanguages = array();
         $arrActiveLangs = array();
 
-        self::getSettings();
+        $this->getSettings();
         $arrActiveLangs = explode(",",$this->arrSettings['settingsActiveLanguages']);
 
         foreach (\FWLanguage::getActiveFrontendLanguages() as $frontendLanguage) {
@@ -612,7 +612,7 @@ class MediaDirectoryLibrary
         $langId = static::getOutputLocale()->getId();
 
         if($objInit->mode == 'frontend') {
-            self::getSettings();
+            $this->getSettings();
             if($this->arrSettings['settingsAddEntriesOnlyCommunity'] == 1) {
                 $objFWUser      = \FWUser::getFWUserObject();
                 $objUser         = $objFWUser->objUser;
@@ -632,7 +632,7 @@ class MediaDirectoryLibrary
                             $objGroup->next();
                         }
 
-                        self::getCommunityGroups();
+                        $this->getCommunityGroups();
                         $strMaxCategorySelect = 0;
                         $strMaxLevelSelect = 0;
 
@@ -671,7 +671,7 @@ class MediaDirectoryLibrary
         }
 
         //get languages
-        self::getFrontendLanguages();
+        $this->getFrontendLanguages();
         foreach ($this->arrFrontendLanguages as $intKey => $arrLang) {
             $arrActiveLang[$arrLang['id']] = $arrLang['id'];
         }
@@ -1479,7 +1479,10 @@ EOF;
      * Slugifies the given string
      * @param $string The string to slugify
      */
-    protected function slugify(&$string) {
+    protected function slugify(&$string, $key, $titleData = array()) {
+        if (empty($string) && isset($titleData[$key])) {
+            $string = $titleData[$key];
+        }
         $string = $this->cx->getComponent('Model')->slugify($string);
     }
 

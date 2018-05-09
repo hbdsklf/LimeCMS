@@ -221,7 +221,7 @@ EOF;
         if($this->arrSettings['settingsAllowComments'] == 1) {
             $objRSGetComments = $objDatabase->Execute("
                 SELECT
-                    `id`, `added_by`, `date`, `ip`, `name`, `mail`, `url`, `notification`, `comment`
+                    `id`, `added_by`, `date`, `name`, `mail`, `url`, `notification`, `comment`
                 FROM
                     ".DBPREFIX."module_".$this->moduleTablePrefix."_comments
                 WHERE
@@ -268,7 +268,6 @@ EOF;
                             $this->moduleLangVar.'_ENTRY_COMMENT_URL' => $strUrl,
                             $this->moduleLangVar.'_ENTRY_COMMENT_URL_SRC' => strip_tags(htmlspecialchars($objRSGetComments->fields['url'], ENT_QUOTES, CONTREXX_CHARSET)),
                             $this->moduleLangVar.'_ENTRY_COMMENT_COMMENT' => strip_tags(htmlspecialchars($objRSGetComments->fields['comment'], ENT_QUOTES, CONTREXX_CHARSET)),
-                            $this->moduleLangVar.'_ENTRY_COMMENT_IP' => strip_tags(htmlspecialchars($objRSGetComments->fields['ip'], ENT_QUOTES, CONTREXX_CHARSET)),
                             $this->moduleLangVar.'_ENTRY_COMMENT_DATE' => date("d. M Y",$objRSGetComments->fields['date'])."  ".$_ARRAYLANG['TXT_MEDIADIR_AT']." ".date("H:i:s",$objRSGetComments->fields['date']),
                         ));
 
@@ -293,8 +292,6 @@ EOF;
     function saveComment($intEntryId, $arrCommentData) {
         global $_ARRAYLANG, $objDatabase;
 
-        $strRemoteAddress = contrexx_addslashes($_SERVER['REMOTE_ADDR']);
-
         $objFWUser  = \FWUser::getFWUserObject();
         $objUser    = $objFWUser->objUser;
 
@@ -315,7 +312,6 @@ EOF;
                 `entry_id`='".intval($intEntryId)."',
                 `added_by`='".intval($intAddedBy)."',
                 `date`='".time()."',
-                `ip`='".$strRemoteAddress."',
                 `name`='".contrexx_addslashes($arrCommentData['commentName'])."',
                 `mail`='".contrexx_addslashes($arrCommentData['commentMail'])."',
                 `url`='".contrexx_addslashes($arrCommentData['commentUrl'])."',
@@ -375,7 +371,7 @@ EOF;
 
         $objRSGetComment = $objDatabase->SelectLimit("
             SELECT
-                `id`, `added_by`, `date`, `ip`, `name`, `mail`, `url`, `notification`, `comment`
+                `id`, `added_by`, `date`, `name`, `mail`, `url`, `notification`, `comment`
             FROM
                 ".DBPREFIX."module_".$this->moduleTablePrefix."_comments
             WHERE
@@ -415,7 +411,6 @@ EOF;
             $arrComment['{'.$this->moduleLangVar.'_ENTRY_COMMENT_URL}'] = $strUrl;
             $arrComment['{'.$this->moduleLangVar.'_ENTRY_COMMENT_URL_SRC}'] = strip_tags(htmlspecialchars($objRSGetComment->fields['url'], ENT_QUOTES, CONTREXX_CHARSET));
             $arrComment['{'.$this->moduleLangVar.'_ENTRY_COMMENT_COMMENT}'] = strip_tags(htmlspecialchars($objRSGetComment->fields['comment'], ENT_QUOTES, CONTREXX_CHARSET));
-            $arrComment['{'.$this->moduleLangVar.'_ENTRY_COMMENT_IP}'] = strip_tags(htmlspecialchars($objRSGetComment->fields['ip'], ENT_QUOTES, CONTREXX_CHARSET));
             $arrComment['{'.$this->moduleLangVar.'_ENTRY_COMMENT_DATE}'] = date("d. M Y",$objRSGetComment->fields['date'])."  ".$_ARRAYLANG['TXT_MEDIADIR_AT']." ".date("H:i:s",$objRSGetComment->fields['date']);
 
             return $arrComment;

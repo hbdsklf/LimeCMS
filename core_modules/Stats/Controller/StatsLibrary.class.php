@@ -711,6 +711,8 @@ class StatsLibrary
     /**
      * Get the HTTP client's IP address
      *
+     * IMPORTANT: Do not store the return value of this method in order to
+     * comply with the data privacy act GDPR!
      * In case the client is connecting through a proxy,
      * this method will try the fetch the client's original
      * IP address and will return that one instead of the

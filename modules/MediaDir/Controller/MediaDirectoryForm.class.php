@@ -297,68 +297,84 @@ class MediaDirectoryForm extends MediaDirectoryLibrary
      *
      * @return boolean true | false
      */
-    public function updateFormLocale($arrName, $arrDescription, $intFormId)
+    public function updateFormLocale($arrName, $arrDescription, $intFormId, $existingLocaleIds = array())
     {
-        global $objDatabase;
-
         if (empty($intFormId)) {
             return false;
         }
 
-        $objDefaultLang = $objDatabase->Execute('
-            SELECT
-                `form_name` AS `name`,
-                `form_description` AS `description`
-            FROM
-                '.DBPREFIX.'module_'.$this->moduleTablePrefix.'_form_names
-            WHERE
-                lang_id='.static::getOutputLocale()->getId().'
-                AND `form_id` = "'.$intFormId.'"
-            LIMIT
-                1
-        ');
+        $db = $this->cx->getDb()->getAdoDb();
 
         $strOldDefaultName        = '';
         $strOldDefaultDescription = '';
-
-        if ($objDefaultLang !== false) {
-            $strOldDefaultName        = $objDefaultLang->fields['name'];
-            $strOldDefaultDescription = $objDefaultLang->fields['description'];
+        if (!$existingLocaleIds) {
+            $query = '
+                SELECT
+                    `form_name` AS `name`,
+                    `form_description` AS `description`
+                FROM
+                    '.DBPREFIX.'module_'.$this->moduleTablePrefix.'_form_names
+                WHERE
+                    lang_id='.static::getOutputLocale()->getId().'
+                    AND `form_id` = "'.$intFormId.'"
+                LIMIT
+                    1';
+            $result = $db->Execute($query);
+            if ($result !== false && !$result->EOF) {
+                $strOldDefaultName        = $result->fields['name'];
+                $strOldDefaultDescription = $result->fields['description'];
+            }
         }
 
-        foreach ($this->arrFrontendLanguages as $lang) {
-            $activeLang[] = $lang['id'];
-        }
         // Before updating the form names Remove the corresponding existing form names from db.
-        $objDatabase->Execute('DELETE FROM ' . DBPREFIX . 'module_' . $this->moduleTablePrefix . '_form_names WHERE form_id="' . $intFormId . '" AND lang_id IN("'.  implode('","', $activeLang).'")');
+        $db->Execute('DELETE FROM ' . DBPREFIX . 'module_' . $this->moduleTablePrefix . '_form_names WHERE form_id=' . $intFormId);
 
         foreach ($this->arrFrontendLanguages as $arrLang) {
-            $strName        = $arrName[$arrLang['id']];
-            $strDescription = $arrDescription[$arrLang['id']];
+            $sourceLocaleId = $this->getSourceLocaleIdForTargetLocale($arrLang['id'], $existingLocaleIds);
+            if (
+                (
+                    !$existingLocaleIds ||
+                    in_array($arrLang['id'], $existingLocaleIds)
+                ) &&
+                isset($arrName[$arrLang['id']])
+            ) {
+                $strName = $arrName[$arrLang['id']];
+            } else {
+                $strName = $arrName[$sourceLocaleId];
+            }
+            if (
+                (
+                    !$existingLocaleIds ||
+                    in_array($arrLang['id'], $existingLocaleIds)
+                ) &&
+                isset($arrDescription[$arrLang['id']])
+            ) {
+                $strDescription = $arrDescription[$arrLang['id']];
+            } else {
+                $strDescription = $arrDescription[$sourceLocaleId];
+            }
 
             if ($arrLang['id'] == static::getOutputLocale()->getId()) {
-                if ($arrName[0] != $strOldDefaultName) {
+                if (!$existingLocaleIds &&
+                    $arrName[0] != $arrName[$arrLang['id']] &&
+                    $arrName[0] != $strOldDefaultName
+                ) {
                     $strName = $arrName[0];
                 }
-                if ($arrName[$arrLang['id']] != $strOldDefaultName) {
-                    $strName = $arrName[$arrLang['id']];
-                }
-                if ($arrDescription[0] != $strOldDefaultDescription) {
+                if (!$existingLocaleIds &&
+                    $arrDescription[0] != $arrDescription[$arrLang['id']] &&
+                    $arrDescription[0] != $strOldDefaultDescription
+                ) {
                     $strDescription = $arrDescription[0];
-                }
-                if ($arrDescription[$arrLang['id']] != $strOldDefaultDescription) {
-                    $strDescription = $arrDescription[$arrLang['id']];
                 }
             }
 
             if (empty($strName)) {
                 $strName = $arrName[0];
             }
-            if (empty($strDescription)) {
-                $strDescription = $arrDescription[0];
-            }
-            $objInsertNames = $objDatabase->Execute('
-                        INSERT INTO
+
+            $objInsertNames = $db->Execute('
+                        INSERT IGNORE INTO
                             ' . DBPREFIX . 'module_' . $this->moduleTablePrefix . '_form_names
                         SET
                             `lang_id`="' . intval($arrLang['id']) . '",

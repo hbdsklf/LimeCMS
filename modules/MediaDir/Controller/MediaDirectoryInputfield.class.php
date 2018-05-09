@@ -237,7 +237,7 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
 
 
 
-    function listInputfields($objTpl, $intView, $intEntryId = null)
+    public function listInputfields($objTpl, $intView, $intEntryId = null)
     {
         global $_ARRAYLANG, $_CORELANG, $objDatabase, $objInit;
 
@@ -627,30 +627,55 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
      *
      * @return boolean true | false
      */
-    public function updateInputFields($intFieldId, $arrFieldNames, $arrFieldDefaultValues, $arrFieldInfos)
+    public function updateInputFields($intFieldId, $arrFieldNames, $arrFieldDefaultValues, $arrFieldInfos, $existingLocaleIds = array())
     {
         global $objDatabase;
 
         foreach ($this->arrFrontendLanguages as $arrLang) {
-            $sourceLocaleId = static::getOutputLocale()->getId();
+            $sourceLocaleId = $this->getSourceLocaleIdForTargetLocale($arrLang['id'], $existingLocaleIds);
 
+            // init output locale values
             if (empty($arrFieldNames[0])){
                 $arrFieldNames[0] = '';
             }
+            if (empty($arrFieldDefaultValues[0])){
+                $arrFieldDefaultValues[0] = '';
+            }
+            if (empty($arrFieldInfos[0])){
+                $arrFieldInfos[0] = '';
+            }
 
-            if (isset($arrFieldNames[$arrLang['id']])) {
+            if (
+                (
+                    !$existingLocaleIds ||
+                    in_array($arrLang['id'], $existingLocaleIds)
+                ) &&
+                isset($arrFieldNames[$arrLang['id']])
+            ) {
                 $strFieldName = $arrFieldNames[$arrLang['id']];
             } else {
                 $strFieldName = $arrFieldNames[$sourceLocaleId];
             }
 
-            if (isset($arrFieldDefaultValues[$arrLang['id']])) {
+            if (
+                (
+                    !$existingLocaleIds ||
+                    in_array($arrLang['id'], $existingLocaleIds)
+                ) &&
+                isset($arrFieldDefaultValues[$arrLang['id']])
+            ) {
                 $strFieldDefaultValue = $arrFieldDefaultValues[$arrLang['id']];
             } else {
                 $strFieldDefaultValue = $arrFieldDefaultValues[$sourceLocaleId];
             }
 
-            if (isset($arrFieldInfos[$arrLang['id']])) {
+            if (
+                (
+                    !$existingLocaleIds ||
+                    in_array($arrLang['id'], $existingLocaleIds)
+                ) &&
+                isset($arrFieldInfos[$arrLang['id']])
+            ) {
                 $strFieldInfo = $arrFieldInfos[$arrLang['id']];
             } else {
                 $strFieldInfo = $arrFieldInfos[$sourceLocaleId];

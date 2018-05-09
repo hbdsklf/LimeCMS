@@ -90,6 +90,11 @@ class Host extends \Cx\Model\Base\EntityBase
      * @var integer $state
      */
     protected $state;
+
+    /**
+     * @var \DateTime $lastUpdate
+     */
+    protected $lastUpdate;
     
     /**
      * @var string Default template for URI
@@ -306,6 +311,9 @@ class Host extends \Cx\Model\Base\EntityBase
     public function setState($state)
     {
         $this->state = $state;
+        $this->setLastUpdate(
+            $this->getComponent('DateTime')->createDateTimeForDb()
+        );
     }
 
     /**
@@ -315,7 +323,33 @@ class Host extends \Cx\Model\Base\EntityBase
      */
     public function getState()
     {
+        if (
+            $this->state == 1 &&
+            $this->getLastUpdate() < $this->getComponent(
+                'DateTime'
+            )->createDateTimeForDb('5 minutes ago')
+        ) {
+            $this->state = 0;
+        }
         return $this->state;
+    }
+
+    /**
+     * Set lastUpdated
+     *
+     * @param \DateTime $lastUpdated
+     */
+    public function setLastUpdate($lastUpdate) {
+        $this->lastUpdate = $lastUpdate;
+    }
+
+    /**
+     * Get lastUpdated
+     *
+     * @return \DateTime $lastUpdated
+     */
+    public function getLastUpdate() {
+        return $this->lastUpdate;
     }
     
     /**
@@ -432,15 +466,15 @@ class Host extends \Cx\Model\Base\EntityBase
         $em = $this->cx->getDb()->getEntityManager();
         $hostRepo = $em->getRepository(get_class($this));
         $me = $hostRepo->find($this->getId());
-        $this->state = $me->getState();
-        return $this->state == 1;
+        $this->setState($me->getState());
+        return $this->getState() == 1;
     }
     
     public function lock() {
         if ($this->isLocked()) {
             return false;
         }
-        $this->state = 1;
+        $this->setState(1);
         $em = $this->cx->getDb()->getEntityManager();
         $em->persist($this);
         $em->flush();
@@ -448,14 +482,14 @@ class Host extends \Cx\Model\Base\EntityBase
     }
     
     public function removeLock() {
-        $this->state = 0;
+        $this->setState(0);
         $em = $this->cx->getDb()->getEntityManager();
         $em->persist($this);
         $em->flush();
     }
     
     public function disable() {
-        $this->state = 2;
+        $this->setState(2);
         $em = $this->cx->getDb()->getEntityManager();
         $em->persist($this);
         $em->flush();

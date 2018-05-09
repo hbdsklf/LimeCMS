@@ -3527,7 +3527,7 @@ class NewsManager extends \Cx\Core_Modules\News\Controller\NewsLibrary {
             $this->storeFeedLocales('news_feed_title', $_POST['newsFeedTitle']);
             $this->storeFeedLocales('news_feed_description', $_POST['newsFeedDescription']);
             $objDatabase->Execute("UPDATE ".DBPREFIX."module_news_settings
-                              SET value='".intval($_POST['newsFeedStatus'])."'
+                              SET value='".intval(!empty($_POST['newsFeedStatus']))."'
                             WHERE name = 'news_feed_status'");
 
             $objDatabase->Execute("UPDATE ".DBPREFIX."module_news_settings
@@ -3569,6 +3569,7 @@ class NewsManager extends \Cx\Core_Modules\News\Controller\NewsLibrary {
             $objDatabase->Execute("UPDATE ".DBPREFIX."module_news_settings SET value='".!empty($_POST['newsUseTop'])."' WHERE name='news_use_top'");
             $objDatabase->Execute("UPDATE ".DBPREFIX."module_news_settings SET value='".(!empty($_POST['newsTopDays']) ? intval($_POST['newsTopDays']) : 10)."' WHERE name = 'news_top_days'");
             $objDatabase->Execute("UPDATE ".DBPREFIX."module_news_settings SET value='".(!empty($_POST['newsTopLimit']) ? intval($_POST['newsTopLimit']) : 10)."' WHERE name = 'news_top_limit'");
+            $objDatabase->Execute("UPDATE ".DBPREFIX."module_news_settings SET value='".!empty($_POST['newsUseThumbnails'])."' WHERE name = 'use_thumbnails'");
 
             $newsFilterPublisher =  isset($_POST['newsFilterPublisher']) ? intval($_POST['newsFilterPublisher']) : 0;
             $newsFilterAuthor    =  isset($_POST['newsFilterAuthor']) ? intval($_POST['newsFilterAuthor']) : 0;
@@ -3767,6 +3768,7 @@ class NewsManager extends \Cx\Core_Modules\News\Controller\NewsLibrary {
             'NEWS_USE_RELATED_NEWS_CHECKED'         => $this->arrSettings['use_related_news'] == '1' ? 'checked="checked"' : '',
             'NEWS_USE_PREVIOUS_NEXT_LINK_CHECKED'   => $this->arrSettings['use_previous_next_news_link'] == '1' ? 'checked="checked"' : '',
             'NEWS_USE_TAGS_CHECKED'                 => $this->arrSettings['news_use_tags'] == '1' ? 'checked="checked"' : '',
+            'NEWS_USE_THUMBNAILS'                   => $this->arrSettings['use_thumbnails'] == '1' ? 'checked="checked"' : '',
             'TXT_STORE'                             => $_ARRAYLANG['TXT_STORE'],
             'TXT_NAME'                              => $_ARRAYLANG['TXT_NAME'],
             'TXT_VALUE'                             => $_ARRAYLANG['TXT_VALUE'],
@@ -3785,9 +3787,9 @@ class NewsManager extends \Cx\Core_Modules\News\Controller\NewsLibrary {
             'TXT_USE_TEASERS'                       => $_ARRAYLANG['TXT_USE_TEASERS'],
             'TXT_USE_TEASER_TEXT'                   => $_ARRAYLANG['TXT_USE_TEASER_TEXT'],
             'TXT_NEWS_SETTINGS_USE_TYPES'           => $_ARRAYLANG['TXT_NEWS_SETTINGS_USE_TYPES'],
-            'TXT_USE_RELATED_NEWS'                  => $_ARRAYLANG['TXT_USE_RELATED_NEWS'],
             'TXT_NEWS_USE_TAGS'                     => $_ARRAYLANG['TXT_NEWS_USE_TAGS'],
             'TXT_NEWS_SETTINGS_USE_RELATED_NEWS'    => $_ARRAYLANG['TXT_NEWS_SETTINGS_USE_RELATED_NEWS'],
+            'TXT_NEWS_SETTINGS_USE_THUMBNAILS'      => $_ARRAYLANG['TXT_NEWS_SETTINGS_USE_THUMBNAILS'],
             'TXT_NEWS_SETTINGS_USE_COMMENTS'        => $_ARRAYLANG['TXT_NEWS_SETTINGS_USE_COMMENTS'],
             'TXT_NOTIFY_GROUP'                      => $_ARRAYLANG['TXT_NOTIFY_GROUP'],
             'TXT_NOTIFY_USER'                       => $_ARRAYLANG['TXT_NOTIFY_USER'],

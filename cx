@@ -3,6 +3,19 @@
 #!/bin/bash
 # vim: syn=sh
 
+# Wrapper for bash 3
+if [[ $BASH_VERSION != 4.* ]]; then
+    command="cd /root && ./cx --proxy-host-dir='$(pwd -P)' $@"
+    # Special case: user wants to start interactive shell to wrapper container
+    if [[ "$@" == "env shell --wrapper" ]]; then
+        command="cd /root && bash"
+    fi
+
+    # Pass everything through our wrapper
+    docker run --rm -ti --name clx-win-wrapper -v "$(pwd -P)/":/root -v /var/run/docker.sock:/var/run/docker.sock cloudrexx/ubuntu bash -c "$command"
+    exit 0
+fi
+
 # current command, sub-command, sub-sub-command, etc.:
 COMMANDS=()
 # list of arguments, including default values
@@ -42,6 +55,7 @@ DEFAULT_CONFIG=(
 )
 ARGUMENTS=(
     ["port"]=80
+    ["ssl-port"]=443
     ["php-image"]="cloudrexx/web:PHP<php-version>-with-mysql"
     ["db-image"]="mariadb:10.1"
     ["source-repo"]="https://github.com/Cloudrexx/cloudrexx.git"
@@ -82,7 +96,9 @@ Synopsis:
     ./cx envs up [<options>]
 
 Available options are:
-    --port=<port>   Port on which the vhosts are available."
+    --certs-dir=<dir>   Directory to get SSL certificates from.
+    --ssl-port=<port>   Port for HTTPS connections. Defaults to 443.
+    --port=<port>       Port on which the vhosts are available."
                     ;;
                 down)
                     echo "Stops the multi-vhost environment.
@@ -275,7 +291,18 @@ Synopsis
     ./cx env shell [<options>]
 
 Available options are:
+    --root          Opens an interactive root shell on the web container
     --wrapper       Opens an interactive shell of the  Windows wrapper container instead (Windows only)"
+                    ;;
+                exec)
+                    echo "Allows to execute code (Bash/SQL) on containers of this environment.
+
+Synopsis
+    ./cx env exec [<options>] <code>
+
+Available options are:
+    --root          Execute Bash as root
+    --sql           Execute SQL on database container instead of Bash on web container."
                     ;;
                 *)
                     echo "This command manages a Cloudrexx installation and its environment.
@@ -380,7 +407,11 @@ function cmd_envs {
                 fi
             fi
             dockerexec network create "<proxy-network>"
-            dockerexec run --rm --name "<proxy-container>" -e "HTTPS_METHOD=nohttps" --net "nginx-proxy" -d -p "${ARGUMENTS["port"]}:80" -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
+            if [[ "${ARGUMENTS["certs-dir"]}" != "" ]]; then
+                dockerexec run --rm --name "<proxy-container>" --net "nginx-proxy" -d -p "${ARGUMENTS["port"]}:80" -p "${ARGUMENTS["ssl-port"]}":443 -v "${ARGUMENTS["certs-dir"]}":/etc/nginx/certs:ro -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
+            else
+                dockerexec run --rm --name "<proxy-container>" --net "nginx-proxy" -d -p "${ARGUMENTS["port"]}:80" -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
+            fi
             for env_dir in "${env_dirs[@]}"; do
                 (
                     cd "$env_dir"
@@ -758,7 +789,7 @@ SET FOREIGN_KEY_CHECKS = 1;"
                         fi
                     done
                 fi
-                mysql_exec "INSERT INTO contrexx_access_users (id, is_admin, username, password, regdate, expiration, validity, last_auth, last_activity, email, email_access, frontend_lang_id, backend_lang_id, active, profile_access, restore_key, restore_key_time, u2u_active, auth_token) VALUES (1,1,'${ClxCredentials["user"]}',MD5('${ClxCredentials["pass"]}'),0,0,0,0,0,'${ClxCredentials["mail"]}','nobody', 0,0,1,'members_only','',0,'0', '');INSERT INTO contrexx_access_user_profile (user_id, gender, title, firstname, lastname, company, address, city, zip, country, phone_office, phone_private, phone_mobile, phone_fax, birthday, website, profession, interests, signature, picture) VALUES (1,'gender_undefined',2,'CMS','System Benutzer','','','','',0,'','','','','','','','','','');INSERT INTO contrexx_access_user_attribute_value (attribute_id, user_id, history_id, value) VALUES (0,1,0,'');"
+                mysql_exec "INSERT INTO contrexx_access_users (id, is_admin, username, password, regdate, expiration, validity, last_auth, last_activity, email, email_access, frontend_lang_id, backend_lang_id, active, profile_access, restore_key, restore_key_time, u2u_active, auth_token) VALUES (1,1,'${ClxCredentials["user"]}',MD5('${ClxCredentials["pass"]}'),0,0,0,0,0,'${ClxCredentials["mail"]}','nobody', 0,0,1,'members_only','',0,'0', '');INSERT INTO contrexx_access_user_profile (user_id, gender, title, firstname, lastname, company, address, city, zip, country, phone_office, phone_private, phone_mobile, phone_fax, birthday, website, profession, interests, signature, picture) VALUES (1,'gender_undefined',2,'CMS','System Benutzer','','','','',0,'','','','','','','','','','');"
                 if [[ ${ARGUMENTS["silent"]} != true ]]; then
                     echo "Created the user \"${ClxCredentials["user"]}\" with e-mail \"${ClxCredentials["mail"]}\" and password \"${ClxCredentials["pass"]}\""
                 fi
@@ -804,7 +835,42 @@ SET FOREIGN_KEY_CHECKS = 1;"
             set_config_array
             ;;
         shell)
-            dockerexec exec -ti --user www-data "<web-container>" bash
+            if [[ ${ARGUMENTS["root"]} ]]; then
+                dockerexec exec -ti "<web-container>" bash
+            else
+                dockerexec exec -ti --user www-data "<web-container>" bash
+            fi
+            ;;
+        exec)
+            shift
+            if read -r -t 0; then
+                input=$(cat -)
+            fi
+            if [[ ${ARGUMENTS["sql"]} ]]; then
+                get_config_array
+                mysql_create_tempfile
+                if read -r -t 0; then
+                    mysql_exec "$input"
+                else
+                    mysql_exec "$@"
+                fi
+                mysql_drop_tempfile
+            else
+                if read -r -t 0; then
+                    get_config_array
+                    if [[ ${ARGUMENTS["root"]} ]]; then
+                        echo "$input" | internal_dockerexec exec -i "<web-container>" bash -c "$@"
+                    else
+                        echo "$input" | internal_dockerexec exec -i --user www-data "<web-container>" bash -c "$@"
+                    fi
+                else
+                    if [[ ${ARGUMENTS["root"]} ]]; then
+                        dockerexec exec -ti "<web-container>" bash -c "$@"
+                    else
+                        dockerexec exec -ti --user www-data "<web-container>" bash -c "$@"
+                    fi
+                fi
+            fi
             ;;
         *)
             (>&2 echo "No such subcommand")
@@ -1173,7 +1239,11 @@ case "${COMMANDS[0]}" in
         ;;
     env)
         COMMANDS=("${COMMANDS[@]:1}")
-        cmd_env "${COMMANDS[@]/#/}"
+        if read -r -t 0; then
+            cat /dev/stdin | cmd_env "${COMMANDS[@]/#/}"
+        else
+            cmd_env "${COMMANDS[@]/#/}"
+        fi
         ;;
     debug)
         if [[ ${ARGUMENTS["web"]} == true ]]; then
