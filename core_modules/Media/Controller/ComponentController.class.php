@@ -107,18 +107,57 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
 
         $media = new MediaLibrary();
         $settings = $media->createSettingsArray();
+        $em = \Env::get('cx')->getDb()->getEntityManager();
+        $pageRepo = $em->getRepository('Cx\Core\ContentManager\Model\Entity\Page');
         $paths = array(
             'Media1' => $this->cx->getWebsitePath() . ASCMS_MEDIA1_WEB_PATH . '/',
             'Media2' => $this->cx->getWebsitePath() . ASCMS_MEDIA2_WEB_PATH . '/',
             'Media3' => $this->cx->getWebsitePath() . ASCMS_MEDIA3_WEB_PATH . '/',
             'Media4' => $this->cx->getWebsitePath() . ASCMS_MEDIA4_WEB_PATH . '/'
         );
+        $result = array();
         foreach ($paths as $archive => $path) {
+            // skip if search functionality is not active
             $settingKey    = strtolower($archive) . '_frontend_search';
-            $searchSetting = isset($settings[$settingKey])
-                                ? $settings[$settingKey]
-                                : '';
-            if ($searchSetting != 'on') {
+            if (
+                !isset($settings[$settingKey]) ||
+                $settings[$settingKey] != 'on'
+            ) {
+                continue;
+            }
+
+            // only list results in case the associated page of the module is active
+            $page = $pageRepo->findOneBy(array(
+                'module' => $archive,
+                'lang'   => FRONTEND_LANG_ID,
+                'type'   => \Cx\Core\ContentManager\Model\Entity\Page::TYPE_APPLICATION,
+            ));
+
+            // skip in case no associated application page does exist or is
+            // published
+            if (!$page || !$page->isActive()) {
+                continue;
+            }
+
+            \Cx\Core\Setting\Controller\Setting::init('Config', 'site','Yaml');
+            $coreListProtectedPages   = \Cx\Core\Setting\Controller\Setting::getValue('coreListProtectedPages','Config');
+            $searchVisibleContentOnly = \Cx\Core\Setting\Controller\Setting::getValue('searchVisibleContentOnly','Config');
+
+            // skip if the application page is invisible
+            if (
+                $searchVisibleContentOnly == 'on' &&
+                !$page->isVisible()
+            ) {
+                continue;
+            }
+
+            // skip if the application page is protected
+            if (
+                $coreListProtectedPages == 'off' &&
+                $page->isFrontendProtected() &&
+                $this->getComponent('Session')->getSession() &&
+                !\Permission::checkAccess($page->getFrontendAccessId(), 'dynamic', true)
+            ) {
                 continue;
             }
 
@@ -138,16 +177,22 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
                 \Cx\Lib\FileSystem\FileSystem::path_relative_to_root($mediaWebPath);
                 $mediaWebPath = '/'. $mediaWebPath; // Filesysystem removes the beginning slash(/)
 
-                $url = \Cx\Core\Routing\Url::fromModuleAndCmd($archive, '', '', array(
+                $url = \Cx\Core\Routing\Url::fromPage($page, array(
                     'path' => rawurlencode($mediaWebPath),
                     'act' => 'download',
                     'file' => rawurlencode($name),
                 ));
+                if (!$url) {
+                    continue;
+                }
+                $link = $url->toString(false);
+
                 $result[] = array(
-                    'Score'   => 100,
-                    'Title'   => $name,
-                    'Content' => '',
-                    'Link'    => $url->toString()
+                    'Score'     => 100,
+                    'Title'     => $name,
+                    'Content'   => '',
+                    'Link'      => $link,
+                    'Component' => $this->getName(),
                 );
             }
         }

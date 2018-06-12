@@ -305,9 +305,11 @@ abstract class Uploader
     {
 
         //temporary path where files were uploaded
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $session = $cx->getComponent('Session')->getSession();
         $tempDir = '/upload_'.$this->uploadId;
-        $tempPath = $_SESSION->getTempPath().$tempDir;
-        $tempWebPath = $_SESSION->getWebTempPath().$tempDir;
+        $tempPath = $session->getTempPath().$tempDir;
+        $tempWebPath = $session->getWebTempPath().$tempDir;
 
         //we're going to call the callbck, so the data is not needed anymore
         //well... not quite sure. need it again in contact form.
@@ -399,9 +401,11 @@ abstract class Uploader
      * Cleans up the session - unsets the callback data stored for this upload
      */
     protected function cleanupCallbackData() {
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $session = $cx->getComponent('Session')->getSession();
 
         unset($_SESSION['upload']['handlers'][$this->uploadId]['callback']);
-        $_SESSION->cleanTempPaths();
+        $session->cleanTempPaths();
     }
 
     /**
@@ -455,8 +459,10 @@ abstract class Uploader
     {
 
         //get a writable directory
-        $tempPath = $_SESSION->getTempPath();
-        $webTempPath = $_SESSION->getWebTempPath();
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $session = $cx->getComponent('Session')->getSession();
+        $tempPath = $session->getTempPath();
+        $webTempPath = $session->getWebTempPath();
         $dirName = 'upload_'.$this->uploadId;
 
         $targetDir = $tempPath.'/'.$dirName;

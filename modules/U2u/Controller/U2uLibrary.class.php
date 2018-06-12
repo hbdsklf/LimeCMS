@@ -176,9 +176,11 @@ class U2uLibrary {
        $objResult = $objDatabase->SelectLimit($selMessage, $_CONFIG['corePagingLimit'], $pos);
        $this->paginationCount=$paging;
 
+       $arrMessage = array();
        while (!$objResult->EOF) {
           $userName = $this->_getName($objResult->fields['userid']);
           $messageID=$objResult->fields['message_id'];
+          $arrMessage[$messageID] = array();
           $arrMessage[$messageID]["message"]        =   $objResult->fields['message_text'];
           $arrMessage[$messageID]["message_title"]  =   $objResult->fields['message_title'];
           $arrMessage[$messageID]["username"]       =   $userName['username'];
@@ -248,8 +250,10 @@ class U2uLibrary {
       $this->paginationCount=$paging;
       //$objResult = $objDatabase->Execute($selMessage);
 
+      $arrMessage = array();
        while (!$objResult->EOF) {
           $messageID=$objResult->fields['message_id'];
+          $arrMessage[$messageID] = array();
           $arrMessage[$messageID]["message"]        =   $objResult->fields['message_text'];
           $arrMessage[$messageID]["message_title"]  =   $objResult->fields['message_title'];
           $arrMessage[$messageID]["username"]       =   $objResult->fields['username'];

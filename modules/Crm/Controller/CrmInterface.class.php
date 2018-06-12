@@ -228,12 +228,16 @@ class CrmInterface extends CrmLibrary
         $fileName       = isset ($_POST['fileName']) ? \FWValidator::getCleanFileName(contrexx_input2raw($_POST['fileName'])) : '';
 
         if (!empty ($fileName)) {
-            $json['fileUri'] = $fileName;
-            $rowIndex      = 1;
-            $importedLines = 0;
-            $first         = true;
-            $objCsv        = new CrmCsv($this->_mediaPath.'/'.$fileName, $csvSeprator, $csvDelimiter);
-            $line          = $objCsv->NextLine();
+            $json['fileUri']     = $fileName;
+            $rowIndex            = 1;
+            $importedLines       = 0;
+            $first               = true;
+            $objCsv              = new CrmCsv(
+                $this->_mediaPath.'/'.$fileName, $csvSeprator, $csvDelimiter
+            );
+            $line                = $objCsv->NextLine();
+            $json['data']        = array();
+            $json['contactData'] = array();
             while ($line) {
                 if ($first) {
                     $json['data']['contactHeader'] = $line;
@@ -277,6 +281,7 @@ class CrmInterface extends CrmLibrary
         $importedLines = 0;
         $objCsv        = new CrmCsv($this->_mediaPath.'/'.$fileName, $csvSeprator, $csvDelimiter);
         $line          = $objCsv->NextLine();
+        $json['contactData'] = array();
         while ($line) {
             if ($importedLines == $currentRow) {
                 $json['contactData'][$importedLines] = $line;
@@ -528,6 +533,10 @@ class CrmInterface extends CrmLibrary
         }
         print ("\r\n");
 
+        // preload all users at once instead of loading all one by one in the loop
+        $objUsers = \FWUser::getFWUserObject()->objUser->getUsers(
+            null, null, null, array('email', 'username')
+        );
         if ($objResult) {
             while (!$objResult->EOF) {
             $membership = array();
@@ -604,44 +613,44 @@ class CrmInterface extends CrmLibrary
 
                 $result = array();
                 // Get emails and phones
-                $objEmails = $objDatabase->Execute("SELECT * FROM `".DBPREFIX."module_{$this->moduleNameLC}_customer_contact_emails` WHERE contact_id = {$objResult->fields['id']} ORDER BY id ASC");
+                $objEmails = $objDatabase->Execute("SELECT `email_type`, `email` FROM `".DBPREFIX."module_{$this->moduleNameLC}_customer_contact_emails` WHERE contact_id = {$objResult->fields['id']} ORDER BY id ASC");
                 if ($objEmails) {
                     while (!$objEmails->EOF) {
                         $result['contactemail'][$objEmails->fields['email_type']] = $objEmails->fields['email'];
                         $objEmails->MoveNext();
                     }
                 }
-                $objPhone = $objDatabase->Execute("SELECT * FROM `".DBPREFIX."module_{$this->moduleNameLC}_customer_contact_phone` WHERE contact_id = {$objResult->fields['id']} ORDER BY id ASC");
+                $objPhone = $objDatabase->Execute("SELECT `phone_type`, `phone` FROM `".DBPREFIX."module_{$this->moduleNameLC}_customer_contact_phone` WHERE contact_id = {$objResult->fields['id']} ORDER BY id ASC");
                 if ($objPhone) {
                     while (!$objPhone->EOF) {
                         $result['contactphone'][$objPhone->fields['phone_type']] = $objPhone->fields['phone'];
                         $objPhone->MoveNext();
                     }
                 }
-                $objWebsite = $objDatabase->Execute("SELECT * FROM `".DBPREFIX."module_{$this->moduleNameLC}_customer_contact_websites` WHERE contact_id = {$objResult->fields['id']} ORDER BY id ASC");
+                $objWebsite = $objDatabase->Execute("SELECT `url_profile`, `url` FROM `".DBPREFIX."module_{$this->moduleNameLC}_customer_contact_websites` WHERE contact_id = {$objResult->fields['id']} ORDER BY id ASC");
                 if ($objWebsite) {
                     while (!$objWebsite->EOF) {
                         $result['contactwebsite'][$objWebsite->fields['url_profile']] = html_entity_decode(contrexx_raw2xhtml($objWebsite->fields['url']), ENT_QUOTES, CONTREXX_CHARSET);
                         $objWebsite->MoveNext();
                     }
                 }
-                $objSocial = $objDatabase->Execute("SELECT * FROM `".DBPREFIX."module_{$this->moduleNameLC}_customer_contact_social_network` WHERE contact_id = {$objResult->fields['id']} ORDER BY id ASC");
+                $objSocial = $objDatabase->Execute("SELECT `url_profile`, `url` FROM `".DBPREFIX."module_{$this->moduleNameLC}_customer_contact_social_network` WHERE contact_id = {$objResult->fields['id']} ORDER BY id ASC");
                 if ($objSocial) {
                     while (!$objSocial->EOF) {
                         $result['contactsocial'][$objSocial->fields['url_profile']] = html_entity_decode(contrexx_raw2xhtml($objSocial->fields['url']), ENT_QUOTES, CONTREXX_CHARSET);
                         $objSocial->MoveNext();
                     }
                 }
-                $objAddress = $objDatabase->Execute("SELECT * FROM `".DBPREFIX."module_{$this->moduleNameLC}_customer_contact_address` WHERE contact_id = {$objResult->fields['id']} ORDER BY id ASC");
+                $objAddress = $objDatabase->Execute("SELECT `Address_Type`, `address`, `city`, `state`, `zip`, `country` FROM `".DBPREFIX."module_{$this->moduleNameLC}_customer_contact_address` WHERE contact_id = {$objResult->fields['id']} ORDER BY id ASC");
                 if ($objAddress) {
                     while (!$objAddress->EOF) {
                         $result['contactAddress'][$objAddress->fields['Address_Type']] = array(
-                                                                                            1 => $objAddress->fields['address'],
-                                                                                            2 => $objAddress->fields['city'],
-                                                                                            3 => $objAddress->fields['state'],
-                                                                                            4 => $objAddress->fields['zip'],
-                                                                                            5 => $objAddress->fields['country'],
-                                                                                         );
+                            1 => $objAddress->fields['address'],
+                            2 => $objAddress->fields['city'],
+                            3 => $objAddress->fields['state'],
+                            4 => $objAddress->fields['zip'],
+                            5 => $objAddress->fields['country'],
+                        );
                         $objAddress->MoveNext();
                     }
                 }

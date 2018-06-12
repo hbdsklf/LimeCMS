@@ -186,7 +186,7 @@ Setting delete <component> [-group=<group>] [-engine=<engine>] [-repository=<rep
                         return;
                 }
                 $hydrator = $this->getComponent('DataAccess')->getController(
-                    'RawOutput'
+                    'CliOutput'
                 );
                 echo $hydrator->parse(
                     array(

@@ -48,7 +48,7 @@ $_ARRAYLANG['SHOP_PASSWORD_CURRENT'] = "Aktuelles Kennwort";
 $_ARRAYLANG['SHOP_PASSWORD_ENTER_EMAIL'] = "Geben Sie die E-Mail Adresse für Ihr Konto ein.<br />Ihnen wird anschliessend ein neues Kennwort zugeschickt.";
 $_ARRAYLANG['SHOP_PASSWORD_NEW'] = "Neues Kennwort";
 $_ARRAYLANG['TXT_ACCEPT_AGB'] = "Bitte bestätigen Sie die Akzeptanz der allgemeinen Geschäftsbedingungen.";
-$_ARRAYLANG['TXT_ACCEPT_TAC'] = "Ich bestätige die Richtigkeit der gemachten Angaben und die <a href=\"index.php?section=Agb\" target=\"_blank\">Geschäftsbedingungen</a> zu kennen und akzeptiere diese.";
+$_ARRAYLANG['TXT_ACCEPT_TAC'] = "Ich bestätige die Richtigkeit der gemachten Angaben und die <a href=\"index.php?section=Agb\" target=\"_blank\">Geschäftsbedingungen</a>, sowie die <a href=\"index.php?section=Privacy\" target=\"_blank\">Datenschutzerklärung</a> zu kennen und akzeptiere diese.";
 $_ARRAYLANG['TXT_ACCOUNT_BANK'] = "Kreditinstitut";
 $_ARRAYLANG['TXT_ACCOUNT_BLZ'] = "Bankleitzahl (BLZ)";
 $_ARRAYLANG['TXT_ACCOUNT_HOLDER'] = "Kontoinhaber";

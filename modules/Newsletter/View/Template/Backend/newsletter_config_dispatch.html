@@ -2,13 +2,33 @@
 <script type="text/javascript">
 // <![CDATA[
     function newsletterUpdate(){
-        if(document.adduser.sender_email.value=="" || document.adduser.sender_name.value=="" || document.adduser.return_path.value=="" || document.adduser.mails_per_run.value==""){
+        if (
+            document.adduser.sender_email.value == "" ||
+            document.adduser.sender_name.value == "" ||
+            document.adduser.return_path.value == "" ||
+            document.adduser.mails_per_run.value == ""
+        ) {
             alert('{TXT_FILL_OUT_ALL_REQUIRED_FIELDS}');
             return false
-        }else{
+        } else {
+            if (
+                cx.jQuery("input[name=statistics_drop]").data("old-val") !=
+                cx.jQuery("input[name=statistics]:checked").val() &&
+                cx.jQuery("input[name=statistics]:checked").val() == 0
+            ) {
+                if (confirm("{TXT_NEWSLETTER_STATISTICS_DROP}")) {
+                    cx.jQuery("input[name=statistics_drop]").val("1");
+                }
+            }
             return true
         }
     }
+    cx.jQuery(document).ready(function() {
+        jQuery("input[name=statistics_drop]").data(
+            "old-val",
+            cx.jQuery("input[name=statistics]:checked").val()
+        );
+    });
 // ]]>
 </script>
 <table width="100%" border="0" cellpadding="3" cellspacing="0" class="adminlist">
@@ -93,6 +113,19 @@
         <label>
             <input type="radio" name="def_unsubscribe" value="0" {NEWSLETTER_UNSUBSCRIBE_DEACTIVATE_ON} />{TXT_NEWSLETTER_UNSUBSCRIBE_DEACTIVATE}
         </label>
+    </td>
+  </tr>
+  <tr class="row1">
+    <td>{TXT_NEWSLETTER_STATISTICS}</td>
+    <td>
+        <label>
+             <input type="radio" name="statistics" value="1" {NEWSLETTER_STATISTICS_ON} />{TXT_NEWSLETTER_NOTIFICATION_ACTIVATE}
+        </label>
+        <label>
+            <input type="radio" name="statistics" value="0" {NEWSLETTER_STATISTICS_OFF} />{TXT_NEWSLETTER_NOTIFICATION_DEACTIVATE}
+        </label>
+      <span class="tooltip-trigger icon-info"></span><span class="tooltip-message">{TXT_NEWSLETTER_STATISTICS_TOOLTIP}</span>
+      <input type="hidden" name="statistics_drop" value="0" />
     </td>
   </tr>
 

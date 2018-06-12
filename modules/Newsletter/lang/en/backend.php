@@ -507,3 +507,6 @@ $_ARRAYLANG['TXT_NEWSLETTER_CRM_MEMBERSHIP_FILTER_TOOLTIP'] = 'If your E-Mail Ma
 $_ARRAYLANG['TXT_NEWSLETTER_CHOOSE_CRM_MEMBERSHIPS'] = 'Select customer groups';
 $_ARRAYLANG['TXT_NEWSLETTER_CRM_MEMBERSHIP_INCLUDE_TXT'] = 'Only send campaign to members of selected customer groups:';
 $_ARRAYLANG['TXT_NEWSLETTER_CRM_MEMBERSHIP_EXCLUDE_TXT'] = 'Don\'t send campaign to members of selected customer groups:';
+$_ARRAYLANG['TXT_NEWSLETTER_STATISTICS'] = 'Enable statistics';
+$_ARRAYLANG['TXT_NEWSLETTER_STATISTICS_TOOLTIP'] = 'Please note that the information tracked by this metric could contain personal data which is prohibited by law in most countries without explicit consent of the affected person.';
+$_ARRAYLANG['TXT_NEWSLETTER_STATISTICS_DROP'] = 'Do you want to delete the tracked data?';

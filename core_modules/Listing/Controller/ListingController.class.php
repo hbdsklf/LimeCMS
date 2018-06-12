@@ -373,7 +373,7 @@ class ListingController {
             // render goto start
             $url = clone \Env::get('cx')->getRequest()->getUrl();
             $url->setParam($paramName, 0);
-            $html .= '<a href="' . $url . '">&lt;&lt;</a>&nbsp;';
+            $html .= '<a href="' . $url . '">&lt;&lt;</a> ';
 
             // render goto previous
             $pagePos = ($activePageNumber - 2) * $this->count;
@@ -382,7 +382,7 @@ class ListingController {
             }
             $url = clone \Env::get('cx')->getRequest()->getUrl();
             $url->setParam($paramName, $pagePos);
-            $html .= '<a href="' . $url . '">&lt;</a>&nbsp;';
+            $html .= '<a href="' . $url . '">&lt;</a> ';
         } else {
             $html .= '&lt;&lt;&nbsp;&lt;&nbsp;';
         }
@@ -390,14 +390,14 @@ class ListingController {
         for ($pageNumber = 1; $pageNumber <= $numberOfPages; $pageNumber++) {
             if ($pageNumber == $activePageNumber) {
                 // render page without link
-                $html .= $pageNumber . '&nbsp;';
+                $html .= $pageNumber . ' ';
                 continue;
             }
             // render page with link
             $pagePos = ($pageNumber - 1) * $this->count;
             $url = clone \Env::get('cx')->getRequest()->getUrl();
             $url->setParam($paramName, $pagePos);
-            $html .= '<a href="' . $url . '">' . $pageNumber . '</a>&nbsp;';
+            $html .= '<a href="' . $url . '">' . $pageNumber . '</a> ';
         }
 
         if ($this->offset + $this->count < $this->entityClass->size()) {
@@ -408,7 +408,7 @@ class ListingController {
             }
             $url = clone \Env::get('cx')->getRequest()->getUrl();
             $url->setParam($paramName, $pagePos);
-            $html .= '<a href="' . $url . '">&gt;</a>&nbsp;';
+            $html .= '<a href="' . $url . '">&gt;</a> ';
 
             // render goto last page
             $url = clone \Env::get('cx')->getRequest()->getUrl();

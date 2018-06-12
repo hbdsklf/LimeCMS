@@ -73,7 +73,6 @@ class JsonFEController extends \Cx\Core\Core\Model\Entity\Controller implements 
     }
     
     public function getToggleButton($params) {
-        $this->getComponent('Session')->getSession();
         if (
             !$this->frontendEditingIsActive(true, false) ||
             !isset($params['get']) ||

@@ -438,7 +438,7 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
         $sessionId = !empty($_COOKIE[session_name()]) ? $_COOKIE[session_name()] : null;
         if (isset($_POST['remember_me'])) {
             $this->rememberMe = true;
-            if ($this->sessionExists($sessionId)) {//remember me status for new sessions will be stored in cmsSessionRead() (when creating the appropriate db entry)
+            if (static::sessionExists($sessionId)) {//remember me status for new sessions will be stored in cmsSessionRead() (when creating the appropriate db entry)
                 \Env::get('db')->Execute('UPDATE `' . DBPREFIX . 'sessions` SET `remember_me` = 1 WHERE `sessionid` = "' . contrexx_input2db($sessionId) . '"');
             }
         } else {
@@ -452,13 +452,32 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
     }
 
     /**
-     * Checks if the passed session exists.
+     * Check if a session exists
      *
-     * @access  protected
-     * @param   string     $sessionId
-     * @return  boolean
+     * If a session-ID is passed as $sessionId, then it will check if a session
+     * identified by that session-ID is present.
+     * Otherwise it will check if a session identified by the session-cookie
+     * exists.
+     *
+     * @param   string     $sessionId   Session-ID to check for
+     * @return  boolean TRUE if a session exists. Otherwise FALSE.
      */
-    protected function sessionExists($sessionId) {
+    public static function sessionExists($sessionId = '') {
+        if (static::isInitialized()) {
+            return true;
+        }
+
+        if (
+            empty($sessionId) &&
+            !empty($_COOKIE[session_name()])
+        ) {
+            $sessionId = $_COOKIE[session_name()];
+        }
+
+        if (empty($sessionId)) {
+            return false;
+        }
+
         /** @var $objResult ADORecordSet */
         $objResult = \Env::get('db')->Execute('SELECT 1 FROM `' . DBPREFIX . 'sessions` WHERE `sessionid` = "' . contrexx_input2db($sessionId) . '"');
         if ($objResult && ($objResult->RecordCount() > 0)) {

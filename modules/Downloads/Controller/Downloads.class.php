@@ -956,7 +956,13 @@ JS_CODE;
         $allowDeleteCategories = !$objCategory->getManageSubcategoriesAccessId()
                             || \Permission::checkAccess($objCategory->getManageSubcategoriesAccessId(), 'dynamic', true)
                             || $objCategory->getOwnerId() == $this->userId;
-        $sortOrder      = $this->categoriesSortingOptions[$this->arrConfig['categories_sorting_order']];
+        $sortOrder = $this->fetchSortOrderFromTemplate(
+            $arrCategoryBlocks[0],
+            $this->objTemplate,
+            $this->arrConfig['categories_sorting_order'],
+            $this->categoriesSortingOptions
+        );
+
         $objSubcategory = Category::getCategories(array('parent_id' => $objCategory->getId(), 'is_active' => true), null, $sortOrder, null, $categoryLimit);
 
         if ($objSubcategory->EOF) {
@@ -1145,7 +1151,12 @@ JS_CODE;
         }
 
         $objDownload = new Download();
-        $sortOrder   = $this->downloadsSortingOptions[$this->arrConfig['downloads_sorting_order']];
+        $sortOrder = $this->fetchSortOrderFromTemplate(
+            'downloads_' . strtolower($variablePrefix) . 'file_list',
+            $this->objTemplate,
+            $this->arrConfig['downloads_sorting_order'],
+            $this->downloadsSortingOptions
+        );
         $objDownload->loadDownloads(
             $filter,
             $this->searchKeyword,
@@ -1329,6 +1340,7 @@ JS_CODE;
             'DOWNLOADS_'.$variablePrefix.'FILE_FILE_TYPE_ICON'     => $this->getHtmlImageTag($objDownload->getFileIcon(), htmlentities($objDownload->getName($_LANGID), ENT_QUOTES, CONTREXX_CHARSET)),
             'DOWNLOADS_'.$variablePrefix.'FILE_DELETE_ICON'        => $deleteIcon,
             'DOWNLOADS_'.$variablePrefix.'FILE_DOWNLOAD_LINK_SRC'  => CONTREXX_SCRIPT_PATH . $this->moduleParamsHtml . '&amp;download=' . $objDownload->getId(),
+            'DOWNLOADS_'.$variablePrefix.'FILE_DOWNLOAD_LINK_SRC_INLINE'=> CONTREXX_SCRIPT_PATH . $this->moduleParamsHtml . '&amp;download=' . $objDownload->getId() . '&amp;disposition=' . HTTP_DOWNLOAD_INLINE,
             'DOWNLOADS_'.$variablePrefix.'FILE_OWNER'              => contrexx_raw2xhtml($this->getParsedUsername($objDownload->getOwnerId())),
             'DOWNLOADS_'.$variablePrefix.'FILE_OWNER_ID'           => $objDownload->getOwnerId(),
             'DOWNLOADS_'.$variablePrefix.'FILE_SRC'                => htmlentities($objDownload->getSourceName(), ENT_QUOTES, CONTREXX_CHARSET),
@@ -1418,7 +1430,12 @@ JS_CODE;
             return;
         }
 
-        $sortOrder          = $this->downloadsSortingOptions[$this->arrConfig['downloads_sorting_order']];
+        $sortOrder = $this->fetchSortOrderFromTemplate(
+            'downloads_related_file_list',
+            $this->objTemplate,
+            $this->arrConfig['downloads_sorting_order'],
+            $this->downloadsSortingOptions
+        );
         $objRelatedDownload =
             $objDownload->getDownloads(
                 array('download_id' => $objDownload->getId()),
@@ -1585,7 +1602,15 @@ JS_CODE;
             $objDownload->incrementDownloadCount();
 
             if ($objDownload->getType() == 'file') {
-                $objDownload->send();
+                $disposition = HTTP_DOWNLOAD_ATTACHMENT;
+                if (!empty($_GET['disposition'])) {
+                    $disposition = contrexx_input2raw($_GET['disposition']);
+                }
+
+                $objDownload->send(
+                    DownloadsLibrary::getOutputLocale()->getId(),
+                    $disposition
+                );
             } else {
                 // add socket -> prevent to hide the source from the customer
                 \Cx\Core\Csrf\Controller\Csrf::header('Location: '.$objDownload->getSource());
@@ -1666,4 +1691,79 @@ JS_CODE;
         }
     }
 
+    /**
+     * Identify functional placeholder in the block $block of template
+     * $template that will determine the sort order of the downloads.
+     * Placeholder can have the following form:
+     * - DOWNLOADS_CONFIG_LIST_CUSTOM => Order by custom order
+     * - DOWNLOADS_CONFIG_LIST_ALPHABETIC => Order alphabetically
+     * - DOWNLOADS_CONFIG_LIST_NEWESTTOOLDEST => Order by latest
+     * - DOWNLOADS_CONFIG_LIST_OLDESTTONEWEST => Order by oldest
+     *
+     * @param   string  $block Name of the template block to look up for
+     *                         functional placeholder
+     * @param   \Cx\Core\Html\Sigma $template   Template object where the block
+     *                                          $block is located in
+     * @param   string  $defaultSortOrder   Fallback sort order in case no
+     *                                      functional placeholder can be
+     *                                      located in the supplied template.
+     * @param   array   List of available sort order definitions. Format:
+     *                  <code>array = (
+     *                      '<order_name>' => array(
+     *                          '<field>' => '<direction>',
+     *                          ...
+     *                      ),
+     *                      ...
+     *                  )
+     *                  </code>
+     *                  Example:
+     *                  <code>array(
+     *                      'custom' => array(
+     *                          'order' => 'ASC',
+     *                          'name'  => 'ASC',
+     *                          'id'    => 'ASC'
+     *                      ),
+     *                      'alphabetic' => array(
+     *                          'name' => 'ASC',
+     *                          'id'   => 'ASC'
+     *                      ),
+     *                  )</code>
+     * @return  array   Identified sort oder. If no functional placeholder has
+     *                  been found in the supplied template, then the default
+     *                  sort order (defined by $defaultSortOrder) is returned.
+     *                  The returned array is an element of $orderOptions.
+     */
+    protected function fetchSortOrderFromTemplate($block, $template, $defaultSortOrder, $orderOptions) {
+        $placeholderList = $template->getPlaceholderList($block);
+        $placeholderListAsString = join("\n", $placeholderList);
+
+        $orderKeys = array_keys($orderOptions);
+        $optionsRegex = join(
+            '|',
+            array_map('strtoupper', $orderKeys)
+        );
+
+        // check if functional placeholder exists in template
+        if (
+            !preg_match(
+                '/DOWNLOADS_CONFIG_LIST_(' . $optionsRegex . ')/',
+                $placeholderListAsString,
+                $match
+            )
+        ) {
+            // return default sort order as no functional placeholder
+            // exists in template
+            return $orderOptions[$defaultSortOrder];
+        }
+
+        // fetch case-sensitive writting of option
+        $options = preg_grep(
+            '/' . $match[1] . '/i',
+            $orderKeys
+        );
+
+        // return identified sort order from functional placeholder
+        // from template
+        return $orderOptions[current($options)];
+    }
 }

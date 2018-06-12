@@ -1112,7 +1112,6 @@ class BackendController extends \Cx\Core\Core\Model\Entity\SystemComponentBacken
                 'Order',
                 'Pdf',
                 'Pim',
-                'Privacy',
                 'Routing',
                 'Security',
                 'Session',

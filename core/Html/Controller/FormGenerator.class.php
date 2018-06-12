@@ -221,13 +221,14 @@ class FormGenerator {
                         'length' => $length,
                         'value' => $value,
                         'options' => $options,
+                        'id' => $entityId,
                     )
                 );
                 if ($jsonResult['status'] == 'success') {
                     $formField = $jsonResult["data"];
                 }
             } else if (is_callable($formFieldGenerator)){
-                $formField = $formFieldGenerator($name, $type, $length, $value, $options);
+                $formField = $formFieldGenerator($name, $type, $length, $value, $options, $entityId);
             }
 
             if (is_a($formField, 'Cx\Core\Html\Model\Entity\HtmlElement')) {

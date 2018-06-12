@@ -2716,6 +2716,17 @@ class DownloadsManager extends DownloadsLibrary
         $this->_pageTitle = $_ARRAYLANG['TXT_DOWNLOADS_SETTINGS'];
         $this->objTemplate->loadTemplateFile('module_downloads_settings.html');
 
+        /**
+         * @ignore
+         */
+        \Env::get('ClassLoader')->loadFile(ASCMS_LIBRARY_PATH . '/PEAR/Download.php');
+
+        $linkMethods = array(
+            'detail',
+            HTTP_DOWNLOAD_ATTACHMENT,
+            HTTP_DOWNLOAD_INLINE,
+        );
+
         if (isset($_POST['downloads_settings_save'])) {
             $this->arrConfig['overview_cols_count']         = !empty($_POST['downloads_settings_col_count']) ? intval($_POST['downloads_settings_col_count']) : $this->arrConfig['overview_cols_count'];
             $this->arrConfig['overview_max_subcats']        = !empty($_POST['downloads_settings_subcat_count']) ? intval($_POST['downloads_settings_subcat_count']) : $this->arrConfig['overview_max_subcats'];
@@ -2727,6 +2738,23 @@ class DownloadsManager extends DownloadsLibrary
             $this->arrConfig['use_attr_website']            = !empty($_POST['downloads_settings_attribute_website']) ? intval($_POST['downloads_settings_attribute_website']) : 0;
             $this->arrConfig['list_downloads_current_lang'] = !empty($_POST['downloads_settings_list_downloads_current_lang']) ? contrexx_input2int($_POST['downloads_settings_list_downloads_current_lang']) : 0;
             $this->arrConfig['integrate_into_search_component'] = !empty($_POST['downloads_settings_integrate_into_search_component']) ? contrexx_input2int($_POST['downloads_settings_integrate_into_search_component']) : 0;
+
+            if (
+                !empty(
+                    $_POST['downloads_settings_global_search_linking']
+                ) &&
+                in_array(
+                    $_POST['downloads_settings_global_search_linking'],
+                    $linkMethods
+                )
+            ) {
+                $this->arrConfig['global_search_linking'] =
+                    $_POST['downloads_settings_global_search_linking'];
+            } else {
+                $this->arrConfig['global_search_linking'] =
+                    current($linkMethods);
+            }
+
             $this->arrConfig['most_viewed_file_count']      = !empty($_POST['downloads_settings_most_viewed_file_count']) ? intval($_POST['downloads_settings_most_viewed_file_count']) : $this->arrConfig['most_viewed_file_count'];
             $this->arrConfig['most_downloaded_file_count']  = !empty($_POST['downloads_settings_most_downloaded_file_count']) ? intval($_POST['downloads_settings_most_downloaded_file_count']) : $this->arrConfig['most_downloaded_file_count'];
             $this->arrConfig['most_popular_file_count']     = !empty($_POST['downloads_settings_most_popular_file_count']) ? intval($_POST['downloads_settings_most_popular_file_count']) : $this->arrConfig['most_popular_file_count'];
@@ -2766,6 +2794,29 @@ class DownloadsManager extends DownloadsLibrary
         $this->parseSettingsDropDown($this->objTemplate, $this->downloadsSortingOptions, $this->arrConfig['downloads_sorting_order'], 'downloads');
         $this->parseSettingsDropDown($this->objTemplate, $this->categoriesSortingOptions, $this->arrConfig['categories_sorting_order'], 'categories');
 
+        $linkMethodOptions = '';
+        foreach ($linkMethods as $linkMethod) {
+            $option = new \Cx\Core\Html\Model\Entity\HtmlElement('option');
+            $option->setAttribute('value', $linkMethod);
+            if (
+                $this->arrConfig['global_search_linking'] ==
+                $linkMethod
+            ) {
+                $option->setAttribute('selected', 'selected');
+            }
+            $optionText = new \Cx\Core\Html\Model\Entity\TextElement(
+                sprintf(
+                    $_ARRAYLANG[
+                        'TXT_DOWNLOADS_SEARCH_LINK_METHOD_' .
+                        strtoupper($linkMethod)
+                    ],
+                    $linkMethod
+                )
+            );
+            $option->addChild($optionText);
+            $linkMethodOptions .= $option;
+        }
+
         $action = '';
         if (isset($_GET['act'])) {
             $action = $_GET['act'];
@@ -2777,6 +2828,7 @@ class DownloadsManager extends DownloadsLibrary
             'TXT_DOWNLOADS_SETTINGS_SEARCH'                 => $_ARRAYLANG['TXT_DOWNLOADS_SETTINGS_SEARCH'],
             'TXT_DOWNLOADS_INTEGRATE_INTO_SEARCH_COMPONENT' => $_ARRAYLANG['TXT_DOWNLOADS_INTEGRATE_INTO_SEARCH_COMPONENT'],
             'TXT_DOWNLOADS_INTEGRATE_INTO_SEARCH_COMPONENT_TXT'=> $_ARRAYLANG['TXT_DOWNLOADS_INTEGRATE_INTO_SEARCH_COMPONENT_TXT'],
+            'TXT_DOWNLOADS_SEARCH_LINK_METHOD'              => $_ARRAYLANG['TXT_DOWNLOADS_SEARCH_LINK_METHOD'],
             'TXT_DOWNLOADS_OVERVIEW_PAGE'                   => $_ARRAYLANG['TXT_DOWNLOADS_OVERVIEW_PAGE'],
             'TXT_DOWNLOADS_COL_COUNT'                       => $_ARRAYLANG['TXT_DOWNLOADS_COL_COUNT'],
             'TXT_DOWNLOADS_COL_COUNT_DESC'                  => $_ARRAYLANG['TXT_DOWNLOADS_COL_COUNT_DESC'],
@@ -2824,8 +2876,6 @@ class DownloadsManager extends DownloadsLibrary
             'TXT_DOWNLOADS_SETTINGS_OPTION_SORTING_DESC'    => $_ARRAYLANG['TXT_DOWNLOADS_SETTINGS_OPTION_SORTING_DESC'],
             'TXT_DOWNLOADS_SETTINGS_CUSTOM_LABEL'           => $_ARRAYLANG['TXT_DOWNLOADS_SETTINGS_CUSTOM_LABEL'],
             'TXT_DOWNLOADS_SETTINGS_ALPHABETIC_LABEL'       => $_ARRAYLANG['TXT_DOWNLOADS_SETTINGS_ALPHABETIC_LABEL'],
-            'TXT_DOWNLOADS_SETTINGS_NEWEST_TO_OLDEST_LABEL' => $_ARRAYLANG['TXT_DOWNLOADS_SETTINGS_NEWEST_TO_OLDEST_LABEL'],
-            'TXT_DOWNLOADS_SETTINGS_OLDEST_TO_NEWEST_LABEL' => $_ARRAYLANG['TXT_DOWNLOADS_SETTINGS_OLDEST_TO_NEWEST_LABEL'],
             'TXT_DOWNLOADS_LIST_DOWNLOADS_CURRENT_LANG'     => $_ARRAYLANG['TXT_DOWNLOADS_LIST_DOWNLOADS_CURRENT_LANG'],
             'TXT_DOWNLOADS_LIST_DOWNLOADS_CURRENT_LANG_DESC'=> $_ARRAYLANG['TXT_DOWNLOADS_LIST_DOWNLOADS_CURRENT_LANG_DESC'],
             'DOWNLOADS_SETTINGS_COL_COUNT'                  => $this->arrConfig['overview_cols_count'],
@@ -2838,6 +2888,7 @@ class DownloadsManager extends DownloadsLibrary
             'DOWNLOADS_SETTINGS_ATTRIBUTE_WEBSITE_CHECKED'  => $this->arrConfig['use_attr_website'] ? 'checked="checked"' : '',
             'DOWNLOADS_SETTINGS_LIST_DOWNLOADS_CURRENT_LANG'=> $this->arrConfig['list_downloads_current_lang'] ? 'checked="checked"' : '',
             'DOWNLOADS_SETTINGS_INTEGRATE_INTO_SEARCH_COMPONENT'=> $this->arrConfig['integrate_into_search_component'] ? 'checked="checked"' : '',
+            'DOWNLOADS_SETTINGS_SEARCH_LINK_OPTIONS'        => $linkMethodOptions,
             'DOWNLOADS_SETTINGS_MOST_VIEWED_FILE_COUNT'     => $this->arrConfig['most_viewed_file_count'],
             'DOWNLOADS_SETTINGS_MOST_DOWNLOADED_FILE_COUNT' => $this->arrConfig['most_downloaded_file_count'],
             'DOWNLOADS_SETTINGS_MOST_POPULAR_FILE_COUNT'    => $this->arrConfig['most_popular_file_count'],

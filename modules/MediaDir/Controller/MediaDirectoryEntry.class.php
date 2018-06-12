@@ -1956,37 +1956,65 @@ JSCODE;
      */
     public function searchResultsForSearchModule($searchTerm)
     {
-        $em = \Env::get('cx')->getDb()->getEntityManager();
-        $pageRepo = $em->getRepository('Cx\Core\ContentManager\Model\Entity\Page');
-
-        // only list results in case the associated page of the module is active
-        $page = $pageRepo->findOneBy(array(
-            'module' => 'MediaDir',
-            'lang'   => FRONTEND_LANG_ID,
-            'type'   => \Cx\Core\ContentManager\Model\Entity\Page::TYPE_APPLICATION,
-        ));
-
-        //If page is not exists or page is inactive then return empty result
-        if (!$page || !$page->isActive()) {
-            return array();
-        }
-
         //get the config site values
         \Cx\Core\Setting\Controller\Setting::init('Config', 'site','Yaml');
         $coreListProtectedPages   = \Cx\Core\Setting\Controller\Setting::getValue('coreListProtectedPages','Config');
         $searchVisibleContentOnly = \Cx\Core\Setting\Controller\Setting::getValue('searchVisibleContentOnly','Config');
+
         //get the config otherConfigurations value
         \Cx\Core\Setting\Controller\Setting::init('Config', 'otherConfigurations','Yaml');
         $searchDescriptionLength  = \Cx\Core\Setting\Controller\Setting::getValue('searchDescriptionLength','Config');
 
-        $hasPageAccess = true;
-        $isNotVisible = ($searchVisibleContentOnly == 'on') && !$page->isVisible();
-        if ($coreListProtectedPages == 'off' && $page->isFrontendProtected()) {
-            $hasPageAccess = \Permission::checkAccess($page->getFrontendAccessId(), 'dynamic', true);
+        // fetch data about existing application pages of this component
+        $cmds = array();
+        $em = $this->cx->getDb()->getEntityManager();
+        $pageRepo = $em->getRepository('Cx\Core\ContentManager\Model\Entity\Page');
+        $pages = $pageRepo->getAllFromModuleCmdByLang($this->moduleName);
+        foreach ($pages as $pagesOfLang) {
+            foreach ($pagesOfLang as $page) {
+                $cmds[] = $page->getCmd();
+            }
         }
 
-        //If the page is invisible and frontend access is denied then return empty result
-        if ($isNotVisible || !$hasPageAccess) {
+        // check if an application page is published
+        $cmds = array_unique($cmds);
+        foreach ($cmds as $idx => $cmd) {
+            // fetch application page with specific CMD from current locale
+            $page = $pageRepo->findOneByModuleCmdLang($this->moduleName, $cmd, FRONTEND_LANG_ID);
+
+            // skip if page does not exist in current locale or has not been
+            // published
+            if (
+                !$page ||
+                !$page->isActive()
+            ) {
+                unset($cmds[$idx]);
+                continue;
+            }
+
+            // skip invisible page (if excluded from search)
+            if (
+                $searchVisibleContentOnly == 'on' &&
+                !$page->isVisible()
+            ) {
+                unset($cmds[$idx]);
+                continue;
+            }
+
+            // skip protected page (if excluded from search)
+            if (
+                $coreListProtectedPages == 'off' &&
+                $page->isFrontendProtected() &&
+                $page->getComponent('Session')->getSession() &&
+                !\Permission::checkAccess($page->getFrontendAccessId(), 'dynamic', true)
+            ) {
+                unset($cmds[$idx]);
+                continue;
+            }
+        }
+
+        // abort in case no valid application page is published
+        if (empty($cmds)) {
             return array();
         }
 
@@ -2057,10 +2085,13 @@ JSCODE;
             }
 
             $results[] = array(
-                'Score'   => 100,
-                'Title'   => html_entity_decode(contrexx_strip_tags($title), ENT_QUOTES, CONTREXX_CHARSET),
-                'Content' => $content,
-                'Link'    => $pageUrlResult->toString()
+                'Score'     => 100,
+                'Title'     => html_entity_decode(
+                    contrexx_strip_tags($title), ENT_QUOTES, CONTREXX_CHARSET
+                ),
+                'Content'   => $content,
+                'Link'      => (string) $pageUrlResult,
+                'Component' => $this->moduleName,
             );
         }
         return $results;

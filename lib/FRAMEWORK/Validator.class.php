@@ -146,6 +146,35 @@ class FWValidator
     const REGEX_URI_JS = VALIDATOR_REGEX_URI_JS;
 
     /**
+     * Array of harmful file extensions
+     *
+     * File uploads having those extensions are denied.
+     * 
+     * @var array
+     */
+    protected static $evilFileExtensions = array(
+        # windows executables:
+        'exe', 'bat', 'pif', 'com',
+        # client scripts:
+        'vs', 'vbs',
+        # server scripts:
+        'php', 'php4', 'php5', 'phps', 'cgi', 'pl', 'jsp', 'jspx', 'asp', 'aspx',
+        'jsp', 'jspx', 'jhtml', 'phtml', 'cfm', 'htaccess','py',
+    );
+
+    /**
+     * Array of potential harmful file extensions (client script containers)
+     * 
+     * File uploads having those extensions may be allowed by config
+     *
+     * @var array
+     */
+    protected  static $potentialEvilFileExtensions = array(
+        # client script containers:
+        'xhtml', 'xml', 'svg', 'shtml',
+    );
+
+    /**
      * Validate an E-mail address
      *
      * Note:  This used to have a stripslashes() around the string.
@@ -201,7 +230,7 @@ class FWValidator
     {
         $arrMatches = array();
         preg_match_all(
-            '/\s('.VALIDATOR_REGEX_EMAIL.')\.?\s/', $string, $arrMatches);
+            '/(?:^|\s)('.VALIDATOR_REGEX_EMAIL.')\.?(?:\s|$)/i', $string, $arrMatches);
         return $arrMatches[0]; // include spaces
         // return $arrMatches[1]; // exclude spaces
     }
@@ -238,20 +267,61 @@ class FWValidator
      */
     static function is_file_ending_harmless($file)
     {
-        $evil = array(
-            # windows executables:
-            'exe', 'bat', 'pif', 'com',
-            # client scripts:
-            'vs', 'vbs',
-            # client script containers:
-            'xhtml', 'xml', 'svg', 'shtml',
-            # server scripts:
-            'php', 'php4', 'php5', 'phps', 'cgi', 'pl', 'jsp', 'jspx', 'asp', 'aspx',
-            'jsp', 'jspx', 'jhtml', 'phtml', 'cfm', 'htaccess','py',
-        );
         $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-        if (in_array($ext, $evil)) return false;
-        return true;
+
+        // check if file is harmfull
+        if (in_array($ext, self::$evilFileExtensions)) {
+            return false;
+        }
+
+        //Check the file extension is present in $potentialEvilFileExtensions
+        //if so, check the config options 
+        //'allowClientsideScriptUpload' and 'allowClientSideScriptUploadOnGroups'.
+        //If the option 'allowClientsideScriptUpload' is 'nobody' then its a harmful file
+        //else if the option is 'groups' and the current user is member of the 
+        // groups mentioned in the option 'allowClientSideScriptUploadOnGroups' then
+        //its a harmless file.
+        //If the option is 'all' then its a harmless file too.
+
+        // if file is not potentially harmfull, then the file is harmless
+        if (!in_array($ext, self::$potentialEvilFileExtensions)) {
+            return true;
+        }
+
+        $allowedCSUpload = \Cx\Core\Setting\Controller\Setting::getValue(
+            'allowClientsideScriptUpload',
+            'Config'
+        );
+        $allowedCSGroups = \Cx\Core\Setting\Controller\Setting::getValue(
+            'allowClientSideScriptUploadOnGroups',
+            'Config'
+        );
+
+        // Check if we are allowed to process the potentially harmful file.
+        // no restriction set at all
+        if ($allowedCSUpload == 'all') {
+            return true;
+        }
+
+        // check if we are a member of a user group that is allowed to upload
+        // potentially harmfull files
+        if (
+            $allowedCSUpload == 'groups' &&
+            (
+                \FWUser::getFWUserObject()->objUser->getAdminStatus() ||
+                count(
+                    array_intersect(
+                        explode(',', $allowedCSGroups),
+                        \FWUser::getFWUserObject()->objUser->getAssociatedGroupIds()
+                    )
+                )
+            )
+        ) {
+            return true;
+        }
+
+        // fallback to file is harmfull
+        return false;
     }
 
 

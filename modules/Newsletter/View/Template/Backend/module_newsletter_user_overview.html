@@ -168,7 +168,9 @@ var cxDataList = function() {
             recipientRow.append($(htmlTd).append(user.zip));
             recipientRow.append($(htmlTd).append(user.city));
             recipientRow.append($(htmlTd).append(user.country));
-            recipientRow.append($(htmlTd).append($(htmlAFeedback.replace('[id]', user.id).replace('[type]', user.type)).append(user.feedback)));
+            if (user.feedback) {
+                recipientRow.append($(htmlTd).append($(htmlAFeedback.replace('[id]', user.id).replace('[type]', user.type)).append(user.feedback)));
+            }
             recipientRow.append($(htmlTd).append(user.emaildate));
             recipientRow.append(userFunctions);
 
@@ -395,9 +397,11 @@ var confirmDeleteInactive = function() {
                     <td nowrap width="10%">
                         {TXT_COUNTRY}
                     </td>
+                    <!-- BEGIN statistics -->
                     <td nowrap width="1%">
                         {TXT_NEWSLETTER_USER_FEEDBACK}
                     </td>
+                    <!-- END statistics -->
                     <td nowrap width="5%">
                         <a name="listSort[emaildate]" rel="desc">{TXT_NEWSLETTER_REGISTRATION_DATE}</a>
                     </td>

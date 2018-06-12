@@ -1685,6 +1685,7 @@ if ($test === NULL) {
         $flagEditTabActive = false;
         $parent_id = 0;
         $name = '';
+        $short = '';
         $desc = '';
         $active = true;
         $virtual = false;
@@ -1697,6 +1698,7 @@ if ($test === NULL) {
             if ($objCategory) {
                 $parent_id = $objCategory->parent_id();
                 $name = contrexx_raw2xhtml($objCategory->name());
+                $short = $objCategory->shortDescription();
                 $desc = $objCategory->description();
                 $active = $objCategory->active();
                 $virtual = $objCategory->virtual();
@@ -1732,6 +1734,7 @@ if ($test === NULL) {
                 ($virtual ? \Html::ATTRIBUTE_CHECKED : ''),
             'SHOP_CATEGORY_ACTIVE_CHECKED' =>
                 ($active ? \Html::ATTRIBUTE_CHECKED : ''),
+            'SHOP_CATEGORY_SHORT_DESCRIPTION' => $short,
             'SHOP_CATEGORY_DESCRIPTION' => $desc,
             'SHOP_CATEGORY_EDIT_ACTIVE' => ($flagEditTabActive ? 'active' : ''),
             'SHOP_CATEGORY_EDIT_DISPLAY' => ($flagEditTabActive ? 'block' : 'none'),
@@ -1830,6 +1833,7 @@ if ($test === NULL) {
         $virtual = isset($_POST['virtual']);
         $parentid = intval($_POST['parent_id']);
         $picture = contrexx_input2raw($_POST['image_href']);
+        $short = contrexx_input2raw($_POST['short']);
         $long = contrexx_input2raw($_POST['desc']);
         $objCategory = null;
         if ($category_id > 0) {
@@ -1843,12 +1847,13 @@ if ($test === NULL) {
             // If the values are identical, leave the parent ID alone!
             if ($category_id != $parentid) $objCategory->parent_id($parentid);
             $objCategory->name($name);
+            $objCategory->shortDescription($short);
             $objCategory->description($long);
             $objCategory->active($active);
         } else {
             // Add new ShopCategory
             $objCategory = new ShopCategory(
-                $name, $long, $parentid, $active, 0);
+                $name, $short, $long, $parentid, $active, 0);
         }
         // Ignore the picture if it's the default image!
         // Storing it would be pointless, and we should

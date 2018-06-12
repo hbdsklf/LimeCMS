@@ -859,6 +859,11 @@ class NewsletterLib
     {
         global $objDatabase;
 
+        $arrSettings = static::_getSettings();
+        if (!$arrSettings['statistics']['setvalue']) {
+            return $MailHtmlContent;
+        }
+
         $result = $MailHtmlContent;
         $matches = NULL;
         if (preg_match_all("/<a([^>]+)>(.*?)<\/a>/is", $result, $matches)) {

@@ -71,7 +71,6 @@ class EsiWidgetController extends \Cx\Core_Modules\Widget\Controller\EsiWidgetCo
         );
 
         if (preg_match('/^access_logged_(in|out)\d{0,2}/', $name)) {
-            $this->getComponent('Session')->getSession();
             \FWUser::parseLoggedInOutBlocks($template);
             return;
         }

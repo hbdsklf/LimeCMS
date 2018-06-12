@@ -130,6 +130,11 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
             $page->setContent('');
             return;
         }
+
+        // we must force user based cache as the form might contain
+        // user attribute fields data
+        $cx->getComponent('Cache')->forceUserbasedPageCache();
+
         $theme = $themeRepo->findById(\Env::get('init')->getCurrentThemeId());
         $useCaptcha =
             !\FWUser::getFWUserObject()->objUser->login() &&
@@ -216,6 +221,8 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
 // TODO: check if _uploadFiles does something dangerous with $arrFormData['fields'] (this is raw data!)
             $arrFormData['uploadedFiles'] = $this->_uploadFiles($arrFormData['fields']);
 
+            $arrFormData['data'] = array();
+            $arrFormData['meta'] = array();
             foreach ($_POST as $key => $value) {
                 if ((($value === '0') || !empty($value)) && !in_array($key, array('Submit', 'submitContactForm', 'contactFormCaptcha'))) {
                     $id = intval(substr($key, 17));
@@ -885,14 +892,14 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
                     if ($objTemplate->blockExists('field_'.$fieldId)) {
                         // parse field specific template block
                         $objTemplate->setVariable(array(
-                            'FIELD_'.$fieldId.'_LABEL' => contrexx_raw2xhtml($fieldLabel),
+                            'FIELD_'.$fieldId.'_LABEL' => strip_tags($fieldLabel),
                             'FIELD_'.$fieldId.'_VALUE' => $htmlValue,
                         ));
                         $objTemplate->parse('field_'.$fieldId);
                     } elseif ($objTemplate->blockExists('form_field')) {
                         // parse regular field template block
                         $objTemplate->setVariable(array(
-                            'FIELD_LABEL'   => contrexx_raw2xhtml($fieldLabel),
+                            'FIELD_LABEL'   => strip_tags($fieldLabel),
                             'FIELD_VALUE'   => $htmlValue,
                         ));
                         $objTemplate->parse('form_field');
@@ -1064,12 +1071,7 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
      */
     function _getEmailAdressOfString($string)
     {
-        $arrMatch = array();
-        if (preg_match('/'.\FWValidator::REGEX_EMAIL.'/', $string, $arrMatch)) {
-            return $arrMatch[0];
-        } else {
-            return false;
-        }
+        return current(\FWValidator::getEmailAsArray($string));
     }
 
     /**
@@ -1157,10 +1159,10 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
     protected static function getTemporaryUploadPath($fieldId)
     {
         $cx = \Cx\Core\Core\Controller\Cx::instanciate();
-        $sessionObj = $cx->getComponent('Session')->getSession();
+        $session = $cx->getComponent('Session')->getSession();
 
-        $tempPath = $_SESSION->getTempPath();
-        $tempWebPath = $_SESSION->getWebTempPath();
+        $tempPath = $session->getTempPath();
+        $tempWebPath = $session->getWebTempPath();
         if($tempPath === false || $tempWebPath === false)
             throw new \Cx\Core_Modules\Contact\Controller\ContactException('could not get temporary session folder');
 

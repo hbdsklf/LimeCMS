@@ -1489,7 +1489,7 @@ UPLOADER;
      */
     protected function getUploaderCode($fieldKey, $fieldName, $uploadCallBack = "uploadFinished", $allowImageOnly = true)
     {
-        $this->cx->getComponent('Session')->getSession();
+        $session = $this->cx->getComponent('Session')->getSession();
         try {
             $uploader      = new \Cx\Core_Modules\Uploader\Model\Entity\Uploader();
             $uploaderId    = $uploader->getId();
@@ -1510,7 +1510,7 @@ UPLOADER;
                 $uploadCallBack
             ));
 
-            $folderWidget = new \Cx\Core_Modules\MediaBrowser\Model\Entity\FolderWidget($_SESSION->getTempPath().'/'.$uploaderId);
+            $folderWidget = new \Cx\Core_Modules\MediaBrowser\Model\Entity\FolderWidget($session->getTempPath().'/'.$uploaderId);
             $this->_objTpl->setVariable( array(
                 strtoupper($fieldName).'_WIDGET_CODE'            => $folderWidget->getXHtml(),
                 "{$this->moduleLangVar}_". strtoupper($fieldKey) => $uploaderId

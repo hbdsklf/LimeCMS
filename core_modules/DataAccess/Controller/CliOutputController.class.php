@@ -180,7 +180,7 @@ class CliOutputController extends OutputController {
 
         foreach ($array as $value) {
             if (is_array($value)) {
-                $depth = array_depth($value) + 1;
+                $depth = $this->array_depth($value) + 1;
 
                 if ($depth > $max_depth) {
                     $max_depth = $depth;

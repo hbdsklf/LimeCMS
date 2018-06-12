@@ -2164,8 +2164,8 @@ class CalendarEvent extends CalendarLibrary
     function _handleUpload($id)
     {
         $cx  = \Cx\Core\Core\Controller\Cx::instanciate();
-        $sessionObj = $cx->getComponent('Session')->getSession();
-        $tmpUploadDir     = $_SESSION->getTempPath().'/'.$id.'/'; //all the files uploaded are in here
+        $session = $cx->getComponent('Session')->getSession();
+        $tmpUploadDir     = $session->getTempPath().'/'.$id.'/'; //all the files uploaded are in here
         $depositionTarget = $this->uploadImgPath; //target folder
         $pic              = '';
 

@@ -2589,7 +2589,8 @@ class AccessManager extends \Cx\Core_Modules\Access\Controller\AccessLib
             }
         }
 
-        $curlAvailable = true;
+        $curlAvailable        = true;
+        $socialloginProviders = array();
         try {
             $socialloginProviders = \Cx\Lib\SocialLogin::getProviders();
         } catch (\Exception $e) {

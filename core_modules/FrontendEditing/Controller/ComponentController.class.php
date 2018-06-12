@@ -121,10 +121,7 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
      * @return boolean TRUE if the user has permission to edit pages
      */
     protected function userHasPermissionToEditPage($checkMode = true) {
-        return (
-            $this->cx->getUser()->objUser->getAdminStatus()  ||
-            (
-                \Permission::checkAccess(6, 'static', true) &&
+        return  \Permission::checkAccess(6, 'static', true) &&
                 \Permission::checkAccess(35, 'static', true) &&
                 (
                     !$checkMode ||
@@ -136,9 +133,7 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
                             true
                         )
                     )
-                )
-            )
-        );
+               );
     }
 
     /**
@@ -147,8 +142,7 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
      * @return boolean TRUE if the user has permission to edit blocks
      */
     protected function userHasPermissionToEditBlocks() {
-        return $this->cx->getUser()->objUser->getAdminStatus() ||
-               \Permission::checkAccess(76, 'static', true);
+        return \Permission::checkAccess(76, 'static', true);
     }
 
     /**

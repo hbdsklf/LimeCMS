@@ -281,10 +281,18 @@
             <tr class="row3">
                 <td width="3%"><span style="font-weight:bold;">&nbsp;&nbsp;#</span></td>
                 <td width="3%" style="font-weight: bold; white-space: nowrap;">{TXT_CRM_TITLE_ACTIVE}</td>
-                <td width="25%" style="font-weight: bold;text-align: left;"><a title="sort" href="./index.php?cmd={MODULE_NAME}&act=customer{CRM_NAME_SORT}{CRM_SEARCH_LINK}">{TXT_CRM_TITLE_NAME}</a></td>
-                <td width="20%" style="font-weight: bold;text-align: left;"><a title="sort" href="./index.php?cmd={MODULE_NAME}&act=customer{CRM_ACTIVITIES_SORT}{CRM_SEARCH_LINK}">{TXT_CRM_ACTIVITIES}</a></td>
+                <td width="25%" style="font-weight: bold;text-align: left;">
+                    <!-- BEGIN standardNameFilter -->
+                    <a title="sort" href="?cmd={MODULE_NAME}&act=customer{CRM_NAME_SORT}{CRM_SEARCH_LINK}">{TXT_CRM_TITLE_NAME}</a>
+                    <!-- END standardNameFilter -->
+                    <!-- BEGIN contactNameFilter -->
+                    <a title="sort" href="?cmd={MODULE_NAME}&act=customer{CRM_NAME_SORT}{CRM_SEARCH_LINK}">{TXT_CRM_NAME}</a> /
+                    <a title="sort" href="?cmd={MODULE_NAME}&act=customer{CRM_LAST_NAME_SORT}{CRM_SEARCH_LINK}">{TXT_CRM_FAMILY_NAME}</a>
+                    <!-- END contactNameFilter -->
+                </td>
+                <td width="20%" style="font-weight: bold;text-align: left;"><a title="sort" href="?cmd={MODULE_NAME}&act=customer{CRM_ACTIVITIES_SORT}{CRM_SEARCH_LINK}">{TXT_CRM_ACTIVITIES}</a></td>
                 <td width="15%" style="font-weight: bold;text-align: left;">{TXT_CRM_CONTACT}</td>
-                <td width="8%" style="font-weight: bold;"><a title="sort" href="./index.php?cmd={MODULE_NAME}&act=customer{CRM_DATE_SORT}{CRM_SEARCH_LINK}">{TXT_CRM_TITLE_ADDEDDATE}</a></td>
+                <td width="8%" style="font-weight: bold;"><a title="sort" href="?cmd={MODULE_NAME}&act=customer{CRM_DATE_SORT}{CRM_SEARCH_LINK}">{TXT_CRM_TITLE_ADDEDDATE}</a></td>
                 <td width="3%" style="text-align: right;font-weight: bold; white-space: nowrap;">{TXT_CRM_TITLE_FUNCTIONS}</td>
             </tr>
             <!-- BEGIN showEntries -->

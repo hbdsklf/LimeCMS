@@ -371,6 +371,7 @@ $_ARRAYLANG['TXT_SHOP_CATEGORIES_ASSIGNED'] = "Zugewiesene Rubriken";
 $_ARRAYLANG['TXT_SHOP_CATEGORIES_AVAILABLE'] = "Verfügbare Rubriken";
 $_ARRAYLANG['TXT_SHOP_CATEGORY_UPDATED_SUCCESSFULLY'] = "Die Rubrik wurde erfolgreich aktualisiert";
 $_ARRAYLANG['TXT_SHOP_CATEGORIES_UPDATED_SUCCESSFULLY'] = "Alle Rubriken wurden erfolgreich aktualisiert";
+$_ARRAYLANG['TXT_SHOP_CATEGORY_SHORT_DESCRIPTION'] = "Kurzbeschreibung";
 $_ARRAYLANG['TXT_SHOP_CATEGORY_DESCRIPTION'] = "Beschreibung";
 $_ARRAYLANG['TXT_SHOP_CATEGORY_EDIT'] = "Bearbeiten";
 $_ARRAYLANG['TXT_SHOP_CATEGORY_ERROR_UPDATING'] = "Fehler beim Aktualisieren der Rubrik ID %1\$u";

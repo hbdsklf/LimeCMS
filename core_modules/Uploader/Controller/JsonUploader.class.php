@@ -100,11 +100,12 @@ class JsonUploader extends SystemComponentController implements JsonAdapter
     {
         global $_ARRAYLANG;
         $id = null;
+        $session = $this->cx->getComponent('Session')->getSession();
         if (isset($params['get']['id']) && preg_match('/^[a-z0-9]+$/i', $params['get']['id'])
         ) {
             $id = ($params['get']['id']);
             $uploadedFileCount = isset($params['get']['uploadedFileCount']) ? intval($params['get']['uploadedFileCount']) : 0;
-            $path = $_SESSION->getTempPath() . '/'.$id.'/';
+            $path = $session->getTempPath() . '/'.$id.'/';
             $tmpPath = $path;
         } elseif (isset($params['post']['path'])) {
             $path_part = explode("/", $params['post']['path'], 2);
@@ -113,7 +114,7 @@ class JsonUploader extends SystemComponentController implements JsonAdapter
             $path = $mediaSourceManager->getMediaTypePathsbyNameAndOffset($path_part[0],0)
                 . '/' . $path_part[1];
 
-            $tmpPath = $_SESSION->getTempPath();
+            $tmpPath = $session->getTempPath();
         } else {
             return array(
                 'OK' => 0,

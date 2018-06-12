@@ -2075,12 +2075,20 @@ CODE;
         $components = $objSystemComponent->findAll();
         $componentFiles = array();
         foreach ($components as $component) {
-            $componentDirectory = $cx->getClassLoader()->getFilePath(
-                $component->getDirectory(false) . '/View/Template/Frontend'
-            );
-            if (file_exists($componentDirectory)) {
-                foreach (glob("$componentDirectory/*") as $componentFile) {
-                   $componentFiles[$component->getType()][$component->getName()][]= basename($componentFile);
+            foreach (array('Template/Frontend', 'Style') as $offset) {
+                $componentDirectory = $cx->getClassLoader()->getFilePath(
+                    $component->getDirectory(false) . '/View/' . $offset
+                );
+                if (file_exists($componentDirectory)) {
+                    foreach (glob("$componentDirectory/*") as $componentFile) {
+                        if (
+                            substr($componentFile, -3, 3) == 'css' &&
+                            substr($componentFile, -12, 12) != 'Frontend.css'
+                        ) {
+                            continue;
+                        }
+                        $componentFiles[$component->getType()][$component->getName()][]= basename($componentFile);
+                    }
                 }
             }
         }
@@ -2380,14 +2388,18 @@ CODE;
             return false;
         }
 
+        $offset = 'Template/Frontend';
+        if (substr($path, -3, 3) == 'css') {
+            $offset = 'Style';
+        }
         //get the Core Modules File path
         if (preg_match('#^\/'. \Cx\Core\Core\Model\Entity\SystemComponent::TYPE_CORE_MODULE .'#i', $path)) {
-            return \Env::get('cx')->getCoreModuleFolderName() .'/'.$moduleName . ($loadFromComponentDir ? '/View' : '') .'/Template/Frontend/' . $fileName;
+            return \Env::get('cx')->getCoreModuleFolderName() .'/'.$moduleName . ($loadFromComponentDir ? '/View' : '') .'/'.$offset.'/' . $fileName;
         }
 
         //get the Modules File path
         if (preg_match('#^\/'. \Cx\Core\Core\Model\Entity\SystemComponent::TYPE_MODULE .'#i', $path)) {
-            return \Env::get('cx')->getModuleFolderName() .'/'. $moduleName . ($loadFromComponentDir ? '/View' : '') .'/Template/Frontend/' . $fileName;
+            return \Env::get('cx')->getModuleFolderName() .'/'. $moduleName . ($loadFromComponentDir ? '/View' : '') .'/'.$offset.'/' . $fileName;
         }
 
         return false;

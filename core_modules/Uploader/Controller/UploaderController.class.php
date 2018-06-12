@@ -133,6 +133,7 @@ class UploaderController {
     static function handleRequest($conf = array()) {
 
         $cx = Cx::instanciate();
+        $session = $cx->getComponent('Session')->getSession();
         // 5 minutes execution time
         @set_time_limit(5 * 60);
 
@@ -140,7 +141,7 @@ class UploaderController {
 
         $conf = self::$conf = array_merge(array(
             'file_data_name' => 'file',
-            'tmp_dir' => $_SESSION->getTempPath(),
+            'tmp_dir' => $session->getTempPath(),
             'target_dir' => 'images/content/',
             'cleanup' => true,
             'max_file_age' => 5 * 3600,

@@ -94,9 +94,6 @@ class ViewGenerator {
             // this is a temporary "workaround" for combined keys, see todo
             if ($entityWithNS != 'array') {
                 $entityClassMetadata = \Env::get('em')->getClassMetadata($entityWithNS);
-                if (count($entityClassMetadata->getIdentifierFieldNames()) > 1) {
-                    throw new \Exception('Currently, view generator is not able to handle composite keys...');
-                }
             }
 
             $this->options = array();
@@ -241,7 +238,7 @@ class ViewGenerator {
         }
 
         $em = $this->cx->getDb()->getEntityManager();
-        $primaryKeyName = $entityClassMetadata->getSingleIdentifierFieldName(); //get primary key name
+        $primaryKeyNames = $entityClassMetadata->getIdentifierFieldNames();
         $entityColumnNames = $entityClassMetadata->getColumnNames(); //get the names of all fields
 
         //If the view is sortable, get the 'sortBy' field name and store it to the variable
@@ -298,7 +295,7 @@ class ViewGenerator {
                     $entityData[$name] = $storecallback($postedValue);
                 }
             }
-            if (isset($entityData[$name]) && $name != $primaryKeyName) {
+            if (isset($entityData[$name]) && !in_array($name, $primaryKeyNames)) {
                 $fieldDefinition = $entityClassMetadata->getFieldMapping($name);
                 if ($fieldDefinition['type'] == 'datetime') {
                     $newValue = new \DateTime($entityData[$name]);
@@ -428,10 +425,6 @@ class ViewGenerator {
             return;
         }
 
-        //get the primary key name
-        $entityObject   = $em->getClassMetadata($entityNameSpace);
-        $primaryKeyName = $entityObject->getSingleIdentifierFieldName();
-
         //If the 'sortBy' option does not have 'jsonadapter',
         //we need to get the component name and entity name for updating the sorting order in db
         $componentName = '';
@@ -470,9 +463,13 @@ class ViewGenerator {
                           ? contrexx_input2int($_GET[$pagingPosName])
                           : 0;
 
+        //get the primary key names
+        $entityObject   = $em->getClassMetadata($entityNameSpace);
+        $primaryKeyNames = $entityObject->getIdentifierFieldNames();
+
         //set the sorting parameters in the functions 'sortBy' array and
         //it should be used in the Backend::constructor
-        $this->options['functions']['sortBy']['sortingKey'] = $primaryKeyName;
+        $this->options['functions']['sortBy']['sortingKey'] = current($primaryKeyNames);
         $this->options['functions']['sortBy']['component']  = $componentName;
         $this->options['functions']['sortBy']['entity']     = $entityName;
         $this->options['functions']['sortBy']['sortOrder']  = $sortOrder;
@@ -837,7 +834,8 @@ class ViewGenerator {
                     if (
                         (
                             $entityObject->isSingleValuedAssociation($field) &&
-                            in_array('set' . $methodBaseName, $classMethods)
+                            in_array('set' . $methodBaseName, $classMethods) &&
+                            !$renderArray[$field]
                         ) || (
                             $entityObject->isCollectionValuedAssociation($field) &&
                             !empty($renderArray[$field])
@@ -943,7 +941,13 @@ class ViewGenerator {
 
         // if we have a entityId, we came from edit mode and so we try to load the existing entry
         if($entityId != 0) {
-            $entity = $em->getRepository($entityWithNS)->find($entityId);
+            $identifierFields = $entityClassMetadata->getIdentifierFieldNames();
+            $identifierData = explode('/', $entityId);
+            $lookupData = array();
+            foreach ($identifierFields as $index => $field) {
+                $lookupData[$field] = $identifierData[$index];
+            }
+            $entity = $em->getRepository($entityWithNS)->find($lookupData);
             $entityArray = array(); // This array is used for the existing values
             if ($this->object->entryExists($entityId)) {
                 $entityArray = $this->object->getEntry($entityId);
@@ -1117,7 +1121,13 @@ class ViewGenerator {
             return;
         }
         $entityObj = $em->getClassMetadata($entityWithNS);
-        $id = $entityObject[$entityObj->getSingleIdentifierFieldName()]; //get primary key value
+
+        $entityClassMetadata = $em->getClassMetadata($entityWithNS);
+        $identifierFields = $entityClassMetadata->getIdentifierFieldNames();
+        $id = array();
+        foreach ($identifierFields as $field) {
+            $id[$field] = $entityObject[$field];
+        }
 
         // delete all n associated entries, because the are not longer used and we can delete the main entry only if we
         // have no more n associated entries

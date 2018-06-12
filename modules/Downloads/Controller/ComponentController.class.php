@@ -40,7 +40,18 @@ namespace Cx\Modules\Downloads\Controller;
  * Main controller for Downloads
  *
  * @copyright   Cloudrexx AG
+ * @author      Thomas Wirz <thomas.wirz@cloudrexx.com>
+ * @package     cloudrexx
+ * @subpackage  module_downloads
+ */
+class DownloadsInternalException extends \Exception {}
+
+/**
+ * Main controller for Downloads
+ *
+ * @copyright   Cloudrexx AG
  * @author      Project Team SS4U <info@cloudrexx.com>
+ * @author      Thomas Wirz <thomas.wirz@cloudrexx.com>
  * @package     cloudrexx
  * @subpackage  module_downloads
  */
@@ -187,9 +198,23 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
             return array();
         }
 
+        // check for valid published application page
+        $filter = null;
+        try {
+            $arrCategoryIds = $this->getCategoryFilterForSearchComponent();
+
+            // set category filter if we have to restrict search by
+            // any category IDs
+            if ($arrCategoryIds) {
+                $filter = array('category_id' => $arrCategoryIds);
+            }
+        } catch (DownloadsInternalException $e) {
+            return array();
+        }
+
         // lookup downloads by given keyword
         $downloadAsset = $download->getDownloads(
-            null,
+            $filter,
             $searchTerm,
             null,
             null,
@@ -202,6 +227,11 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
             return array();
         }
 
+        /**
+         * @ignore
+         */
+        \Env::get('ClassLoader')->loadFile(ASCMS_LIBRARY_PATH . '/PEAR/Download.php');
+
         $langId = DownloadsLibrary::getOutputLocale()->getId();
 
         while (!$downloadAsset->EOF) {
@@ -213,16 +243,115 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
                 $downloadAsset->next();
                 continue;
             }
-            $url->setParam('id', $downloadAsset->getId());
+
+            // determine link-behaviour
+            switch ($config['global_search_linking']) {
+                case HTTP_DOWNLOAD_INLINE:
+                case HTTP_DOWNLOAD_ATTACHMENT:
+                    $url->setParam('disposition', $config['global_search_linking']);
+                    $url->setParam('download', $downloadAsset->getId());
+                    break;
+
+                case 'detail':
+                default:
+                    $url->setParam('id', $downloadAsset->getId());
+                    break;
+            }
+
             $result[] = array(
-                'Score'   => 100,
-                'Title'   => $downloadAsset->getName($langId),
-                'Content' => $downloadAsset->getTrimmedDescription($langId),
-                'Link'    => $url->toString()
+                'Score'     => 100,
+                'Title'     => $downloadAsset->getName($langId),
+                'Content'   => $downloadAsset->getTrimmedDescription($langId),
+                'Link'      => (string) $url,
+                'Component' => $this->getName(),
             );
             $downloadAsset->next();
         }
 
         return $result;
+    }
+
+    /**
+     * Get published category IDs (as application pages)
+     *
+     *
+     * @return  array   List of published category IDs.
+     *                  An empty array is retured, in case an application 
+     *                  page is published that has no category restriction set
+     *                  through its CMD.
+     * @throws  DownloadsInternalException In case no application page of this
+     *                                  component is published
+     */
+    protected function getCategoryFilterForSearchComponent() {
+        \Cx\Core\Setting\Controller\Setting::init('Config', 'site','Yaml');
+        $coreListProtectedPages   = \Cx\Core\Setting\Controller\Setting::getValue('coreListProtectedPages','Config');
+        $searchVisibleContentOnly = \Cx\Core\Setting\Controller\Setting::getValue('searchVisibleContentOnly','Config');
+
+        // fetch data about existing application pages of this component
+        $cmds = array();
+        $em = $this->cx->getDb()->getEntityManager();
+        $pageRepo = $em->getRepository('Cx\Core\ContentManager\Model\Entity\Page');
+        $pages = $pageRepo->getAllFromModuleCmdByLang($this->getName());
+        foreach ($pages as $pagesOfLang) {
+            foreach ($pagesOfLang as $page) {
+                $cmds[] = $page->getCmd();
+            }
+        }
+
+        // check if an application page is published
+        $cmds = array_unique($cmds);
+        $arrCategoryIds = array();
+        foreach ($cmds as $cmd) {
+            // fetch application page with specific CMD from current locale
+            $page = $pageRepo->findOneByModuleCmdLang($this->getName(), $cmd, FRONTEND_LANG_ID);
+
+            // skip if page does not exist in current locale or has not been
+            // published
+            if (
+                !$page ||
+                !$page->isActive()
+            ) {
+                continue;
+            }
+
+            // skip invisible page (if excluded from search)
+            if (
+                $searchVisibleContentOnly == 'on' &&
+                !$page->isVisible()
+            ) {
+                continue;
+            }
+
+            // skip protected page (if excluded from search)
+            if (
+                $coreListProtectedPages == 'off' &&
+                $page->isFrontendProtected() &&
+                $this->getComponent('Session')->getSession() &&
+                !\Permission::checkAccess($page->getFrontendAccessId(), 'dynamic', true)
+            ) {
+                continue;
+            }
+
+            // in case the CMD is an integer, then
+            // the integer does represent an ID of category which has to be
+            // applied to the search filter
+            if (preg_match('/^\d+$/', $cmd)) {
+                $arrCategoryIds[] = $cmd;
+                continue;
+            }
+
+            // in case an application exists that has not set a category-ID as
+            // its CMD, then we do not have to restrict the search by one or
+            // more specific categories
+            return array();
+        }
+
+        // if we reached this point and no category-IDs have been fetched 
+        // then this means that no application is published
+        if (empty($arrCategoryIds)) {
+            throw new DownloadsInternalException('Application is not published');
+        }
+
+        return $arrCategoryIds;
     }
 }

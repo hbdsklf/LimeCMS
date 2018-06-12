@@ -1275,8 +1275,24 @@ END;
 
         if (empty($result)) {
             $result = array(
-                'dir'  => array(),
-                'file' => array(),
+                'dir'  => array(
+                    'icon' => array(),
+                    'name' => array(),
+                    'size' => array(),
+                    'type' => array(),
+                    'date' => array(),
+                    'perm' => array(),
+                    'path' => array(),
+                ),
+                'file' => array(
+                    'icon' => array(),
+                    'name' => array(),
+                    'size' => array(),
+                    'type' => array(),
+                    'date' => array(),
+                    'perm' => array(),
+                    'path' => array(),
+                ),
             );
         }
 

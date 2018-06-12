@@ -668,6 +668,7 @@ class U2u extends U2uLibrary
                        $this->arrStatusMsg['error'][] = $errorString;
                        $errorMessage = true;
                     } else {
+                        $errArray[0] = array();
                         $errArray[0]['receipents_userid']  =  $ID;
                         $errArray[0]['sending_userid']     =  $objFWUser->objUser->getId();
                         $errArray[0]['title']              =  contrexx_addslashes(strip_tags(trim(htmlentities($_REQUEST['title'],ENT_QUOTES,CONTREXX_CHARSET))));

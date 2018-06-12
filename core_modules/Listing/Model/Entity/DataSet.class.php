@@ -90,6 +90,9 @@ class DataSet extends \Cx\Model\Base\EntityBase implements \Iterator {
         }
         if (is_array($value)) {
             foreach ($value as $attribute=>$property) {
+                if (!isset($convertedData[$key])) {
+                    $convertedData[$key] = array();
+                }
                 $convertedData[$key][$attribute] = $property;
             }
         } else if (is_object($value)) {
@@ -430,11 +433,17 @@ class DataSet extends \Cx\Model\Base\EntityBase implements \Iterator {
 
         foreach ($this as $key => $subarr) {
             if (!$this->is_iterable($subarr)) {
+                if (!isset($result[0])) {
+                    $result[0] = array();
+                }
                 $result[0][$key] = $subarr;
                 continue;
             }
             foreach ($subarr as $subkey => $subvalue) {
-                 $result[$subkey][$key] = $subvalue;
+                if (!isset($result[$subkey])) {
+                    $result[$subkey] = array();
+                }
+                $result[$subkey][$key] = $subvalue;
             }
         }
 

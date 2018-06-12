@@ -115,7 +115,9 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
         $evm->addModelListener(
             'postFlush',
             'Cx\Core\Routing\Model\Entity\RewriteRule',
-            new \Cx\Core_Modules\Cache\Model\Event\RewriteRuleEventListener($this->cx)
+            new \Cx\Core_Modules\Cache\Model\Event\RewriteRuleEventListener(
+                $this->cx
+            )
         );
 
         // TODO: This is a workaround for Doctrine's result query cache.
@@ -123,7 +125,16 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
         $evm->addModelListener(
             'postFlush',
             'Cx\Core\Model\Entity\EntityBase',
-            new \Cx\Core_Modules\Cache\Model\Event\CoreEntityBaseEventListener($this->cx)
+            new \Cx\Core_Modules\Cache\Model\Event\CoreEntityBaseEventListener(
+                $this->cx
+            )
+        );
+        $evm->addModelListener(
+            'postFlush',
+            'Cx\Core\Locale\Model\Entity\Locale',
+            new \Cx\Core_Modules\Cache\Model\Event\LocaleChangeListener(
+                $this->cx
+            )
         );
     }
 
@@ -258,6 +269,28 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
      */
     function deleteNonPagePageCache() {
         $this->cache->deleteNonPagePageCache();
+    }
+
+    /**
+     * Clear user based page cache of a specific user identified by its
+     * session ID.
+     *
+     * @param   string  $sessionId  The session ID of the user of whom
+     *                              to clear the page cache from.
+     */
+    public function clearUserBasedPageCache($sessionId) {
+        $this->cache->clearUserBasedPageCache($sessionId);
+    }
+
+    /**
+     * Clear user based ESI cache of a specific user identified by its
+     * session ID.
+     *
+     * @param   string  $sessionId  The session ID of the user of whom
+     *                              to clear the esi cache from.
+     */
+    public function clearUserBasedEsiCache($sessionId) {
+        $this->cache->clearUserBasedEsiCache($sessionId);
     }
 
     /**
@@ -435,7 +468,6 @@ Cache clear all';
                     $this->cache->deleteSingleFile($options);
                     break;
                 }
-                // @TODO: this will drop ESI cache too
                 $this->cache->_deleteAllFiles('cxPages');
                 break;
             case 'esi':
@@ -487,5 +519,17 @@ Cache clear all';
      */
     public function setCachePrefix($prefix = '') {
         $this->cache->setCachePrefix($prefix);
+    }
+
+    /**
+     * Sets the cached locale data
+     *
+     * Default locale and the following hashtables are cached:
+     * <localeCode> to <localeId>
+     * <localeCountryCode> to <localeCodes>
+     * @param \Cx\Core\Core\Controller\Cx $cx Cx instance
+     */
+    public function setCachedLocaleData($cx) {
+        $this->cache->setCachedLocaleData($cx);
     }
 }

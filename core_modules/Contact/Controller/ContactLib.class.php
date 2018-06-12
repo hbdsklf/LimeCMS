@@ -67,6 +67,11 @@ class ContactLib
     const CHECK_TYPE_INTEGER= 5;
 
     /**
+     * @var boolean
+     */
+    protected $legacyMode;
+
+    /**
      * return the last recipient id
      *
      * @return integer
@@ -362,11 +367,12 @@ class ContactLib
                         $lastID = $id;
 
                         $arrFields[$id] = array(
-                            'type'          => $res->fields['type'],
-                            'special_type'  => $res->fields['special_type'],
-                            'is_required'   => $res->fields['is_required'],
-                            'check_type'    => $res->fields['check_type'],
-                            'editType'     => 'edit'
+                            'type'         => $res->fields['type'],
+                            'special_type' => $res->fields['special_type'],
+                            'is_required'  => $res->fields['is_required'],
+                            'check_type'   => $res->fields['check_type'],
+                            'editType'     => 'edit',
+                            'lang'         => array(),
                         );
                     }
 
@@ -1415,10 +1421,10 @@ class ContactLib
         $arrData = array();
         while (!$objResult->EOF){
             $fieldId = $objResult->fields['id_field'];
-
-            $arrData[$fieldId]['label'] = $objResult->fields['formlabel'];
-            $arrData[$fieldId]['value'] = $objResult->fields['formvalue'];
-
+            $arrData[$fieldId] = array(
+                'label' => $objResult->fields['formlabel'],
+                'value' => $objResult->fields['formvalue'],
+            );
             $objResult->MoveNext();
         }
 

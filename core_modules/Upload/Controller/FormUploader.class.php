@@ -54,9 +54,11 @@ class FormUploader extends Uploader
         global $_FILES;
 
         //get a writable directory
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $session = $cx->getComponent('Session')->getSession();
         $targetDir = '/upload_'.$this->uploadId;
-        $tempPath = $_SESSION->getTempPath();
-        $webTempPath = $_SESSION->getWebTempPath();
+        $tempPath = $session->getTempPath();
+        $webTempPath = $session->getWebTempPath();
 
 
         //make sure target directory exists

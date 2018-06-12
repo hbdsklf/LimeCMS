@@ -1211,7 +1211,7 @@ class FormTemplate extends \Cx\Model\Base\EntityBase {
         $restrictUpload2SingleFile = true
     ) {
         try {
-            $this->cx->getComponent('Session')->getSession();
+            $session = $this->cx->getComponent('Session')->getSession();
 
             $uploader = new \Cx\Core_Modules\Uploader\Model\Entity\Uploader();
             // set instance name so we are able to catch the instance with js
@@ -1240,7 +1240,7 @@ class FormTemplate extends \Cx\Model\Base\EntityBase {
 
             // initialize the widget displaying the folder contents
             $folderWidget = new \Cx\Core_Modules\MediaBrowser\Model\Entity\FolderWidget(
-                $_SESSION->getTempPath() . '/'. $uploaderId
+                $session->getTempPath() . '/'. $uploaderId
             );
 
             if ($parseLegacyPlaceholder) {

@@ -242,6 +242,7 @@ class Access extends \Cx\Core_Modules\Access\Controller\AccessLib
         $limitOffset = isset($_GET['pos']) ? intval($_GET['pos']) : 0;
         $usernameFilter = isset($_REQUEST['username_filter']) && $_REQUEST['username_filter'] != '' && in_array(ord($_REQUEST['username_filter']), array_merge(array(48), range(65, 90))) ? $_REQUEST['username_filter'] : null;
 
+        $userFilter = array('AND' => array());
         $userFilter['AND'][] = array('active' => true);
 
         if (isset($_REQUEST['profile_filter']) && is_array($_REQUEST['profile_filter'])) {
@@ -342,6 +343,7 @@ class Access extends \Cx\Core_Modules\Access\Controller\AccessLib
         $settingsDone = false;
         $objFWUser->objUser->loadNetworks();
 
+        $act = isset($_GET['act']) ? $_GET['act'] : '';
         if (isset($_POST['access_delete_account'])) {
             // delete account
             \Cx\Core\Csrf\Controller\Csrf::check_code();
@@ -437,7 +439,7 @@ class Access extends \Cx\Core_Modules\Access\Controller\AccessLib
                 $msg = implode('<br />', $result);
             }
             $this->_objTpl->setVariable('ACCESS_SETTINGS_MESSAGE', $msg);
-        } elseif ($_GET['act'] == 'disconnect') {
+        } elseif ($act == 'disconnect') {
             $objFWUser->objUser->getNetworks()->deleteNetwork($_GET['provider']);
             $currentUrl = clone \Env::get('Resolver')->getUrl();
             $currentUrl->setParams(array(

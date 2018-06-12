@@ -97,6 +97,11 @@ class CacheLib
     const CACHE_DIRECTORY_OFFSET_ESI = 'esi/';
 
     /**
+     * File name for page cache locale data
+     */
+    const LOCALE_CACHE_FILE_NAME = 'Locale.dat';
+
+    /**
      * Used op cache engines
      * @var array Cache engine names, empty for none
      */
@@ -184,6 +189,11 @@ class CacheLib
                 }
             }
             closedir($handleDir);
+
+            if ($cacheEngine == 'cxPages') {
+                $cx = \Cx\Core\Core\Controller\Cx::instanciate(); 
+                $this->setCachedLocaleData($cx);
+            } 
         }
     }
 
@@ -1189,13 +1199,18 @@ class CacheLib
      */
     function deleteSingleFile($intPageId) {
         $intPageId = intval($intPageId);
-        if ( 0 < $intPageId ) {
-            $files = glob($this->strCachePath . static::CACHE_DIRECTORY_OFFSET_PAGE . '*_{,h}' . $intPageId . '*', GLOB_BRACE);
-            if ( count( $files ) ) {
-                foreach ( $files as $file ) {
-                    @unlink( $file );
-                }
-            }
+        if (!$intPageId) {
+            return;
+        }
+
+        $files = glob($this->strCachePath . static::CACHE_DIRECTORY_OFFSET_PAGE . '*_{,h}' . $intPageId . '*', GLOB_BRACE);
+
+        if (!is_array($files)) {
+            return;
+        }
+
+        foreach ($files as $file) {
+            @unlink($file);
         }
     }
 
@@ -1232,10 +1247,98 @@ class CacheLib
      */
     public function deleteNonPagePageCache() {
         $files = glob($this->strCachePath . static::CACHE_DIRECTORY_OFFSET_PAGE . '*_{,h}', GLOB_BRACE);
-        if (count($files)) {
-            foreach ($files as $file) {
-                @unlink($file);
-            }
+
+        if (!is_array($files)) {
+            return;
         }
+
+        foreach ($files as $file) {
+            @unlink($file);
+        }
+    }
+
+    /**
+     * Clear user based page cache of a specific user identified by its
+     * session ID.
+     *
+     * @param   string  $sessionId  The session ID of the user of whom
+     *                              to clear the page cache from.
+     */
+    public function clearUserBasedPageCache($sessionId) {
+        // abort if no valid session id is supplied
+        if (empty($sessionId)) {
+            return;
+        }
+
+        // fetch complete page cache of specific user
+        $files = glob(
+            $this->strCachePath .
+                static::CACHE_DIRECTORY_OFFSET_PAGE . '*_u' .
+                $sessionId . '{,_h}',
+            GLOB_BRACE
+        );
+
+        if (!is_array($files)) {
+            return;
+        }
+
+        // drop identified page cache of specific user
+        foreach ($files as $file) {
+            @unlink($file);
+        }
+    }
+
+    /**
+     * Clear user based ESI cache of a specific user identified by its
+     * session ID.
+     *
+     * @param   string  $sessionId  The session ID of the user of whom
+     *                              to clear the esi cache from.
+     */
+    public function clearUserBasedEsiCache($sessionId) {
+        // abort if no valid session id is supplied
+        if (empty($sessionId)) {
+            return;
+        }
+
+        // fetch complete esi cache of specific user
+        $files = glob(
+            $this->strCachePath . static::CACHE_DIRECTORY_OFFSET_ESI . '*_u' . $sessionId . '*'
+        );
+
+        if (!is_array($files)) {
+            return;
+        }
+
+        // drop identified esi cache of specific user
+        foreach ($files as $file) {
+            @unlink($file);
+        }
+    }
+
+    /**
+     * Sets the cached locale data
+     *
+     * Default locale and the following hashtables are cached:
+     * <localeCode> to <localeId>
+     * <localeCountryCode> to <localeCodes>
+     * @param \Cx\Core\Core\Controller\Cx $cx Cx instance
+     */
+    public function setCachedLocaleData($cx) {
+        $filename = $this->strCachePath . static::CACHE_DIRECTORY_OFFSET_PAGE .
+            static::LOCALE_CACHE_FILE_NAME;
+        if (file_exists($filename)) {
+            return;
+        }
+        $locale = $cx->getComponent('Locale');
+        if (!$locale) {
+            return;
+        }
+        $localeData = $locale->getLocaleData();
+        if (empty($localeData)) {
+            return;
+        }
+        $file = new \Cx\Lib\FileSystem\File($filename);
+        $file->write(serialize($localeData));
     }
 }

@@ -48,7 +48,7 @@ $_ARRAYLANG['SHOP_PASSWORD_CURRENT'] = "Current password";
 $_ARRAYLANG['SHOP_PASSWORD_ENTER_EMAIL'] = "Please enter the e-mail address for the account.<br/> You will receive a new password afterwards.";
 $_ARRAYLANG['SHOP_PASSWORD_NEW'] = "New password";
 $_ARRAYLANG['TXT_ACCEPT_AGB'] = "Please confirm your acceptance of the terms and conditions";
-$_ARRAYLANG['TXT_ACCEPT_TAC'] = "I confirm the correctness of the entered data and I know the <a href=\"index.php?section=Agb\" target=\"_blank\">terms and conditions</a> and accept them.";
+$_ARRAYLANG['TXT_ACCEPT_TAC'] = "I confirm the correctness of the entered data and I know the <a href=\"index.php?section=Agb\" target=\"_blank\">terms and conditions</a> and <a href=\"index.php?section=Privacy\" target=\"_blank\">data privacy statement</a> and accept them.";
 $_ARRAYLANG['TXT_ACCOUNT_BANK'] = "Bank name";
 $_ARRAYLANG['TXT_ACCOUNT_BLZ'] = "Bank code number";
 $_ARRAYLANG['TXT_ACCOUNT_HOLDER'] = "Account holder";

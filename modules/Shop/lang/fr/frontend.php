@@ -95,7 +95,7 @@ $_ARRAYLANG['TXT_COMMENTS'] = "Communications";
 $_ARRAYLANG['TXT_ID'] = "ID";
 $_ARRAYLANG['TXT_ADDRESS_CUSTOMER'] = "Adresse client";
 $_ARRAYLANG['TXT_TAC'] = "Conditions générales";
-$_ARRAYLANG['TXT_ACCEPT_TAC'] = "Je confirme l'exactitude des données saisies et j'accepte les <a href=\"index.php?section=Agb\" target=\"_blank\">Conditions Générales</a> dont j'ai pris connaissance.";
+$_ARRAYLANG['TXT_ACCEPT_TAC'] = "Je confirme l'exactitude des données saisies et j'accepte les <a href=\"index.php?section=Agb\" target=\"_blank\">Conditions Générales</a> et la <a href=\"index.php?section=Privacy\" target=\"_blank\">charte de confidentialité</a> dont j'ai pris connaissance.";
 $_ARRAYLANG['TXT_TOTAL_PRICE'] = "Prix total";
 $_ARRAYLANG['TXT_ORDER_INFOS'] = "Informations de commande";
 $_ARRAYLANG['TXT_ORDER_PREPARED'] = "Commande prête au paiement.";

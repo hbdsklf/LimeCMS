@@ -114,7 +114,8 @@ class UploadLib
     }
 
     public function response($uploadId) {
-
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $session = $cx->getComponent('Session')->getSession();
         if(isset($_SESSION['upload']['handlers'][$uploadId]['response_data'])) {
             $r = UploadResponse::fromSession($_SESSION['upload']['handlers'][$uploadId]['response_data']);
             if($r->isUploadFinished()) {
@@ -125,7 +126,7 @@ class UploadLib
         }
 
         // don't write session-data to database
-        $_SESSION->discardChanges();
+        $session->discardChanges();
         echo '{}';
         die();
     }
