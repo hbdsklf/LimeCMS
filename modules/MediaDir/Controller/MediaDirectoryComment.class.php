@@ -173,6 +173,7 @@ EOF;
             }
 
             if($bolGenerateCommentForm) {
+                $strCaptchaCode = '';
                 if($objUser->login()) {
                     $strCommentFormName = htmlspecialchars($objUser->getUsername(), ENT_QUOTES, CONTREXX_CHARSET);
                     $strCommentFormMail = htmlspecialchars($objUser->getEmail(), ENT_QUOTES, CONTREXX_CHARSET);

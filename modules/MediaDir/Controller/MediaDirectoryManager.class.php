@@ -422,6 +422,7 @@ class MediaDirectoryManager extends MediaDirectoryLibrary
 
         $intCountForms = count($arrActiveForms);
 
+        $objEntry = null;
         if($intCountForms > 0) {
             if(intval($intEntryId) == 0 && (empty($_POST['selectedFormId']) && empty($_POST['formId'])) && $intCountForms > 1) {
                 $intFormId = null;
@@ -662,6 +663,26 @@ class MediaDirectoryManager extends MediaDirectoryLibrary
 
                 //parse blocks
                 $this->_objTpl->hideBlock($this->moduleNameLC.'FormList');
+
+                if ($objForms->arrForms[$intFormId]['use_associated_entries']) {
+                    \JS::activate('chosen-sortable');
+                    if (!$objEntry) {
+                        $objEntry = new MediaDirectoryEntry($this->moduleName);
+                    }
+                    $this->_objTpl->setVariable(array(
+                        'TXT_' . $this->moduleLangVar . '_ASSOCIATED_ENTRIES' =>
+                            $_ARRAYLANG['TXT_MEDIADIR_ASSOCIATED_ENTRIES'],
+                        'TXT_' . $this->moduleLangVar . '_PLEASE_CHOOSE' =>
+                            $_ARRAYLANG['TXT_MEDIADIR_PLEASE_CHOOSE'],
+                        'TXT_' . $this->moduleLangVar . '_SELECT_NO_MATCH' =>
+                            $_ARRAYLANG['TXT_MEDIADIR_SELECT_NO_MATCH'],
+                        'TXT_' . $this->moduleLangVar . '_ASSOCIATED_ENTRIES_INFO' =>
+                            $_ARRAYLANG['TXT_MEDIADIR_ASSOCIATED_ENTRIES_INFO'],
+                        $this->moduleLangVar . '_ASSOCIATED_ENTRIES_OPTIONS' =>
+                            $objEntry->getAssociatedEntriesOptions(
+                                $intFormId, $intEntryId),
+                    ));
+                }
             }
 
             //parse global variables
@@ -1422,7 +1443,12 @@ class MediaDirectoryManager extends MediaDirectoryLibrary
                     $objExport = new MediaDirectoryExport($this->moduleName);
                     switch ($_POST['step']) {
                         case 'exportCSV':
-                            $strStatus = $objExport->exportCSV(intval($_POST['interfacesExportForm']), $_POST['interfacesExportSelectedCategories'], $_POST['interfacesExportSelectedLevels'], intval($_POST['interfacesExportMask']));
+                            $strStatus = $objExport->exportCSV(
+                                isset($_POST['interfacesExportForm']) ? contrexx_input2int($_POST['interfacesExportForm']) : 0,
+                                isset($_POST['interfacesExportSelectedCategories']) ? contrexx_input2int($_POST['interfacesExportSelectedCategories']) : array(),
+                                isset($_POST['interfacesExportSelectedLevels']) ? contrexx_input2int($_POST['interfacesExportSelectedLevels']) : array(),
+                                isset($_POST['interfacesExportMask']) ? contrexx_input2int($_POST['interfacesExportMask']) : 0
+                            );
                             break;
                     }
             }

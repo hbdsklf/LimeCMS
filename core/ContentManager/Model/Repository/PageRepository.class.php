@@ -312,6 +312,9 @@ class PageRepository extends EntityRepository {
 
         $return = array();
         foreach($pages as $page) {
+            if (!isset($return[$page->getLang()])) {
+                $return[$page->getLang()] = array();
+            }
             $return[$page->getLang()][] = $page;
         }
         return $return;

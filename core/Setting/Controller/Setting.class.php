@@ -636,7 +636,7 @@ class Setting{
               case self::TYPE_DROPDOWN_USER_CUSTOM_ATTRIBUTE:
                 $element = \Html::getSelect(
                     $name,
-                    User_Profile_Attribute::getCustomAttributeNameArray(),
+                    \User_Profile_Attribute::getCustomAttributeNameArray(),
                     $arrSetting['value'], '', '',
                     'style="width: '.self::DEFAULT_INPUT_WIDTH.'px;"'.($readOnly ? \Html::ATTRIBUTE_DISABLED : '')
                 );
@@ -644,7 +644,7 @@ class Setting{
               case self::TYPE_DROPDOWN_USERGROUP:
                 $element = \Html::getSelect(
                     $name,
-                    UserGroup::getNameArray(),
+                    \UserGroup::getNameArray(),
                     $arrSetting['value'],
                     '', '', 'style="width: '.self::DEFAULT_INPUT_WIDTH.'px;"'.($readOnly ? \Html::ATTRIBUTE_DISABLED : '')
                 );
@@ -678,7 +678,7 @@ class Setting{
                         // Set the ID only if the $value is non-empty.
                         // This toggles the file name and delete icon on or off
                         $name, ($value ? $name : false),
-                        Filetype::MAXIMUM_UPLOAD_FILE_SIZE,
+                        \Filetype::MAXIMUM_UPLOAD_FILE_SIZE,
                         // "values" defines the MIME types allowed
                         $arrSetting['values'],
                         'style="width: '.self::DEFAULT_INPUT_WIDTH.'px;"'.($readOnly ? \Html::ATTRIBUTE_DISABLED : ''), true,

@@ -499,7 +499,10 @@ class MediaDirectoryCategory extends MediaDirectoryLibrary
                         $spacer .= "&nbsp;";
                     }
 
-                    if(in_array($arrCategory['catId'], $this->arrSelectedCategories)) {
+                    if (
+                        $this->arrSelectedCategories &&
+                        in_array($arrCategory['catId'], $this->arrSelectedCategories)
+                    ) {
                       $this->strSelectedOptions .= '<option name="'.$strOptionId.'" value="'.$arrCategory['catId'].'">'.$spacer.contrexx_raw2xhtml($arrCategory['catName'][0]).'</option>';
                     } else {
                       $this->strNotSelectedOptions .= '<option name="'.$strOptionId.'" value="'.$arrCategory['catId'].'">'.$spacer.contrexx_raw2xhtml($arrCategory['catName'][0]).'</option>';

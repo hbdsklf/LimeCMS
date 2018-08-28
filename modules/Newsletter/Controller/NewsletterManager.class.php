@@ -4399,6 +4399,7 @@ $WhereStatement = '';
             'notes'           => $_ARRAYLANG['TXT_NEWSLETTER_NOTES'],
             'language'        => $_ARRAYLANG['TXT_NEWSLETTER_LANGUAGE']
         );
+        $source = 'backend';
 
         if (isset($_POST['import_cancel'])) {
             // Abbrechen. Siehe Abbrechen
@@ -4482,13 +4483,13 @@ $WhereStatement = '';
                                             $arrRecipient['address'], $arrRecipient['zip'], $arrRecipient['city'], $arrRecipient['country_id'],
                                             $arrRecipient['phone_office'], $arrRecipient['phone_private'], $arrRecipient['phone_mobile'],
                                             $arrRecipient['fax'], $recipientNotes, $arrRecipient['birthday'], $recipientStatus, $arrRecipientLists,
-                                            $recipientLanguage);
+                                            $recipientLanguage, $source);
 
                             $ExistEmails++;
                         } else {
                             $NewEmails ++;
 
-                            if (!$this->_addRecipient($arrRecipient['email'], $arrRecipient['uri'], $arrRecipient['sex'], $recipientSalutationId, $arrRecipient['title'], $arrRecipient['lastname'], $arrRecipient['firstname'], $arrRecipient['position'], $arrRecipient['company'], $arrRecipient['industry_sector'], $arrRecipient['address'], $arrRecipient['zip'], $arrRecipient['city'], $arrRecipient['country_id'], $arrRecipient['phone_office'], $arrRecipient['phone_private'], $arrRecipient['phone_mobile'], $arrRecipient['fax'], $arrRecipient['notes'], $arrRecipient['birthday'], 1, $arrRecipientLists, $arrRecipient['language'])) {
+                            if (!$this->_addRecipient($arrRecipient['email'], $arrRecipient['uri'], $arrRecipient['sex'], $recipientSalutationId, $arrRecipient['title'], $arrRecipient['lastname'], $arrRecipient['firstname'], $arrRecipient['position'], $arrRecipient['company'], $arrRecipient['industry_sector'], $arrRecipient['address'], $arrRecipient['zip'], $arrRecipient['city'], $arrRecipient['country_id'], $arrRecipient['phone_office'], $arrRecipient['phone_private'], $arrRecipient['phone_mobile'], $arrRecipient['fax'], $arrRecipient['notes'], $arrRecipient['birthday'], 1, $arrRecipientLists, $arrRecipient['language'], $source)) {
                                 array_push($arrBadEmails, $arrRecipient['email']);
                             } elseif (!empty($recipientSendEmailId)) {
                                 $objRecipient = $objDatabase->SelectLimit("
@@ -4609,20 +4610,34 @@ $WhereStatement = '';
                             $EmailCount++;
                             $objRecipient = $objDatabase->SelectLimit("SELECT `id` FROM `".DBPREFIX."module_newsletter_user` WHERE `email` = '".addslashes($email)."'", 1);
                             if ($objRecipient->RecordCount() == 1) {
-                                foreach ($arrLists as $listId) {
-                                    $this->_addRecipient2List($objRecipient->fields['id'], $listId);
-                                }
+                                static::_setRecipientLists(
+                                    $objRecipient->fields['id'],
+                                    $arrLists,
+                                    $source
+                                );
                                 $ExistEmails++;
                             } else {
                                 $NewEmails ++;
                                 if ($objDatabase->Execute("
                                     INSERT INTO `".DBPREFIX."module_newsletter_user` (
-                                        `code`, `email`, `status`, `emaildate`
+                                        `code`,
+                                        `email`,
+                                        `status`,
+                                        `emaildate`,
+                                        `source`
                                     ) VALUES (
-                                        '".$this->_emailCode()."', '".addslashes($email)."', 1, ".time()."
+                                        '". $this->_emailCode() ."',
+                                        '". addslashes($email) ."',
+                                        1,
+                                        '". time() ."',
+                                        '". $source ."'
                                     )"
                                 ) !== false) {
-                                    $this->_setRecipientLists($objDatabase->Insert_ID(), $arrLists);
+                                    static::_setRecipientLists(
+                                        $objDatabase->Insert_ID(),
+                                        $arrLists,
+                                        $source
+                                    );
                                 } else {
                                     array_push($arrBadEmails, $email);
                                 }
@@ -4690,59 +4705,6 @@ $WhereStatement = '';
 
         return $ReturnVar;
     }
-
-    /**
-     * Sets the list-categories for an User
-
-     * @param int $CreatedID the ID of the user in the Database
-     */
-    function _setCategories($CreatedID)
-    {
-        global $objDatabase, $_ARRAYLANG;
-
-        if (empty($_REQUEST['category'])) {
-            $objDatabase->Execute("DELETE FROM ".DBPREFIX."module_newsletter_rel_user_cat WHERE user=$CreatedID");
-            $queryIC         = "SELECT id FROM ".DBPREFIX."module_newsletter_category";
-            $objResultIC     = $objDatabase->Execute($queryIC);
-            if ($objResultIC !== false) {
-                while (!$objResultIC->EOF) {
-                    $objDatabase->Execute("
-                        INSERT INTO ".DBPREFIX."module_newsletter_rel_user_cat (
-                            user, category
-                        ) VALUES (
-                            $CreatedID, ".$objResultIC->fields['id']."
-                        )");
-                    $objResultIC->MoveNext();
-                }
-            }
-        } else {
-            $currentCategories = array(intval($_REQUEST['category']));
-            //fetch all current categories that this user is in
-            $query = "SELECT * from ".DBPREFIX."module_newsletter_rel_user_cat WHERE user=$CreatedID";
-            $objRS = $objDatabase->Execute($query);
-            while(!$objRS->EOF) {
-                $currentCategories[] = $objRS->fields['category'];
-                $objRS->MoveNext();
-            }
-            //make the categories-array unique
-            $uniqueCategories = array_unique($currentCategories);
-            //delete all relations from this user
-            $objDatabase->Execute("DELETE FROM ".DBPREFIX."module_newsletter_rel_user_cat WHERE user=$CreatedID");
-
-            //re-import the unique categories
-            foreach ($uniqueCategories as $catId) {
-                if ($catId != 0) {
-                    if ($objDatabase->Execute("INSERT INTO ".DBPREFIX."module_newsletter_rel_user_cat
-                                    (user, category)
-                                    VALUES (".$CreatedID.", ".$catId.")") === false) {
-                        return self::$strErrMessage = $_ARRAYLANG['TXT_DATABASE_ERROR'];
-                    }
-                }
-            }
-        }
-        return true;
-    }
-
 
     function _getAssociatedListSelection()
     {
@@ -4926,6 +4888,7 @@ $WhereStatement = '';
         $arrAssociatedLists = array();
         $recipientSendEmailId = isset($_POST['sendEmail']) ? intval($_POST['sendEmail']) : 0;
         $recipientSendMailDisplay = false;
+        $source = 'backend';
 
         if (isset($_POST['newsletter_recipient_email'])) {
             $recipientEmail = $_POST['newsletter_recipient_email'];
@@ -5015,7 +4978,7 @@ $WhereStatement = '';
                         //reset the $recipientId on copy function
                         $recipientId = $copy ? 0 : $recipientId;
                         if ($recipientId > 0) {
-                            if ($this->_updateRecipient($recipientAttributeStatus, $recipientId, $recipientEmail, $recipientUri, $recipientSex, $recipientSalutation, $recipientTitle, $recipientLastname, $recipientFirstname, $recipientPosition, $recipientCompany, $recipientIndustrySector, $recipientAddress, $recipientZip, $recipientCity, $recipientCountry, $recipientPhoneOffice, $recipientPhonePrivate, $recipientPhoneMobile, $recipientFax, $recipientNotes, $recipientBirthday, $recipientStatus, $arrAssociatedLists, $recipientLanguage)) {
+                            if ($this->_updateRecipient($recipientAttributeStatus, $recipientId, $recipientEmail, $recipientUri, $recipientSex, $recipientSalutation, $recipientTitle, $recipientLastname, $recipientFirstname, $recipientPosition, $recipientCompany, $recipientIndustrySector, $recipientAddress, $recipientZip, $recipientCity, $recipientCountry, $recipientPhoneOffice, $recipientPhonePrivate, $recipientPhoneMobile, $recipientFax, $recipientNotes, $recipientBirthday, $recipientStatus, $arrAssociatedLists, $recipientLanguage, $source)) {
                                 self::$strOkMessage .= $_ARRAYLANG['TXT_NEWSLETTER_RECIPIENT_UPDATED_SUCCESSFULLY'];
                                 return $this->_userList();
                             } else {
@@ -5024,7 +4987,7 @@ $WhereStatement = '';
                                 self::$strErrMessage .= $_ARRAYLANG['TXT_NEWSLETTER_ERROR_UPDATE_RECIPIENT'];
                             }
                         } else {
-                            if ($this->_addRecipient($recipientEmail, $recipientUri, $recipientSex, $recipientSalutation, $recipientTitle, $recipientLastname, $recipientFirstname, $recipientPosition, $recipientCompany, $recipientIndustrySector, $recipientAddress, $recipientZip, $recipientCity, $recipientCountry, $recipientPhoneOffice, $recipientPhonePrivate, $recipientPhoneMobile, $recipientFax, $recipientNotes, $recipientBirthday, $recipientStatus, $arrAssociatedLists, $recipientLanguage)) {
+                            if ($this->_addRecipient($recipientEmail, $recipientUri, $recipientSex, $recipientSalutation, $recipientTitle, $recipientLastname, $recipientFirstname, $recipientPosition, $recipientCompany, $recipientIndustrySector, $recipientAddress, $recipientZip, $recipientCity, $recipientCountry, $recipientPhoneOffice, $recipientPhonePrivate, $recipientPhoneMobile, $recipientFax, $recipientNotes, $recipientBirthday, $recipientStatus, $arrAssociatedLists, $recipientLanguage, $source)) {
                                 if (!empty($recipientSendEmailId)) {
                                     $objRecipient = $objDatabase->SelectLimit("SELECT id FROM ".DBPREFIX."module_newsletter_user WHERE email='".contrexx_input2db($recipientEmail)."'", 1);
                                     $recipientId  = $objRecipient->fields['id'];
@@ -5075,7 +5038,7 @@ $WhereStatement = '';
                             $recipientAttributeStatus[$attribute]['active'] = false;
                         }
 
-                        if ($this->_updateRecipient($recipientAttributeStatus, $recipientId, $recipientEmail, $recipientUri, $recipientSex, $recipientSalutation, $recipientTitle, $recipientLastname, $recipientFirstname, $recipientPosition, $recipientCompany, $recipientIndustrySector, $recipientAddress, $recipientZip, $recipientCity, $recipientCountry, $recipientPhoneOffice, $recipientPhonePrivate, $recipientPhoneMobile, $recipientFax, $recipientNotes, $recipientBirthday, $recipientStatus, $arrAssociatedLists, $recipientLanguage)) {
+                        if ($this->_updateRecipient($recipientAttributeStatus, $recipientId, $recipientEmail, $recipientUri, $recipientSex, $recipientSalutation, $recipientTitle, $recipientLastname, $recipientFirstname, $recipientPosition, $recipientCompany, $recipientIndustrySector, $recipientAddress, $recipientZip, $recipientCity, $recipientCountry, $recipientPhoneOffice, $recipientPhonePrivate, $recipientPhoneMobile, $recipientFax, $recipientNotes, $recipientBirthday, $recipientStatus, $arrAssociatedLists, $recipientLanguage, $source)) {
                             self::$strOkMessage .= $_ARRAYLANG['TXT_NEWSLETTER_RECIPIENT_UPDATED_SUCCESSFULLY'];
                             self::$strOkMessage .= $_ARRAYLANG['TXT_NEWSLETTER_RECIPIENT_NO_EMAIL_SENT'];
                             return $this->_userList();
@@ -5580,13 +5543,20 @@ $WhereStatement = '';
             }
         }
 
-        $query = sprintf('
+        $query   = sprintf('
             (
                 SELECT SQL_CALC_FOUND_ROWS
                 %2$s
                 FROM `%1$smodule_newsletter_user` AS `nu`
                 %3$s
                 WHERE 1
+                AND (
+                    nu.source != "opt-in"
+                    OR (
+                        nu.source = "opt-in"
+                        AND nu.consent IS NOT NULL
+                    )
+                )
                 %4$s
                 %5$s
                 %10$s

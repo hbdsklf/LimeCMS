@@ -97,7 +97,8 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
                 //'CONTENT_TEXT',
                 'CSS_NAME',
                 'TXT_CORE_LAST_MODIFIED_PAGE',
-                'LAST_MODIFIED_PAGE'
+                'LAST_MODIFIED_PAGE',
+                'CANONICAL_LINK',
             ) as $widgetName
         ) {
             $widgetController->registerWidget(

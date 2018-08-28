@@ -154,11 +154,31 @@ class Cache extends \Cx\Core_Modules\Cache\Controller\CacheLib
         if (!$cachedLocaleData) {
             $this->arrPageContent += $this->selectBestLanguageFromRequest($cx);
         } else {
-            $this->arrPageContent['locale'] = \Cx\Core\Locale\Controller\ComponentController::selectBestLocale(
-                $cx,
-                $cachedLocaleData
-            );
+            $requestedLocale = '';
+            // fetch locale from requested url
+            if (
+                count($cachedLocaleData['Hashtables']['IdByCode']) > 1 ||
+                $_CONFIG['useVirtualLanguageDirectories'] != 'off'
+            ) {
+                $requestUrl = new \Cx\Lib\Net\Model\Entity\Url($this->currentUrl);
+                $requestedLocale = current($requestUrl->getPathParts());
+            }
+
+            if (
+                !empty($requestedLocale) &&
+                isset($cachedLocaleData['Hashtables']['IdByCode'][$requestedLocale])
+            ) {
+                // use locale from requested url
+                $this->arrPageContent['locale'] = $cachedLocaleData['Hashtables']['IdByCode'][$requestedLocale];
+            } else {
+                // select locale based on user agent
+                $this->arrPageContent['locale'] = \Cx\Core\Locale\Controller\ComponentController::selectBestLocale(
+                    $cx,
+                    $cachedLocaleData
+                );
+            }
         }
+
         $this->strCacheFilename = md5(serialize($this->arrPageContent));
     }
 
@@ -257,6 +277,47 @@ class Cache extends \Cx\Core_Modules\Cache\Controller\CacheLib
                 if (!empty($queryString)) {
                     return '?' . $queryString;
                 }
+            },
+        );
+
+        // TODO: $dynFuncs needs to be built dynamically (via event handler)
+        $this->dynFuncs = array(
+            'strftime' => function($args) use ($cx) {
+                // Notes:
+                //   This function does not support the ESI dynamic function
+                //   modifiers %c, %E, %O, %x, %X and %+.
+
+                $time = time();
+                $format = '';
+
+                switch (count($args)) {
+                    case 1:
+                        $format = $args[0];
+                        break;
+                    case 2:
+                        $time = $args[0];
+                        $format = $args[1];
+                        break;
+
+                    default:
+                        \DBG::msg('Invalid arguments supplied to $strftime()');
+                        return;
+                }
+                $format = trim($format, '\'');
+
+                // TODO: drop this code as soon as strftime of DateTime
+                // component does no longer need any locale info.
+                $locale = '';
+                $cachedLocaleData = $this->getCachedLocaleData();
+                if (in_array($this->arrPageContent['locale'], $cachedLocaleData['Hashtables']['IdByCode'])) {
+                    $locale = array_search($this->arrPageContent['locale'], $cachedLocaleData['Hashtables']['IdByCode']);
+                }
+                // end of TODO
+                return \Cx\Core\DateTime\Controller\ComponentController::strftime(
+                    $format,
+                    $time,
+                    $locale
+                );
             },
         );
 
@@ -686,6 +747,41 @@ class Cache extends \Cx\Core_Modules\Cache\Controller\CacheLib
                         $htmlCode = str_replace($esiPlaceholder, $varValue, $htmlCode);
                     }
                 }
+            }
+
+            // apply ESI dynamic functions
+            foreach ($this->dynFuncs as $function => $callback) {
+                // execute ESI dynamic functions in content
+                $htmlCode = preg_replace_callback(
+                    '/\$' . $function . '\(' . '([^)]*)' . '\)/',
+                    function($matches) use ($callback) {
+                        // extract arguments from function call
+                        $arglist = $matches[1];
+                        $args = preg_split(
+                            '/
+                                # argument enclosed in double quotes
+                                [\s,]* "([^"]+)"[\s,]*
+
+                                |
+
+                                # argument enclosed in single quotes
+                                [\s,]* \'([^\']+)\'[\s,]*
+
+                                |
+
+                                # end of argument list
+                                [\s,]+
+                            /x',
+                            $arglist,
+                            0,
+                            PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE
+                        );
+
+                        // pass extracted arguments to dynamic function
+                        return $callback($args);
+                    },
+                    $htmlCode
+                );
             }
 
             // Random include tags

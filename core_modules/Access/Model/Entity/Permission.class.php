@@ -434,6 +434,11 @@ class Permission extends \Cx\Model\Base\EntityBase {
             return false;
         }
 
+        // admins have all privileges
+        if (\FWUser::getFWUserObject()->objUser->getAdminStatus()) {
+            return true;
+        }
+
         //check user's group access
         if (   !empty($this->validUserGroups)
             && !count(array_intersect($this->validUserGroups, \FWUser::getFWUserObject()->objUser->getAssociatedGroupIds()))

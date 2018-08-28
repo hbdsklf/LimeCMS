@@ -2145,6 +2145,21 @@ class Page extends \Cx\Core_Modules\Widget\Model\Entity\WidgetParseTarget implem
     }
 
     /**
+     * {@inheritdoc}
+     */
+    protected function getContentTemplateForWidget($widgetName, $langId, $page, $channel) {
+        $template = parent::getContentTemplateForWidget($widgetName, $langId, $page, $channel);
+
+        // load application template in case page is an application
+        if ($page->getType() == TYPE_APPLICATION) {
+            $contentTemplate = \Cx\Core\Core\Controller\Cx::getContentTemplateOfPageWithoutWidget($page, null, $channel);
+            $template->addBlock('APPLICATION_DATA', 'cx_application_data', $contentTemplate);
+        }
+
+        return $template;
+    }
+
+    /**
      * Returns the name of the attribute used to parse Widget named $widgetName
      * @return string Attribute name used as getter name
      */

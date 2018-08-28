@@ -524,9 +524,9 @@ function cmd_envs {
             fi
             dockerexec network create "<proxy-network>"
             if [[ "${ARGUMENTS["certs-dir"]}" != "" ]]; then
-                dockerexec run --rm --name "<proxy-container>" --net "nginx-proxy" -d -p "${ARGUMENTS["port"]}:80" -p "${ARGUMENTS["ssl-port"]}":443 -v "${ARGUMENTS["certs-dir"]}":/etc/nginx/certs:ro -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
+                dockerexec run --restart=always --name "<proxy-container>" --net "nginx-proxy" -d -p "${ARGUMENTS["port"]}:80" -p "${ARGUMENTS["ssl-port"]}":443 -v "${ARGUMENTS["certs-dir"]}":/etc/nginx/certs:ro -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
             else
-                dockerexec run --rm --name "<proxy-container>" --net "nginx-proxy" -d -p "${ARGUMENTS["port"]}:80" -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
+                dockerexec run --restart=always --name "<proxy-container>" --net "nginx-proxy" -d -p "${ARGUMENTS["port"]}:80" -v /var/run/docker.sock:/tmp/docker.sock:ro jwilder/nginx-proxy
             fi
             for env_dir in "${env_dirs[@]}"; do
                 (
@@ -569,6 +569,7 @@ function cmd_envs {
                 fi
             fi
             dockerexec stop "<proxy-container>"
+            dockerexec rm "<proxy-container>"
             dockerexec network rm "<proxy-network>"
             if [ "${#environments[@]}" -eq "1" ]; then
                 if [[ ${ARGUMENTS["yes"]} != true ]]; then
@@ -696,22 +697,7 @@ function cmd_env {
                 fi
                 ARGUMENTS["db"]=true && ARGUMENTS["drop-users"]=true && cmd_env update
             fi
-            if [[ "${CONFIG["cms-version"]:0:1}" -ge 5 ]]; then
-                if [[ ${ARGUMENTS["silent"]} != true ]]; then
-                    echo "Configuring cache"
-                fi
-                phpexec Setting set Config -engine=Yaml -group=cache cacheEnabled on > /dev/null
-                phpexec Setting set Config -engine=Yaml -group=cache internalSsiCache on > /dev/null
-                phpexec Setting set Config -engine=Yaml -group=cache cacheUserCache memcached > /dev/null
-                phpexec Setting set Config -engine=Yaml -group=cache cacheUserCacheMemcacheConfig "{\"ip\":\"usercache\",\"port\":\"11211\"}" > /dev/null
-                phpexec Setting set Config -engine=Yaml -group=cache cacheUserCacheMemcachedConfig "{\"ip\":\"usercache\",\"port\":\"11211\"}" > /dev/null
-                phpexec Setting set Config -engine=Yaml -group=cache cacheDbStatus on > /dev/null
-                phpexec Setting set Config -engine=Yaml -group=cache cacheOPCache zendopcache > /dev/null
-                phpexec Setting set Config -engine=Yaml -group=cache cacheOpStatus on > /dev/null
-                phpexec Setting set Config -engine=Yaml -group=site forceDomainUrl on > /dev/null
-                phpexec Setting set Config -engine=Yaml -group=site forceProtocolFrontend http > /dev/null
-                phpexec Setting set Config -engine=Yaml -group=administrationArea forceProtocolBackend http > /dev/null
-            fi
+            ARGUMENTS["force-default"]=false && cmd_env config
             echo "$result"
             ;;
         up)
@@ -724,6 +710,7 @@ function cmd_env {
                     exit 1
                 fi
             fi
+            [ -d ./tmp/db ] || mkdir -p ./tmp/db
             if [[ ${ARGUMENTS["silent"]} != true ]]; then
                 dockercomposeexec up -d
                 echo "Waiting for database server to come up..."
@@ -1117,9 +1104,9 @@ SET FOREIGN_KEY_CHECKS = 1;"
                             theme)
                                 get_config_array
                                 mysql_create_tempfile
-                                local theme=$(mysql_exec "SELECT \`id\` FROM \`contrexx_skins\` WHERE \`foldername\` = '$theme'")
+                                local theme=$(mysql_exec "SELECT \`id\` FROM \`contrexx_skins\` WHERE \`foldername\` = '$component'")
                                 if [[ "$theme" == "" ]]; then
-                                    mysql_exec "INSERT INTO \`contrexx_skins\` SET \`themesname\` = '$theme', \`foldername\` = '$theme', \`expert\` = 1";
+                                    mysql_exec "INSERT INTO \`contrexx_skins\` SET \`themesname\` = '$component', \`foldername\` = '$component', \`expert\` = 1";
                                 fi
                                 mysql_drop_tempfile
                                 ;;
@@ -1162,6 +1149,11 @@ SET FOREIGN_KEY_CHECKS = 1;"
                     if [[ "${ARGUMENTS["snapshot-repo"]}" != "" ]]; then
                         url="${ARGUMENTS["snapshot-repo"]}"
                     fi
+                    local testUrl="${url//"<site>"/"$3"}"
+                    if ! echo "$testUrl" | wget -q --spider -i -; then
+                        echo "Invalid URL!"
+                        return
+                    fi
                     set_project_var "clx.project.remote" "$3,$url"
                     ;;
                 unset)
@@ -1180,11 +1172,13 @@ SET FOREIGN_KEY_CHECKS = 1;"
                     if [[ "$url" == "" ]]; then
                         return
                     fi
-                    echo "$url" | wget -i - -O "$workdir/snapshot.zip"
+                    echo "$url" | wget -N -i - -O "./tmp/remote.zip"
 
                     # unpack
-                    unzip "$workdir/snapshot.zip" -d "$workdir/backup" > /dev/null
+                    echo "Extracting package..."
+                    unzip "./tmp/remote.zip" -d "$workdir/backup" > /dev/null
 
+                    echo "Gathering data..."
                     # drop existing
                     get_config_array
                     mysql_create_tempfile
@@ -1193,7 +1187,7 @@ SET FOREIGN_KEY_CHECKS = 1;"
                         "contrexx_access_"
                         "contrexx_content_"
                         "contrexx_log_entry"
-                        "contrexx_module_"
+                        "contrexx_module\_"
                         "contrexx_core_view_frontend"
                     )
                     for tablePrefix in "${tablePrefixes[@]}"; do
@@ -1202,7 +1196,7 @@ SET FOREIGN_KEY_CHECKS = 1;"
 
                     # filter
                     for tablePrefix in "${tablePrefixes[@]}"; do
-                        grep "INSERT INTO \`$tablePrefix" "$workdir/backup/database/sql_dump.sql" >> "$workdir/update.sql"
+                        grep "INSERT INTO \`$tablePrefix" "$workdir/backup/database/sql_dump.sql" | grep -v "contrexx_module_mediadir_" | grep -v "contrexx_module_calendar_" >> "$workdir/update.sql"
                     done
 
                     # import
@@ -1355,8 +1349,14 @@ function set_config_array {
     FILE_CONTENTS=$(regex_replace "$FILE_CONTENTS" "((define\('CONTEXX_INSTALLED', )false(\);))" "true")
     if [[ "${CONFIG["cms-version"]:0:1}" == "3" && "${CONFIG["cms-version"]:2:1}" == "0" ]] || [[ "${CONFIG["cms-version"]:0:1}" -lt 3 ]]; then
         FILE_CONTENTS=$(regex_replace "$FILE_CONTENTS" "((PATHCONFIG\['ascms_root'\]\ +=\ +['\"])[^'\"]*(['\"];))" "/var/www/html")
-        FILE_CONTENTS=$(regex_replace "$FILE_CONTENTS" "((PATHCONFIG\['ascms_root_offset'\]\ +=\ +['\"])[^'\"]*(['\"];))" "")
+    else
+        FILE_CONTENTS=$(regex_replace "$FILE_CONTENTS" "((PATHCONFIG\['ascms_root'\]\ +=\ +['\"])[^'\"]*(['\"];))" "")
     fi
+    FILE_CONTENTS=$(regex_replace "$FILE_CONTENTS" "((PATHCONFIG\['ascms_root_offset'\]\ +=\ +['\"])[^'\"]*(['\"];))" "")
+    FILE_CONTENTS=$(regex_replace "$FILE_CONTENTS" "((FTPCONFIG\['is_activated'\]\ +=\ +)[^;]*(;))" "false")
+    FILE_CONTENTS=$(regex_replace "$FILE_CONTENTS" "((FTPCONFIG\['username'\]\ +=\ +['\"])[^'\"]*(['\"];))" "")
+    FILE_CONTENTS=$(regex_replace "$FILE_CONTENTS" "((FTPCONFIG\['password'\]\ +=\ +['\"])[^'\"]*(['\"];))" "")
+    FILE_CONTENTS=$(regex_replace "$FILE_CONTENTS" "((FTPCONFIG\['path'\]\ +=\ +['\"])[^'\"]*(['\"];))" "")
     # save config file
     echo "$FILE_CONTENTS" > config/configuration.php
 
@@ -1365,6 +1365,9 @@ function set_config_array {
     # replace hostname, port
     FILE_CONTENTS=$(regex_replace "$FILE_CONTENTS" "((CONFIG\['portFrontendHTTP'\]\ +=\ +)[0-9]+(;))" "${CONFIG["port"]}")
     FILE_CONTENTS=$(regex_replace "$FILE_CONTENTS" "((CONFIG\['domainUrl'\]\ +=\ +['\"])[^'\"]*(['\"];))" "${CONFIG["hostname"]}")
+    FILE_CONTENTS=$(regex_replace "$FILE_CONTENTS" "((CONFIG\['forceDomainUrl'\]\ +=\ +['\"])[^'\"]*(['\"];))" "off")
+    FILE_CONTENTS=$(regex_replace "$FILE_CONTENTS" "((CONFIG\['forceProtocolFrontend'\]\ +=\ +['\"])[^'\"]*(['\"];))" "none")
+    FILE_CONTENTS=$(regex_replace "$FILE_CONTENTS" "((CONFIG\['forceProtocolBackend'\]\ +=\ +['\"])[^'\"]*(['\"];))" "none")
     # save settings
     echo "$FILE_CONTENTS" > config/settings.php
 
@@ -1403,11 +1406,33 @@ function set_config_array {
     # save docker-compose.yml
     echo "$FILE_CONTENTS" > docker-compose.yml
     
-    if [[ "${CONFIG["cms-version"]:0:1}" -ge 5 ]] && [ "$(dockerexec ps -q -f "name=<web-container>")" ]; then
+    if [ "$(dockerexec ps -q -f "name=<web-container>")" ]; then
         if [[ ${ARGUMENTS["silent"]} != true ]]; then
             echo "Applying configuration to running environment"
         fi
-        phpexec config --force
+        if [[ "${CONFIG["cms-version"]:0:1}" -ge 5 ]]; then
+            phpexec config --force
+            if [[ ${ARGUMENTS["silent"]} != true ]]; then
+                echo "Configuring cache"
+            fi
+            phpexec Setting set Config -engine=Yaml -group=cache cacheEnabled on > /dev/null
+            phpexec Setting set Config -engine=Yaml -group=cache internalSsiCache on > /dev/null
+            phpexec Setting set Config -engine=Yaml -group=cache cacheUserCache memcached > /dev/null
+            phpexec Setting set Config -engine=Yaml -group=cache cacheUserCacheMemcacheConfig "{\"ip\":\"usercache\",\"port\":\"11211\"}" > /dev/null
+            phpexec Setting set Config -engine=Yaml -group=cache cacheUserCacheMemcachedConfig "{\"ip\":\"usercache\",\"port\":\"11211\"}" > /dev/null
+            phpexec Setting set Config -engine=Yaml -group=cache cacheDbStatus on > /dev/null
+            phpexec Setting set Config -engine=Yaml -group=cache cacheOPCache zendopcache > /dev/null
+            phpexec Setting set Config -engine=Yaml -group=cache cacheOpStatus on > /dev/null
+            phpexec Setting set Config -engine=Yaml -group=site forceDomainUrl on > /dev/null
+            phpexec Setting set Config -engine=Yaml -group=site forceProtocolFrontend http > /dev/null
+            phpexec Setting set Config -engine=Yaml -group=administrationArea forceProtocolBackend http > /dev/null
+        else
+            # disable force domain url and protocol
+            mysql_create_tempfile
+            mysql_exec "UPDATE \`contrexx_settings\` SET \`setvalue\` = 'off' WHERE \`setname\` = 'forceDomainUrl';
+UPDATE \`contrexx_settings\` SET \`setvalue\` = 'none' WHERE \`setname\` = 'forceProtocolFrontend';
+UPDATE \`contrexx_settings\` SET \`setvalue\` = 'none' WHERE \`setname\` = 'forceProtocolBackend';"
+        fi
     fi
 }
 
@@ -1520,9 +1545,10 @@ function mysql_exec {
     if mysql_is_local; then
         mysql --defaults-file="${TEMP_FILES["db-connection"]}" -A -e "$@"
     else
-        local sql="$1"
+        echo "$1" > "./tmp/db/import.sql"
         shift
-        echo "$sql" | internal_dockerexec exec -i "<db-container>" bash -c "cat - | mysql --defaults-file=${TEMP_FILES["db-connection"]} -A $@"
+        internal_dockerexec exec -i "<db-container>" bash -c "mysql --defaults-file=${TEMP_FILES["db-connection"]} -A $@ < /tmp/import/import.sql"
+        rm "./tmp/db/import.sql"
     fi
 }
 
@@ -1530,7 +1556,9 @@ function mysql_load {
     if mysql_is_local; then
         cat "$1" | mysql --defaults-file="${TEMP_FILES["db-connection"]}" -A
     else
-        cat "$1" | internal_dockerexec exec -i "<db-container>" bash -c "cat - | mysql --defaults-file=${TEMP_FILES["db-connection"]} -A"
+        cp "$1" "./tmp/db/import.sql"
+        internal_dockerexec exec -i "<db-container>" bash -c "mysql --defaults-file=${TEMP_FILES["db-connection"]} -A < /tmp/import/import.sql"
+        rm "./tmp/db/import.sql"
     fi
 }
 
@@ -1543,7 +1571,8 @@ function mysql_load_named {
     if mysql_is_local; then
         pv -pterb -N "$1" "$2" | mysql --defaults-file="${TEMP_FILES["db-connection"]}" -A
     else
-        pv -pterb -N "$1" "$2" | internal_dockerexec exec -i "<db-container>" bash -c "cat - | mysql --defaults-file=${TEMP_FILES["db-connection"]} -A"
+        echo "$1"
+        mysql_load "$2"
     fi
 }
 
@@ -1651,7 +1680,11 @@ case "${COMMANDS[0]}" in
             exit
         elif [[ ${ARGUMENTS["request"]} ]]; then
             requestId=$(tac tmp/log/dbg.log | grep '^[^ ].*"([a-z0-9]\+)" ' -m1 | grep -o ' "([0-9a-z]\+)" ')
-            grep -Poz ".*\"\(${requestId:3:12}\)\"(.+)([\n] .*)*[\n]" tmp/log/dbg.log | tr -d '\000'
+            if [ -t 0 ] ; then
+                grep -Poz ".*\"\(${requestId:3:12}\)\"(.+)([\n] .*)*[\n]" tmp/log/dbg.log | tr -d '\000' | less -F
+            else
+                grep -Poz ".*\"\(${requestId:3:12}\)\"(.+)([\n] .*)*[\n]" tmp/log/dbg.log | tr -d '\000'
+            fi
             exit
         elif [[ ${ARGUMENTS["follow"]} ]]; then
             tail -f -n0 tmp/log/dbg.log

@@ -1447,6 +1447,7 @@ $_ARRAYLANG['TXT_CORE_RECORD_FUNCTION_NOT_FOUND'] = "Die Einträge unter '%s' ko
 $_ARRAYLANG['TXT_CORE_RECORD_CLASS_NOT_FOUND'] = "Die Einträge unter '%s' konnten nicht gespeichert werden, da die Klasse nicht gefunden wurde. Wenden Sie sich bitte an den System-Administrator";
 $_ARRAYLANG['TXT_CORE_RECORD_ONE_TO_N_ASSOCIATION'] = "Diese Einträge werden erst gespeichert/gelöscht, wenn das Hauptformular abgeschickt wird.";
 $_ARRAYLANG['TXT_CORE_RECORD_UNKNOWN_ERROR'] = "Eintrag konnte nicht gespeichert werden. Prüfen Sie ihre Eingabe und versuchen Sie es erneut.";
+$_ARRAYLANG['TXT_CORE_RECORD_RELATION_LIMITED'] = 'Aufgrund einer hohen Anzahl verknüpfter Einträge wurde die Ausgabe limitiert.';
 $_ARRAYLANG['TXT_SETTINGS_UPDATED'] = 'Die Einstellungen wurden gespeichert.';
 $_ARRAYLANG['TXT_ACTIVATED'] = "Aktiviert";
 $_ARRAYLANG['TXT_DEACTIVATED'] = "Deaktiviert";

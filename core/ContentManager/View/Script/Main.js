@@ -1355,7 +1355,7 @@ cx.cm.createJsTree = function(target, data, nodeLevels, open_all) {
                         module = cx.jQuery.trim(cx.jQuery.parseJSON(cx.jQuery(leaf).attr("data-href")).module);
                         module = module.split(" ")[0];
                     } catch (ex) {}
-                    if (cx.jQuery.inArray(module, ["", "Home", "login", "Imprint", "Ids", "Error", "Sitemap", "Agb", "Privacy", "search"]) == -1) {
+                    if (cx.jQuery.inArray(module, ["", "Home", "Login", "Imprint", "Ids", "Error", "Sitemap", "Agb", "Privacy", "Search"]) == -1) {
                         cx.cm.showEditModeWindow(module, this.id, cx.jQuery(this).closest('li').attr("id").split("_")[1]);
                     } else {
                         cx.cm.loadPage(this.id, cx.jQuery(this).closest('li').attr("id").split("_")[1], null, "content");

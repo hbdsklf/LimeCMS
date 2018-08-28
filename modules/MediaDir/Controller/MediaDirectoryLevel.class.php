@@ -503,7 +503,10 @@ class MediaDirectoryLevel extends MediaDirectoryLibrary
                         $spacer .= "&nbsp;";
                     }
 
-                    if(in_array($arrLevel['levelId'], $this->arrSelectedLevels)) {
+                    if (
+                        $this->arrSelectedLevels &&
+                        in_array($arrLevel['levelId'], $this->arrSelectedLevels)
+                    ) {
                         $this->strSelectedOptions .= '<option value="'.$arrLevel['levelId'].'">'.$spacer.contrexx_raw2xhtml($arrLevel['levelName'][0]).'</option>';
                     } else {
                         $this->strNotSelectedOptions .= '<option value="'.$arrLevel['levelId'].'">'.$spacer.contrexx_raw2xhtml($arrLevel['levelName'][0]).'</option>';

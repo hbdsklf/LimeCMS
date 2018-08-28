@@ -97,13 +97,9 @@ class NodeRepository extends NestedTreeRepository {
     }
 
     /**
-     * Finds a single entity by a set of criteria.
-     *
-     * @param array $criteria
-     * @return object
-     * @override
+     * {@inheritdoc}
      */
-    public function findOneBy(array $criteria)
+    public function findOneBy(array $criteria, array $orderBy = null)
     {
         $qb = $this->_em->createQueryBuilder();
         $qb->select('n')

@@ -274,6 +274,7 @@ class News extends \Cx\Core_Modules\News\Controller\NewsLibrary {
            'NEWS_LONG_DATE'      => date(ASCMS_DATE_FORMAT,$objResult->fields['date']),
            'NEWS_DATE'           => date(ASCMS_DATE_FORMAT_DATE,$objResult->fields['date']),
            'NEWS_TIME'           => date(ASCMS_DATE_FORMAT_TIME,$objResult->fields['date']),
+           'NEWS_TIMESTAMP'      => $objResult->fields['date'],
            'NEWS_TITLE'          => $newstitle,
            'NEWS_TEASER_TEXT'    => $newsTeaser,
            'NEWS_LASTUPDATE'     => $newsLastUpdate,
@@ -531,6 +532,7 @@ class News extends \Cx\Core_Modules\News\Controller\NewsLibrary {
                'NEWS_'.$placeholderPrefix.'_RELATED_MESSAGE_LONG_DATE'     => date(ASCMS_DATE_FORMAT,$objResult->fields['newsdate']),
                'NEWS_'.$placeholderPrefix.'_RELATED_MESSAGE_DATE'          => date(ASCMS_DATE_FORMAT_DATE, $objResult->fields['newsdate']),
                'NEWS_'.$placeholderPrefix.'_RELATED_MESSAGE_TIME'          => date(ASCMS_DATE_FORMAT_TIME, $objResult->fields['newsdate']),
+               'NEWS_'.$placeholderPrefix.'_RELATED_MESSAGE_TIMESTAMP'     => $objResult->fields['newsdate'],
                'NEWS_'.$placeholderPrefix.'_RELATED_MESSAGE_LINK_TITLE'    => $htmlLinkTitle,
                'NEWS_'.$placeholderPrefix.'_RELATED_MESSAGE_LINK'          => $htmlLink,
                'NEWS_'.$placeholderPrefix.'_RELATED_MESSAGE_LINK_TARGET'   => $linkTarget,
@@ -1049,6 +1051,7 @@ class News extends \Cx\Core_Modules\News\Controller\NewsLibrary {
                    'NEWS_LONG_DATE'     => date(ASCMS_DATE_FORMAT,$objResult->fields['newsdate']),
                    'NEWS_DATE'          => date(ASCMS_DATE_FORMAT_DATE, $objResult->fields['newsdate']),
                    'NEWS_TIME'          => date(ASCMS_DATE_FORMAT_TIME, $objResult->fields['newsdate']),
+                   'NEWS_TIMESTAMP'     => $objResult->fields['newsdate'],
                    'NEWS_LINK_TITLE'    => $htmlLinkTitle,
                    'NEWS_LINK'          => $htmlLink,
                    'NEWS_LINK_TARGET'   => $linkTarget,
@@ -1112,18 +1115,6 @@ class News extends \Cx\Core_Modules\News\Controller\NewsLibrary {
         return $this->_objTpl->get();
     }
 
-
-    /**
-    * Gets the global page title
-    *
-    * @param     string    (optional)$pageTitle
-    */
-    public function getPageTitle($pageTitle='')
-    {
-        if (empty($this->newsTitle)) {
-            $this->newsTitle = $pageTitle;
-        }
-    }
 
     private function notifyWebmasterAboutNewlySubmittedNewsMessage($news_id)
     {
@@ -1818,6 +1809,7 @@ RSS2JSCODE;
                        'NEWS_ARCHIVE_LONG_DATE'     => date(ASCMS_DATE_FORMAT,$news['date']),
                        'NEWS_ARCHIVE_DATE'          => date(ASCMS_DATE_FORMAT_DATE, $news['date']),
                        'NEWS_ARCHIVE_TIME'          => date(ASCMS_DATE_FORMAT_TIME, $news['date']),
+                       'NEWS_ARCHIVE_TIMESTAMP'     => $news['date'],
                        'NEWS_ARCHIVE_LINK_TITLE'    => contrexx_raw2xhtml($newstitle),
                        'NEWS_ARCHIVE_LINK'          => $htmlLink,
                        'NEWS_ARCHIVE_LINK_TARGET'   => $linkTarget,

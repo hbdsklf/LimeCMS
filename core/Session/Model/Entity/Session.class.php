@@ -812,7 +812,7 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
     /**
      * {@inheritdoc}
      */
-    public function offsetSet($offset, $data) {
+    public function offsetSet($offset, $data, $callableOnSet = null, $callableOnGet = null, $callableOnUnset = null, $callableOnValidateKey = null) {
         static::validateSessionKeyLength($offset);
 
         if (!isset($this->locks[$offset])) {

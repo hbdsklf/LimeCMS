@@ -148,9 +148,8 @@ class Shop extends ShopLibrary
      */
     static function init()
     {
-//\DBG::log("Shop::init(): Entered");
         if (self::$initialized) {
-die("Shop::init(): ERROR: Shop::init() called more than once!");
+            return;
         }
         self::init_session();
         if (   empty($_REQUEST['section'])
@@ -3989,7 +3988,7 @@ die("Shop::processRedirect(): This method is obsolete!");
                     ? \User::make_password()
                     : $_SESSION['shop']['password']);
 //\DBG::log("Password: $password (session: {$_SESSION['shop']['password']})");
-                if (!self::$objCustomer->password($password)) {
+                if (!self::$objCustomer->setPassword($password)) {
                     \Message::error($_ARRAYLANG['TXT_INVALID_PASSWORD']);
                     \Cx\Core\Csrf\Controller\Csrf::redirect(\Cx\Core\Routing\Url::fromModuleAndCmd(
                         'Shop', 'account'));
@@ -4054,12 +4053,20 @@ die("Shop::processRedirect(): This method is obsolete!");
         // Authenticate new Customer
         if ($new_customer) {
             // Fails for "unregistered" Customers!
-            if (self::$objCustomer->auth(
+// TODO: this feature did never work, as self::$objCustomer->auth() did
+//       expect a md5-hashed password. But now, since the method does no longer
+//       expect a md5-hashed password, but instead the raw password,
+//       the self::$objCustomer->auth() method does now work.
+//       As a result of this, the behavior of the Shop and the system is
+//       unknown if the new customer would suddenly be sign-in to the system.
+//       Therefore, the behavior must extensively be tested be fore the feature
+//       can be activated (by uncommenting it)
+            /*if (self::$objCustomer->auth(
                 $_SESSION['shop']['username'], $_SESSION['shop']['password'], false, true)) {
                 if (!self::_authenticate()) {
                     return \Message::error($_ARRAYLANG['TXT_SHOP_CUSTOMER_ERROR_STORING']);
                 }
-            }
+            }*/
         }
         $shipper_id = (empty($_SESSION['shop']['shipperId'])
             ? null : $_SESSION['shop']['shipperId']);
@@ -4398,8 +4405,11 @@ die("Shop::processRedirect(): This method is obsolete!");
             if (empty($_POST['shopCurrentPassword'])) {
                 return \Message::error($_ARRAYLANG['TXT_SHOP_ENTER_CURRENT_PASSWORD']);
             }
-            $password_old = contrexx_input2raw($_POST['shopCurrentPassword']);
-            if (md5($password_old) != self::$objCustomer->password()) {
+            if (
+                !self::$objCustomer->checkPassword(
+                    contrexx_input2raw($_POST['shopCurrentPassword'])
+                )
+            ) {
                 return \Message::error($_ARRAYLANG['TXT_SHOP_WRONG_CURRENT_PASSWORD']);
             }
             $password = contrexx_input2raw($_POST['shopNewPassword']);
@@ -4413,10 +4423,7 @@ die("Shop::processRedirect(): This method is obsolete!");
             if ($password != $password_confirm) {
                 return \Message::error($_ARRAYLANG['TXT_SHOP_PASSWORD_NOT_CONFIRMED']);
             }
-            if (strlen($password) < 6) {
-                return \Message::error($_ARRAYLANG['TXT_PASSWORD_MIN_CHARS']);
-            }
-            if (!self::$objCustomer->password($password)) {
+            if (!self::$objCustomer->setPassword($password)) {
                 return \Message::error($_ARRAYLANG['TXT_SHOP_PASSWORD_INVALID']);
             }
             if (!self::$objCustomer->store()) {

@@ -141,6 +141,12 @@ class Resolver {
     protected $headers = array();
 
     /**
+     * Passed path after the resolved page's path
+     * @var string
+     */
+    protected $additionalPath = '';
+
+    /**
      * @param Url $url the url to resolve
      * @param integer $lang the language Id
      * @param $entityManager
@@ -428,12 +434,12 @@ class Resolver {
             $this->page->getType() == \Cx\Core\ContentManager\Model\Entity\Page::TYPE_APPLICATION
         ) {
             // does this work for fallback(/aliases)?
-            $additionalPath = substr('/' . $this->originalUrl->getSuggestedTargetPath(), strlen($this->page->getPath()));
+            $this->additionalPath = substr('/' . $this->originalUrl->getSuggestedTargetPath(), strlen($this->page->getPath()));
             $componentController = $this->em->getRepository('Cx\Core\Core\Model\Entity\SystemComponent')->findOneBy(array('name'=>$this->page->getModule()));
             if ($componentController) {
                 $parts = array();
-                if (!empty($additionalPath)) {
-                    $parts = explode('/', substr($additionalPath, 1));
+                if (!empty($this->additionalPath)) {
+                    $parts = explode('/', substr($this->additionalPath, 1));
                 }
                 $componentController->resolve($parts, $this->page);
             }
@@ -1098,5 +1104,13 @@ class Resolver {
             $this->headers['Expires'] = $response->getExpirationDate()->format('r');
         }
         return $this->headers;
+    }
+
+    /**
+     * Returns the passed path additional to the resolved page's path
+     * @return string Offset path without leading slash
+     */
+    public function getAdditionalPath() {
+        return substr($this->additionalPath, 1);
     }
 }

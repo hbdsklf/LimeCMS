@@ -339,6 +339,7 @@ class SystemComponentBackendController extends Controller {
      * @param \Cx\Core\Html\Sigma $template Template for current CMD
      * @param array $cmd CMD separated by slashes
      * @param boolean $isSingle Wether edit view or not
+     * @return ?\Cx\Core\Html\Controller\ViewGenerator Used ViewGenerator or null
      */
     public function parsePage(\Cx\Core\Html\Sigma $template, array $cmd, &$isSingle = false) {
         global $_ARRAYLANG;
@@ -346,8 +347,7 @@ class SystemComponentBackendController extends Controller {
         // Parse entity view generation pages
         $entityClassName = $this->getNamespace() . '\\Model\\Entity\\' . current($cmd);
         if (in_array($entityClassName, $this->getEntityClasses())) {
-            $this->parseEntityClassPage($template, $entityClassName, current($cmd), array(), $isSingle);
-            return;
+            return $this->parseEntityClassPage($template, $entityClassName, current($cmd), array(), $isSingle);
         }
 
         // Not an entity, parse overview or settings
@@ -388,7 +388,7 @@ class SystemComponentBackendController extends Controller {
                         break;
                     default:
                         if (!$template->blockExists('mailing')) {
-                            return;
+                            return null;
                         }
                         $template->setVariable(
                             'MAILING',
@@ -409,6 +409,7 @@ class SystemComponentBackendController extends Controller {
                 }
                 break;
         }
+        return null;
     }
 
     protected function parseEntityClassPage($template, $entityClassName, $classIdentifier, $filter = array(), &$isSingle = false) {
@@ -427,6 +428,7 @@ class SystemComponentBackendController extends Controller {
         );
         $renderedContent = $view->render($isSingle);
         $template->setVariable('ENTITY_VIEW', $renderedContent);
+        return $view;
     }
 
     /**

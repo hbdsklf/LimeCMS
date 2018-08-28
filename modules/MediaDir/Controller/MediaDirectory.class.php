@@ -160,8 +160,11 @@ class MediaDirectory extends MediaDirectoryLibrary
                 } else if (substr($_REQUEST['cmd'],0,3) == 'add'){
                     parent::checkAccess('add_entry');
                     $this->modifyEntry();
-                } else if (substr($_REQUEST['cmd'],0,4) == 'edit'){
-                    if((intval($_REQUEST['eid']) != 0) || (intval($_REQUEST['entryId']) != 0)) {
+                } else if (substr($_REQUEST['cmd'], 0, 4) == 'edit') {
+                    if (
+                        (isset($_REQUEST['eid']) && intval($_REQUEST['eid']) != 0) ||
+                        (intval($_REQUEST['entryId']) != 0)
+                    ) {
                         parent::checkAccess('edit_entry');
                         $this->modifyEntry();
                     } else {
@@ -216,7 +219,6 @@ class MediaDirectory extends MediaDirectoryLibrary
             $page->setVirtual(true);
             $page->setType(\Cx\Core\ContentManager\Model\Entity\Page::TYPE_APPLICATION);
             $page->setModule('MediaDir');
-            //$page->setCmd('detail');
             // load source code
             $applicationTemplate = \Cx\Core\Core\Controller\Cx::getContentTemplateOfPage($page);
             \LinkGenerator::parseTemplate($applicationTemplate);
@@ -233,6 +235,7 @@ class MediaDirectory extends MediaDirectoryLibrary
         }
 
         //get ids
+        $arrIds = array();
         if(isset($_GET['cmd'])) {
             $arrIds = explode("-", $_GET['cmd']);
         }
@@ -591,6 +594,18 @@ class MediaDirectory extends MediaDirectoryLibrary
         $objLevel = null;
         $objCategory = null;
         $this->_objTpl->setTemplate($this->pageContent, true, true);
+
+        // load Default.html application template as fallback
+        if ($this->_objTpl->placeholderExists('APPLICATION_DATA')) {
+            $page = new \Cx\Core\ContentManager\Model\Entity\Page();
+            $page->setVirtual(true);
+            $page->setType(\Cx\Core\ContentManager\Model\Entity\Page::TYPE_APPLICATION);
+            $page->setModule('MediaDir');
+            // load source code
+            $applicationTemplate = \Cx\Core\Core\Controller\Cx::getContentTemplateOfPage($page);
+            \LinkGenerator::parseTemplate($applicationTemplate);
+            $this->_objTpl->addBlock('APPLICATION_DATA', 'application_data', $applicationTemplate);
+        }
 
         //get searchform
         if($this->_objTpl->blockExists($this->moduleNameLC.'Searchform')){
@@ -952,10 +967,16 @@ class MediaDirectory extends MediaDirectoryLibrary
         if (isset($config['filter']['level'])) {
             $levelId = $config['filter']['level'];
         }
+        $associated = false;
+        if (isset($config['filter']['associated'])) {
+            $associated = true;
+        }
 
         // fetch related entries
         $objEntry->resetEntries();
-        $objEntry->getEntries(null, $levelId, $categoryId, null, $latest, null, true, $offset, $limit, null, null, $formId);
+        $objEntry->getEntries(null, $levelId, $categoryId, null, $latest, null,
+            true, $offset, $limit, null, null, $formId,
+            null, 0, 0, $associated);
 
         // remove currently parsed entry
         unset($objEntry->arrEntries[$intEntryId]);
@@ -1612,6 +1633,8 @@ class MediaDirectory extends MediaDirectoryLibrary
         $this->_objTpl->setTemplate($this->pageContent, true, true);
 
         //save entry data
+        $strOkMessage  = '';
+        $strErrMessage = '';
         if(isset($_POST['submitEntryModfyForm']) && intval($_POST['entryId'])) {
             $objEntry = new MediaDirectoryEntry($this->moduleName);
 
@@ -1818,18 +1841,38 @@ class MediaDirectory extends MediaDirectoryLibrary
         }
     }
 
+    /**
+     * Get the page title
+     *
+     * @return string
+     */
     public function getPageTitle() {
         return $this->pageTitle;
     }
 
+    /**
+     * Get the meta title
+     *
+     * @return string
+     */
     public function getMetaTitle() {
         return contrexx_html2plaintext($this->metaTitle);
     }
 
+    /**
+     * Get the meta description
+     *
+     * @return string
+     */
     public function getMetaDescription() {
         return contrexx_html2plaintext($this->metaDescription);
     }
 
+    /**
+     * Get the meta image
+     *
+     * @return string
+     */
     public function getMetaImage() {
         return $this->metaImage;
     }

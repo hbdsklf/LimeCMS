@@ -176,6 +176,27 @@ class EsiWidgetController extends \Cx\Core_Modules\Widget\Controller\EsiWidgetCo
                 $modifiedDate = $dateTime->db2user($page->getUpdatedAt());
                 $widgetValue  = $modifiedDate->format(ASCMS_DATE_FORMAT_DATE);
                 break;
+
+            case 'CANONICAL_LINK':
+                $widgetValue = '';
+
+                // fetch canonical-link
+                try {
+                    $linkHeader = $response->getHeader('Link');
+                } catch (\Exception $e) {
+                    // no Link header set -> page doesn't have a canonical-link
+                    break;
+                }
+                if (!preg_match('/^<([^>]+)>;\s+rel="canonical"/', $linkHeader, $matches)) {
+                    break;
+                }
+
+                $canonicalLink = $matches[1];
+                $link = new \Cx\Core\Html\Model\Entity\HtmlElement('link');
+                $link->setAttribute('rel', 'canonical');
+                $link->setAttribute('href', $canonicalLink);
+                $widgetValue = (string) $link;
+                break;
         }
         $template->setVariable($name, $widgetValue);
     }

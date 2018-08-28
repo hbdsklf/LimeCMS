@@ -53,7 +53,7 @@ class Calendar extends CalendarLibrary
      *
      * @var object
      */
-    private $objEventManager;
+    protected $objEventManager;
 
     /**
      * Start date
@@ -120,13 +120,6 @@ class Calendar extends CalendarLibrary
      * @var string
      */
     private $sortDirection = 'ASC';
-
-    /**
-     * APge Title
-     *
-     * @var string
-     */
-    public $pageTitle;
 
     /**
      * meta title
@@ -1216,8 +1209,6 @@ UPLOADER;
 
         // set page title based on requested event
         $dateForPageTitle = $objEvent->startDate;
-        $this->pageTitle = $this->format2userDate($dateForPageTitle)
-                            . ": ".html_entity_decode($objEvent->title, ENT_QUOTES, CONTREXX_CHARSET);
 
         // Only show registration form if event lies in the future
         if(time() > $objEvent->startDate->getTimestamp()) {
@@ -1641,4 +1632,13 @@ JAVASCRIPT;
         $this->objEventManager->showEventList($this->_objTpl);
 
     }
+
+    /**
+     * Get the Event manager
+     */
+    public function getEventManager()
+    {
+        return $this->objEventManager;
+    }
+
 }

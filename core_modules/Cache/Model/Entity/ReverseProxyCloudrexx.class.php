@@ -135,7 +135,7 @@ class ReverseProxyCloudrexx extends \Cx\Lib\ReverseProxy\Model\Entity\ReversePro
     protected function globDrop($glob) {
         $fileNames = glob($glob);
         foreach ($fileNames as $fileName) {
-            if (!preg_match('#/[0-9a-f]{32}((_[plutcgr][a-zA-Z0-9]+)+)?$#', $fileName)) {
+            if (!preg_match('#/[0-9a-f]{32}((_[plutcgrq][a-zA-Z0-9-=\.]+)+)?$#', $fileName)) {
                 continue;
             }
             try {

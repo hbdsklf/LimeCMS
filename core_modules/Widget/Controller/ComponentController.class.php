@@ -252,4 +252,30 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
         $eventListener = new \Cx\Core_Modules\Widget\Model\Event\WidgetEventListener($this->cx);
         $this->cx->getEvents()->addEventListener('clearEsiCache', $eventListener);
     }
+
+    /**
+     * Encodes a string so it can be used as an URL argument
+     * Currently uses a variant of RFC-4648:
+     * Compared to RFC-4648 this replaces "_" by "." in order to
+     * allow usage of encoded string in Cloudrexx cache files which are
+     * delimited by "_".
+     * @param string $string String to encode
+     * @return string Encoded string
+     */
+    public function encode($string) {
+        return strtr(base64_encode($string), '+/', '-.');
+    }
+
+    /**
+     * Decodes a string which was encoded using $this->encode()
+     * Currently uses a variant of RFC-4648:
+     * Compared to RFC-4648 this replaces "_" by "." in order to
+     * allow usage of encoded string in Cloudrexx cache files which are
+     * delimited by "_".
+     * @param string $string String to decode
+     * @return string Decoded string
+     */
+    public function decode($string) {
+        return base64_decode(strtr($string, '-.', '+/'));
+    }
 }

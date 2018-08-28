@@ -226,7 +226,7 @@ class MemberDirManager extends MemberDirLibrary
             'ADMIN_CONTENT' => $this->_objTpl->get()
         ));
 
-        $this->act = $_REQUEST['act'];
+        $this->act = isset($_REQUEST['act']) ? $_REQUEST['act'] : '';
         $this->setNavigation();
     }
 
@@ -559,7 +559,9 @@ class MemberDirManager extends MemberDirLibrary
             for ($i=1; $i<=$directory['level']; $i++) {
                 $prefix .= '...';
             }
-            $menu .= '<option value="'.$id.'"'.($id == $this->directories[$selectedDirId]['parentdir'] ? ' selected="selected"' : '').'>'.$prefix.htmlentities($directory['name'], ENT_QUOTES, CONTREXX_CHARSET).'</option>';
+            $parentDir = isset($this->directories[$selectedDirId])
+                ? $this->directories[$selectedDirId]['parentdir'] : 0;
+            $menu .= '<option value="'.$id.'"'.($id == $parentDir ? ' selected="selected"' : '').'>'.$prefix.htmlentities($directory['name'], ENT_QUOTES, CONTREXX_CHARSET).'</option>';
         }
         $menu .= '</select>';
 
@@ -1723,7 +1725,7 @@ class MemberDirManager extends MemberDirLibrary
             $importlib->cancel();
             \Cx\Core\Csrf\Controller\Csrf::header("Location: index.php?cmd=MemberDir&act=import");
             exit;
-        } elseif ($_POST['fieldsSelected']) {
+        } elseif (isset($_POST['fieldsSelected'])) {
             $fieldnames = $this->getFieldData($_POST['directory']);
 
             foreach ($fieldnames as $fieldKey => $fieldValue) {

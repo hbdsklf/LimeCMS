@@ -78,6 +78,11 @@ class ViewGenerator {
     protected $cx;
 
     /**
+     * @var \Cx\Core_Modules\Listing\Controller\ListingController $listingController
+     */
+    protected $listingController = null;
+
+    /**
      *
      * @param mixed $object Array, instance of DataSet, instance of EntityBase, object
      * @param array $options component options
@@ -85,34 +90,28 @@ class ViewGenerator {
      */
     public function __construct($object, $options = array()) {
         $this->cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $this->cx->getEvents()->triggerEvent(
+            'Html.ViewGenerator:initialize',
+            array(
+                'options' => &$options,
+            )
+        );
         $this->componentOptions = $options;
         $this->viewId = static::$increment++;
         try {
             \JS::registerCSS($this->cx->getCoreFolderName() . '/Html/View/Style/Backend.css');
-            $entityWithNS = preg_replace('/^\\\/', '', $this->findEntityClass($object));
+            $entityWithNS = preg_replace(
+                '/^\\\/',
+                '',
+                $this->findEntityClass($object, $options)
+            );
 
             // this is a temporary "workaround" for combined keys, see todo
             if ($entityWithNS != 'array') {
                 $entityClassMetadata = \Env::get('em')->getClassMetadata($entityWithNS);
             }
 
-            $this->options = array();
-            if (isset($options[$entityWithNS]) && is_array($options[$entityWithNS])) {
-                    $this->options = $options[$entityWithNS];
-            } elseif (
-                $entityWithNS == 'array'
-                && isset($options['Cx\Core_Modules\Listing\Model\Entity\DataSet'])
-                && isset($options['Cx\Core_Modules\Listing\Model\Entity\DataSet'][$object->getIdentifier()])
-            ) {
-                $this->options = $options['Cx\Core_Modules\Listing\Model\Entity\DataSet'][$object->getIdentifier()];
-            }
-            // If the options for this object are not set, we use the standard values from the component
-            if (empty($this->options)) {
-                $this->options = $options[''];
-            }
-
-            //initialize the row sorting functionality
-            $this->getSortingOption($entityWithNS);
+            $this->initializeOptions($entityWithNS, $options);
 
             if (
                 (!isset($_POST['vg_increment_number']) || $_POST['vg_increment_number'] != $this->viewId) &&
@@ -184,12 +183,13 @@ class ViewGenerator {
 
     /**
      * This function is used to find the namespace of a passed object
-     *
+     * This sets $this->object
      * @access protected
      * @param object $object object of which the namespace is needed
+     * @param array $options All options supplied to this ViewGenerator
      * @return string namespace of the passed object
      */
-    protected function findEntityClass($object)
+    protected function findEntityClass($object, $options)
     {
         if (is_array($object)) {
             $object = new \Cx\Core_Modules\Listing\Model\Entity\DataSet($object);
@@ -198,24 +198,95 @@ class ViewGenerator {
             // render table if no parameter is set
             $this->object = $object;
             return $this->object->getDataType();
-        } else {
-            if (!is_object($object)) {
-                // Resolve proxies
-                $entityClassName = \Env::get('em')->getClassMetadata($object)->name;
-                $entityRepository = \Env::get('em')->getRepository($entityClassName);
-                $entities = $entityRepository->findAll();
-                if (empty($entities)) {
-                    $this->object = new $entityClassName();
-                    return $entityClassName;
-                } else {
-                    $this->object = new \Cx\Core_Modules\Listing\Model\Entity\DataSet($entities);
-                    return $this->object->getDataType();
+        }
+        if (is_object($object)) {
+            $this->object = $object;
+            return get_class($this->object);
+        }
+        // Resolve proxies
+        $entityClassName = \Env::get('em')->getClassMetadata($object)->name;
+        $entityRepository = \Env::get('em')->getRepository($entityClassName);
+        $this->initializeOptions($entityClassName, $options);
+        $this->getListingController(
+            $entityClassName,
+            $entityClassName
+        );
+        $this->object = $this->listingController->getData();
+        if (!$this->listingController->getDataSize()) {
+            $this->object = new $entityClassName();
+            return $entityClassName;
+        }
+        return $this->object->getDataType();
+    }
+
+    /**
+     * Initializes local options based on all supplied options
+     * This sets $this->options
+     * @param string $entityWithNS Fully qualified name of the entity class
+     */
+    protected function initializeOptions($entityWithNS, $options) {
+        $this->options = array();
+        if (isset($options[$entityWithNS]) && is_array($options[$entityWithNS])) {
+            $this->options = $options[$entityWithNS];
+        } elseif (
+            $entityWithNS == 'array'
+            && isset($options['Cx\Core_Modules\Listing\Model\Entity\DataSet'])
+            && isset($options['Cx\Core_Modules\Listing\Model\Entity\DataSet'][$this->object->getIdentifier()])
+        ) {
+            $this->options = $options['Cx\Core_Modules\Listing\Model\Entity\DataSet'][$this->object->getIdentifier()];
+        }
+        // If the options for this object are not set, we use the standard values from the component
+        if (empty($this->options)) {
+            $this->options = $options[''];
+        }
+
+        //initialize the row sorting functionality
+        $this->getSortingOption($entityWithNS);
+    }
+
+    /**
+     * Returns the listing controller for this ViewGenerator
+     * @param mixed $renderObject Entity name or DataSet
+     * @param string $entityClass Fully qualified name of the entity class
+     * @return \Cx\Core_Modules\Listing\Controller\ListingController ListingController for this ViewGenerator
+     */
+    protected function getListingController($renderObject, $entityClass) {
+        if ($this->listingController) {
+            return;
+        }
+        // replace foreign key search criteria
+        $searchCriteria = contrexx_input2raw($this->getVgParam($_GET['search']));
+        if ($entityClass !== 'array') {
+            $em = $this->cx->getDb()->getEntityManager();
+            $metaData = $em->getClassMetadata($entityClass);
+            foreach ($metaData->associationMappings as $relationField => $associationMapping) {
+                if (!isset($searchCriteria[$relationField])) {
+                    continue;
                 }
-            } else {
-                $this->object = $object;
-                return get_class($this->object);
+                $relationClass = $associationMapping['targetEntity'];
+                $relationRepo = $em->getRepository($relationClass);
+                $relationEntity = $relationRepo->find($searchCriteria[$relationField]);
+                if ($relationEntity) {
+                    $searchCriteria[$relationField] = $relationEntity;
+                }
             }
         }
+        if (
+            !isset($this->options['functions']) ||
+            !isset($this->options['functions']['paging']) ||
+            $this->options['functions']['paging'] != false
+        ) {
+            if (!isset($this->options['functions'])) {
+                $this->options['functions'] = array();
+            }
+            $this->options['functions']['paging'] = true;
+        }
+        $this->listingController = new \Cx\Core_Modules\Listing\Controller\ListingController(
+            $renderObject,
+            $searchCriteria,
+            contrexx_input2raw($this->getVgParam($_GET['term'])),
+            $this->options['functions']
+        );
     }
 
     /**
@@ -333,6 +404,43 @@ class ViewGenerator {
         }
         // save singleValuedAssociations
         foreach ($entityClassMetadata->getAssociationMappings() as $associationMapping) {
+            $name = $associationMapping['fieldName'];
+            if (
+                isset($this->options['fields']) &&
+                isset($this->options['fields'][$name]) &&
+                isset($this->options['fields'][$name]['storecallback'])
+            ) {
+                $storecallback = $this->options['fields'][$name]['storecallback'];
+                /* We use json to do the storecallback. The 'else if' is for backwards compatibility so you can declare
+                 * the function directly without using json. This is not recommended and not working over session */
+                if (
+                    is_array($storecallback) &&
+                    isset($storecallback['adapter']) &&
+                    isset($storecallback['method'])
+                ) {
+                    $callback = function($entity, $value) use($storecallback, $name) {
+                        $json = new \Cx\Core\Json\JsonData();
+                        $jsonResult = $json->data(
+                            $storecallback['adapter'],
+                            $storecallback['method'],
+                            array(
+                                'entity' => $entity,
+                                'postedValue' => $value,
+                            )
+                        );
+                        if ($jsonResult['status'] == 'success') {
+                            return $jsonResult["data"];
+                        }
+                        return $value;
+                    };
+                } else {
+                    $callback = function($entity, $value) use ($storecallback) {
+                        return $storecallback($entity, $value);
+                    };
+                }
+                $callback($entityData, $entity);
+            }
+
             // we're only interested in single valued associations here, so skip others
             if (!$entityClassMetadata->isSingleValuedAssociation($associationMapping['fieldName'])) {
                 continue;
@@ -558,14 +666,16 @@ class ViewGenerator {
         $entityId = $this->getEntryId();
 
         // this case is used to get the right entry if we edit a existing one
-        if ($this->object instanceof \Cx\Core_Modules\Listing\Model\Entity\DataSet
-            && $entityId != 0) {
+        if (
+            $this->object instanceof \Cx\Core_Modules\Listing\Model\Entity\DataSet &&
+            $entityId != 0
+        ) {
             if ($this->object->entryExists($entityId)) {
                 $renderObject = $this->object->getEntry($entityId);
             }
         }
 
-        // this case is used for the overview off all entities
+        // this case is used for the overview of all entities
         if ($renderObject instanceof \Cx\Core_Modules\Listing\Model\Entity\DataSet && !$isSingle) {
             if(!empty($this->options['order']['overview'])) {
                 $renderObject->sortColumns($this->options['order']['overview']);
@@ -589,37 +699,16 @@ class ViewGenerator {
                 return $template->get();
             }
 
-            // replace foreign key search criteria
-            $em = $this->cx->getDb()->getEntityManager();
-            $searchCriteria = contrexx_input2raw($this->getVgParam($_GET['search']));
-            $entityClass = $this->findEntityClass($renderObject);
-            if ($entityClass !== 'array') {
-                $metaData = $em->getClassMetadata($entityClass);
-                foreach ($metaData->associationMappings as $relationField => $associationMapping) {
-                    if (!isset($searchCriteria[$relationField])) {
-                        continue;
-                    }
-                    $relationClass = $associationMapping['targetEntity'];
-                    $relationRepo = $em->getRepository($relationClass);
-                    $relationEntity = $relationRepo->find($searchCriteria[$relationField]);
-                    if ($relationEntity) {
-                        $searchCriteria[$relationField] = $relationEntity;
-                    }
-                }
-            }
-
-            $listingController = new \Cx\Core_Modules\Listing\Controller\ListingController(
+            $this->getListingController(
                 $renderObject,
-                $searchCriteria,
-                contrexx_input2raw($this->getVgParam($_GET['term'])),
-                $this->options['functions']
+                $renderObject->getDataType()
             );
-            $renderObject = $listingController->getData();
+            $renderObject = $this->listingController->getData();
             $this->options['functions']['vg_increment_number'] = $this->viewId;
             $backendTable = new \BackendTable($renderObject, $this->options);
             $template->setVariable(array(
                 'TABLE' => $backendTable,
-                'PAGING' => $listingController,
+                'PAGING' => $this->listingController,
             ));
             $searching = (
                 isset($this->options['functions']['searching']) &&
@@ -689,7 +778,8 @@ class ViewGenerator {
                         $optionsField = $this->options['fields'][$field]['filterOptionsField'](
                             $renderObject,
                             $field,
-                            $fieldId
+                            $fieldId,
+                            'vg-' . $this->viewId . '-searchForm'
                         );
                     } else {
                         // parse options
@@ -760,6 +850,15 @@ class ViewGenerator {
                 if (empty($entityColumnNames)) {
                     return false;
                 }
+
+                // instanciate a dummy entity of the model we are about
+                // to render. we will need this for fetching any default values
+                if ($this->object instanceof \Cx\Core_Modules\Listing\Model\Entity\DataSet) {
+                    $object = new $entityClassWithNS();
+                } else {
+                    $object = $this->object;
+                }
+
                 foreach($entityColumnNames as $column) {
                     $field = $entityObject->getFieldName($column);
                     if (in_array($field, $primaryKeyNames)) {
@@ -767,8 +866,10 @@ class ViewGenerator {
                     }
                     $fieldDefinition = $entityObject->getFieldMapping($field);
                     $this->options[$field]['type'] = $fieldDefinition['type'];
-                    if ($entityObject->getFieldValue($this->object, $field) !== null) {
-                        $renderArray[$field] = $entityObject->getFieldValue($this->object, $field);
+
+                    // fetch default value of entity's field
+                    if ($entityObject->getFieldValue($object, $field) !== null) {
+                        $renderArray[$field] = $entityObject->getFieldValue($object, $field);
                         continue;
                     }
                     $renderArray[$field] = '';

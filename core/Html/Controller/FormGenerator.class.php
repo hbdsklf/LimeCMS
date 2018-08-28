@@ -352,7 +352,7 @@ class FormGenerator {
                     $_SESSION['vgOptions'][$this->entityClass] = $this->componentOptions;
                     if ($entityId != 0) {
                         // if we edit the main form, we also want to show the existing associated values we already have
-                        $existingValues = $this->getIdentifyingDisplayValue($assocMapping, $associatedClass, $entityId);
+                        $existingValues = $this->getIdentifyingDisplayValue($assocMapping, $associatedClass, $entityId, $options);
                     }
                     if (!empty($existingValues)) {
                         foreach ($existingValues as $existingValue) {
@@ -800,9 +800,10 @@ CODE;
      * @param array $assocMapping Mapping information for this relation
      * @param string $entityClass FQCN of the foreign entity
      * @param int $entityId ID of the local entity
+     * @param arrray $options Options for this view
      * @return array Set of \Cx\Core\Html\Model\Entity\HtmlElement instances
      */
-    protected function getIdentifyingDisplayValue($assocMapping, $entityClass, $entityId) {
+    protected function getIdentifyingDisplayValue($assocMapping, $entityClass, $entityId, $options) {
         global $_CORELANG;
 
         $localEntityMetadata = \Env::get('em')->getClassMetadata($this->entityClass);
@@ -817,9 +818,27 @@ CODE;
             $assocMapping['fieldName']
         );
         $foreignEntityGetter = 'get' . $methodBaseName;
-        $foreignEntities = $localEntity->$foreignEntityGetter();
-
+        
         $htmlElements = array();
+        $noOfRelatedEntries = 0;
+        $maxEntriesPerPage = \Cx\Core\Setting\Controller\Setting::getValue(
+            'corePagingLimit',
+            'Config'
+        );
+        if (isset($options['length'])) {
+            $maxEntriesPerPage = $options['length'];
+        }
+        $foreignEntities = $localEntity->$foreignEntityGetter();
+        // if association is EXTRA_LAZY: limit! --> slice() only works with EXTRA_LAZY
+        if ($assocMapping['fetch'] == \Doctrine\ORM\Mapping\ClassMetadata::FETCH_EXTRA_LAZY) {
+            $page = 0; // paging is not yet implemented
+            $foreignEntities = $foreignEntities->slice(
+                $page * $maxEntriesPerPage,
+                $maxEntriesPerPage
+            );
+            $noOfRelatedEntries = $localEntity->$foreignEntityGetter()->count();
+        }
+
         foreach ($foreignEntities as $index=>$foreignEntity) {
             // entity base implements __toString()
             $displayValue = (string) $foreignEntity;
@@ -863,6 +882,10 @@ CODE;
                     $foreignEntityIdentifierField
                 );
                 $foreignEntityIdentifierGetter = 'get' . $methodBaseName;
+                // N:N relations don't have a getter with that name
+                if (!method_exists($foreignForeignEntity, $foreignEntityIdentifierGetter)) {
+                    continue;
+                }
                 $entityValueSerialized .= '&' . $foreignAssocMapping['fieldName'] . '=' . $foreignForeignEntity->$foreignEntityIdentifierGetter();
             }
 
@@ -903,6 +926,21 @@ CODE;
             $sorroundingDiv->addChild($editLink);
             $sorroundingDiv->addChild($deleteLink);
             $htmlElements[] = $sorroundingDiv;
+        }
+        if (
+            $assocMapping['fetch'] == \Doctrine\ORM\Mapping\ClassMetadata::FETCH_EXTRA_LAZY &&
+            $noOfRelatedEntries > $maxEntriesPerPage
+        ) {
+            $tooltipTrigger = new \Cx\Core\Html\Model\Entity\HtmlElement('span');
+            $tooltipTrigger->setAttribute('class', 'icon-info tooltip-trigger');
+            $tooltipTrigger->allowDirectClose(false);
+            $tooltipMessage = new \Cx\Core\Html\Model\Entity\HtmlElement('span');
+            $tooltipMessage->setAttribute('class', 'tooltip-message');
+            $tooltipMessage->addChild(new \Cx\Core\Html\Model\Entity\TextElement(
+                $_CORELANG['TXT_CORE_RECORD_RELATION_LIMITED']
+            ));
+            $htmlElements[0]->addChild($tooltipTrigger);
+            $htmlElements[0]->addChild($tooltipMessage);
         }
         return $htmlElements;
     }

@@ -672,6 +672,7 @@ class JsonPage implements JsonAdapter {
         register_shutdown_function(array($this, 'multipleSetShutdown'));
 
         $post = $params['post'];
+        $data = array('post' => array());
         $data['post']['lang']   = $post['lang'];
         $data['post']['action'] = $post['action'];
         $recursive = (isset($params['get']['recursive']) && $params['get']['recursive'] == 'true');

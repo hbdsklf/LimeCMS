@@ -1431,8 +1431,12 @@ EOF;
         );
         $placeholderList = $template->getPlaceholderList($block);
         $placeholderListAsString = join("\n", $placeholderList);
-
-        if (preg_match_all('/MEDIADIR_CONFIG_(FILTER|LIST)_(LATEST|LIMIT|OFFSET|FORM|CATEGORY|LEVEL)(?:_([0-9]+))?/', $placeholderListAsString, $match)) {
+        $match = null;
+        if (preg_match_all(
+                '/MEDIADIR_CONFIG_(FILTER|LIST)_' // $1
+                . '(LATEST|LIMIT|OFFSET|FORM|CATEGORY|LEVEL|ASSOCIATED)' // $2
+                . '(?:_([0-9]+))?/', // $3
+                $placeholderListAsString, $match)) {
             foreach ($match[2] as $idx => $key) {
                 $configKey = strtolower($match[1][$idx]);
                 $option = strtolower($key);
@@ -1445,7 +1449,9 @@ EOF;
                     // then the option will be set to TRUE
                     $value = true;
                 }
-
+                // $configKey: "filter", or "list"
+                // $option: "latest", "limit", "offset", "form",
+                //      "category", "level", or "associated"
                 $config[$configKey][$option] = $value;
             }
         }

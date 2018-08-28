@@ -242,26 +242,6 @@ class Jobs extends JobsLibrary
         return $this->_objTpl->get();
     }
 
-
-
-
-
-    /**
-    * Gets the global page title
-    *
-    * @param     string       (optional)$pageTitle
-    */
-    function getPageTitle($pageTitle="")
-    {
-        if(empty($this->jobsTitle)){
-            $this->jobsTitle = $pageTitle;
-        }
-    }
-
-
-
-
-
     /**
     * Gets the list with the headlines
     *

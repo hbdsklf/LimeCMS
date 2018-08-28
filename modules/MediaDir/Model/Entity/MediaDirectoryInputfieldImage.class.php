@@ -403,7 +403,11 @@ INPUT;
     function createThumbnail($strPathImage)
     {
         $path = \Env::get('cx')->getWebsitePath() . $strPathImage;
-        if (!file_exists($path) || is_dir($path)) {
+        if (
+            empty($strPathImage) ||
+            !file_exists($path) ||
+            is_dir($path)
+        ) {
             return;
         }
         $arrImageInfo = getimagesize($path);

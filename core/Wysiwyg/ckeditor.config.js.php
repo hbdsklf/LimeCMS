@@ -258,7 +258,7 @@ cx.bind("loadingEnd", function(myArgs) {
                     cx.variables.set('bodyClass', data.wysiwygCssReload.bodyClass, 'wysiwyg')
                     cx.variables.set('bodyId', data.wysiwygCssReload.bodyId, 'wysiwyg')
                     var config = {
-                        customConfig: cx.variables.get('basePath', 'contrexx') + cx.variables.get('ckeditorconfigpath', 'contentmanager'),
+                        customConfig: cx.variables.get('ckeditorconfigpath', 'contentmanager'),
                         toolbar: 'Full',
                         removePlugins: 'bbcode'
                     };

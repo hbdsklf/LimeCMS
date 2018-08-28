@@ -438,7 +438,7 @@ class CrmManager extends CrmLibrary
                 if (!empty ($objComment->fields['icon'])) {
                     $iconPath = \Cx\Core\Core\Controller\Cx::instanciate()->getWebsiteImagesCrmWebPath().'/'.contrexx_raw2xhtml($objComment->fields['icon'])."_16X16.thumb";
                 } else {
-                    $iconPath  = '../modules/Crm/View/Media/customer_note.png';
+                    $iconPath  = '/modules/Crm/View/Media/customer_note.png';
                 }
                 $this->_objTpl->setVariable(array(
                         'TXT_COMMENT_ID'              => (int) $objComment->fields['id'],
@@ -2382,15 +2382,18 @@ END;
 
         // special fields for contacts
         foreach (\FWLanguage::getActiveFrontendLanguages() as $frontendLang) {
-            $this->_objTpl->setVariable(array(
-                    'TXT_LANG_ID'    =>  (int) $frontendLang['id'],
-                    'TXT_LANG_NAME'     =>  contrexx_raw2xhtml($frontendLang['name']),
-                    'TXT_LANG_SELECT'   =>  ($frontendLang['id'] == $this->contact->contact_language) ? "selected=selected" : "",
-            ));
+            $langBlocks = array('showAddtionalContactLanguages' . $contactType);
             if($contactType == 1){
-                $this->_objTpl->parse("ContactLanguages");
+                $langBlocks[] = ('ContactLanguages');
             }
-            $this->_objTpl->parse("showAddtionalContactLanguages" . $contactType);
+            foreach($langBlocks as $langBlock) {
+                $this->_objTpl->setVariable(array(
+                        'TXT_LANG_ID'    =>  (int) $frontendLang['id'],
+                        'TXT_LANG_NAME'     =>  contrexx_raw2xhtml($frontendLang['name']),
+                        'TXT_LANG_SELECT'   =>  ($frontendLang['id'] == $this->contact->contact_language) ? "selected=selected" : "",
+                ));
+                $this->_objTpl->parse($langBlock);
+            }
         }
 
         // special fields for customer
@@ -3831,7 +3834,7 @@ END;
                     $objTpl->setVariable(array(
                             'CRM_TASK_ID'           => (int) $objResult->fields['id'],
                             'CRM_TASKTITLE'         => contrexx_raw2xhtml($objResult->fields['task_title']),
-                            'CRM_TASKICON'          => !empty ($objResult->fields['icon']) ? \Cx\Core\Core\Controller\Cx::instanciate()->getWebsiteImagesCrmWebPath().'/'.contrexx_raw2xhtml($objResult->fields['icon'])."_24X24.thumb" : '../modules/Crm/View/Media/task_default.png',
+                            'CRM_TASKICON'          => !empty ($objResult->fields['icon']) ? \Cx\Core\Core\Controller\Cx::instanciate()->getWebsiteImagesCrmWebPath().'/'.contrexx_raw2xhtml($objResult->fields['icon'])."_24X24.thumb" : '/modules/Crm/View/Media/task_default.png',
                             'CRM_TASKTYPE'          => contrexx_raw2xhtml($objResult->fields['task_type_id']),
                             'CRM_CUSTOMERNAME'      => contrexx_raw2xhtml($objResult->fields['customer_name']." ".$objResult->fields['contact_familyname']),
                             'CRM_DUEDATE'           => contrexx_raw2xhtml(date('h:i A Y-m-d', strtotime($objResult->fields['due_date']))),

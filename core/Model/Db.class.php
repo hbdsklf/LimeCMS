@@ -143,10 +143,13 @@ namespace Cx\Core\Model {
          * @return  \Cx\Core\Model\Db   Instance based on existing database connection
          */
         public static function fromExistingConnection(\Cx\Core\Model\Model\Entity\Db $dbInfo, \Cx\Core\Model\Model\Entity\DbUser $dbUser,
-                                                      \PDO $pdo, \ADONewConnection $adoDb, \Cx\Core\Model\Controller\EntityManager $em
+                                                      \PDO $pdo, \ADODB_pdo $adoDb, \Cx\Core\Model\Controller\EntityManager $em
         ) {
             // Bind database connection
-            $db = new static($dbConnection, $dbUser);
+
+            $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+            $cacheDriver = $cx->getComponent('Cache')->getCacheDriver();
+            $db = new static($dbInfo, $dbUser, $cacheDriver);
             $db->setPdoConnection($pdo);
             $db->setAdoDb($adoDb);
             $db->setEntityManager($em);

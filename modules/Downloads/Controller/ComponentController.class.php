@@ -72,6 +72,34 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
     {
         return array('EsiWidgetController');
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function adjustResponse(\Cx\Core\Routing\Model\Entity\Response $response)
+    {
+        $page = $response->getPage();
+        if (!$page || $page->getModule() !== $this->getName()) {
+            return;
+        }
+        $downloads = new Downloads('');
+        $downloads->getPage();
+        $pageTitle = $downloads->getPageTitle();
+
+        //Set the Page Title
+        if ($pageTitle) {
+            $page->setTitle($pageTitle);
+            $page->setContentTitle($pageTitle);
+            $page->setMetaTitle($pageTitle);
+        }
+
+        //Set the page metakeys
+        $metaKeys = $downloads->getMetaKeywords();
+        if ($metaKeys) {
+            $page->setMetakeys($metaKeys);
+        }
+    }
+
      /**
      * Load your component.
      *
@@ -83,13 +111,6 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
             case \Cx\Core\Core\Controller\Cx::MODE_FRONTEND:
                 $objDownloadsModule = new Downloads(\Env::get('cx')->getPage()->getContent());
                 \Env::get('cx')->getPage()->setContent($objDownloadsModule->getPage());
-                $downloads_pagetitle = $objDownloadsModule->getPageTitle();
-                if ($downloads_pagetitle) {
-                    \Env::get('cx')->getPage()->setTitle($downloads_pagetitle);
-                    \Env::get('cx')->getPage()->setContentTitle($downloads_pagetitle);
-                    \Env::get('cx')->getPage()->setMetaTitle($downloads_pagetitle);
-                }
-
                 break;
 
             case \Cx\Core\Core\Controller\Cx::MODE_BACKEND:

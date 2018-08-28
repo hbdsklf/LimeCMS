@@ -94,7 +94,7 @@ class MemberDir extends MemberDirLibrary
 
         if (isset($_GET['mid'])) {
             $this->_show();
-        } elseif($_GET['exportvcf']){
+        } elseif (isset($_GET['exportvcf'])) {
             $this->_exportVCard(intval($_GET['id']));
         } elseif (isset($_GET['id']) || isset($_GET['search'])) {
             $this->_memberList();
@@ -564,4 +564,3 @@ class MemberDir extends MemberDirLibrary
         return $arr;
     }
 }
-?>

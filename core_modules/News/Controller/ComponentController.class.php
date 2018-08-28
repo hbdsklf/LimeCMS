@@ -46,6 +46,8 @@ namespace Cx\Core_Modules\News\Controller;
  */
 class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentController {
     public function getControllerClasses() {
+        // Return an empty array here to let the component handler know that there
+        // does not exist a backend, nor a frontend controller of this component.
         return array('JsonNews', 'EsiWidget');
     }
 
@@ -241,6 +243,23 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
     }
 
     /**
+     * Called for additional, component specific resolving
+     * 
+     * If /en/Path/to/Page is the path to a page for this component
+     * a request like /en/Path/to/Page/with/some/parameters will
+     * give an array like array('with', 'some', 'parameters') for $parts
+     * 
+     * This may be used to redirect to another page
+     * @todo filter arguments as in adjustResponse()
+     * @param array $parts List of additional path parts
+     * @param \Cx\Core\ContentManager\Model\Entity\Page $page Resolved virtual page
+     */
+    public function resolve($parts, $page) {
+        $canonicalUrl = \Cx\Core\Routing\Url::fromPage($page, $this->cx->getRequest()->getUrl()->getParamArray());
+        header('Link: <' . $canonicalUrl->toString() . '>; rel="canonical"');
+    }
+
+    /**
      * Do something with a Response object
      * You may do page alterations here (like changing the metatitle)
      * You may do response alterations here (like set headers)
@@ -282,6 +301,40 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
             'Link',
             '<' . $canonicalUrl->toString() . '>; rel="canonical"'
         );
+
+        if (
+             !$page ||
+             $page->getModule() !== $this->getName() ||
+             !$page->getCmd() === 'details'
+        ) {
+            return;
+        }
+
+        $news = new News('');
+        $news->getNewsPage();
+
+        //Set title's, if news title is not empty
+        if (!empty($news->newsTitle)) {
+            $page->setTitle($news->newsTitle);
+            $page->setContentTitle($news->newsTitle);
+            $page->setMetatitle($news->newsTitle);
+        }
+
+        //Set meta description, if news teaser text is not empty
+        $metaDesc = $news->newsText;
+        if (!empty($news->getTeaser())) {
+            $metaDesc = $news->getTeaser();
+        }
+        $page->setMetadesc(contrexx_raw2xhtml(
+            contrexx_strip_tags(
+                html_entity_decode($metaDesc, ENT_QUOTES, CONTREXX_CHARSET)
+            )
+        ));
+
+        //Set meta image, if news thumbnail is not empty
+        if (!empty($news->newsThumbnail)) {
+            $page->setMetaimage($news->newsThumbnail);
+        }
     }
 
     /**

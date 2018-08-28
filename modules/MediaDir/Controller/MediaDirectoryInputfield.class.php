@@ -145,6 +145,7 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
                 `input`.`order` ASC, `input`.`id` ASC
         ');
 
+        $arrInputfields = array();
         if ($objInputfields !== false) {
             while (!$objInputfields->EOF) {
                 $arrInputfield = array();
@@ -202,7 +203,7 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
 
         $arrCategorySelector['id'] = 1;
         $arrCategorySelector['order'] = !empty($this->intFormId) ? $this->arrSettings['categorySelectorOrder'][$this->intFormId] : 0;
-        $arrCategorySelector['name'][0] = $_ARRAYLANG['TXT_MEDIADIR_CATEGORIES'];
+        $arrCategorySelector['name'] = array(0 => $_ARRAYLANG['TXT_MEDIADIR_CATEGORIES']);
         $arrCategorySelector['type_name'] = '';
         $arrCategorySelector['required'] = 1;
         $arrCategorySelector['type'] = 0;
@@ -213,7 +214,7 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
         if($this->arrSettings['settingsShowLevels']) {
             $arrLevelSelector['id'] = 2;
             $arrLevelSelector['order'] = !empty($this->intFormId) ? $this->arrSettings['levelSelectorOrder'][$this->intFormId] : 0;
-            $arrLevelSelector['name'][0] = $_ARRAYLANG['TXT_MEDIADIR_LEVELS'];
+            $arrLevelSelector['name'] = array(0 => $_ARRAYLANG['TXT_MEDIADIR_LEVELS']);
             $arrLevelSelector['type_name'] = '';
             $arrLevelSelector['required'] = 1;
             $arrLevelSelector['type'] = 0;
@@ -873,12 +874,16 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
             $intNeighborId = $this->arrInputfields[$intNeighborKey]['id'];
             $intNeighborOrder = $intOrder;
 
-            $arrElements = array();
-
-            $arrElements[0]['id'] = $intFieldId;
-            $arrElements[0]['order'] = $intNewOrder;
-            $arrElements[1]['id'] = $intNeighborId;
-            $arrElements[1]['order'] = $intNeighborOrder;
+            $arrElements = array(
+                array(
+                    'id'    => $intFieldId,
+                    'order' => $intNewOrder,
+                ),
+                array(
+                    'id'    => $intNeighborId,
+                    'order' => $intNeighborOrder,
+                )
+            );
 
             foreach ($arrElements as $arrData) {
                 if($arrData['id'] == 1) {
@@ -949,7 +954,13 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
 
 
 
-    function refreshInputfields($objTpl, $intEntryId)
+    /**
+     * Refresh the Input fields
+     *
+     * @param \Cx\Core\Html\Sigma $objTpl Template object
+     * @return string Parsed Template content
+     */
+    function refreshInputfields($objTpl)
     {
         global $_ARRAYLANG, $_CORELANG, $objDatabase;
 
@@ -1090,6 +1101,7 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
                 `id` ASC
         ");
 
+        $arrInputfieldTypes = array();
         if ($objInputfieldTypes !== false) {
             while (!$objInputfieldTypes->EOF) {
 
@@ -1245,6 +1257,7 @@ EOF;
                 `id` ASC
         ");
 
+        $arrInputfieldVerifications = array();
         if ($objInputfieldVerifications !== false) {
             while (!$objInputfieldVerifications->EOF) {
 

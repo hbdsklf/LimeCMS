@@ -2087,6 +2087,9 @@ CODE;
                         ) {
                             continue;
                         }
+                        if (!isset($componentFiles[$component->getType()])) {
+                            $componentFiles[$component->getType()] = array();
+                        }
                         $componentFiles[$component->getType()][$component->getName()][]= basename($componentFile);
                     }
                 }
@@ -2241,9 +2244,48 @@ CODE;
         } else {
             \JS::activate('ace');
 
-            $contenthtml = htmlspecialchars(
-                preg_replace('/\{([A-Z0-9_]*?)\}/', '[[\\1]]', $this->fileSystem->readFile($file))
-            );
+            // fetch content from file
+            $content = $this->fileSystem->readFile($file);
+
+            // replace placeholder format
+            $content = preg_replace('/\{([A-Z0-9_]*?)\}/', '[[\\1]]', $content);
+
+            // escape special characters
+            $contenthtml = htmlspecialchars($content);
+
+            // check if file contains invalid characters
+            if (
+                strlen($content) &&
+                !strlen($contenthtml)
+            ) {
+                // replace invalid code unit sequences with a Unicode
+                // Replacement Character U+FFFD
+                $contenthtml = htmlspecialchars($content, ENT_SUBSTITUTE);
+
+
+                $invalidFileMessage = sprintf(
+                    $_ARRAYLANG['TXT_VIEWMANAGER_INVALID_FILE_ENCODING_MSG'],
+                    contrexx_raw2xhtml($file)
+                );
+                $confirmFileStorage = $invalidFileMessage . sprintf(
+                    $_ARRAYLANG['TXT_VIEWMANAGER_CONFIRM_INVALID_FILE_ENCODING'],
+                    contrexx_raw2xhtml($file)
+                );
+
+                // add warning box regarding done replacement
+                $objTemplate->setVariable(array(
+                    'VIEWMANAGER_INVALID_FILE_ENCODING' => $invalidFileMessage,
+                    'VIEWMANAGER_STORE_INVALID_ENCODING' => $confirmFileStorage,
+                ));
+                $objTemplate->parse('viewmanager_invalid_encoding');
+
+                \ContrexxJavascript::getInstance()->setVariable(
+                    'fileEncodingIsInvalid', true, 'ViewManager'
+                );
+            } else {
+                $objTemplate->hideBlock('viewmanager_invalid_encoding');
+            }
+
             $objTemplate->setVariable('CONTENT_HTML', $contenthtml);
             $pathInfo = pathinfo(
                 $this->fileSystem->getFullPath($file) . $file->getFullName(),

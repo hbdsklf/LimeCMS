@@ -78,7 +78,7 @@ class EsiWidgetController extends \Cx\Core_Modules\Widget\Controller\EsiWidgetCo
         $matches = null;
         if (
             preg_match(
-                '/^LANG_SELECTED_([A-Z]{1,2}(?:-[A-Z]{2,4})?)$/',
+                '/^LANG_SELECTED_([A-Z]{1,2}(?:_[A-Z]{2,4})?)$/',
                 $name,
                 $matches
             )
@@ -111,13 +111,13 @@ class EsiWidgetController extends \Cx\Core_Modules\Widget\Controller\EsiWidgetCo
         $langMatches = null;
         if (
             preg_match(
-                '/^LANG_CHANGE_([A-Z]{1,2}(?:-[A-Z]{2,4})?)$/',
+                '/^LANG_CHANGE_([A-Z]{1,2}(?:_[A-Z]{2,4})?)$/',
                 $name,
                 $langMatches
             )
         ) {
             // make iso1 part of code lowercase (e.g DE-CH --> de-CH)
-            $code = explode('-', $langMatches[1]);
+            $code = explode('_', $langMatches[1]);
             $code[0] = strtolower($code[0]);
             $code = implode('-', $code);
 

@@ -86,11 +86,6 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
 
                 $objCalendar = new \Cx\Modules\Calendar\Controller\Calendar($page->getContent(), MODULE_INDEX);
                 $page->setContent($objCalendar->getCalendarPage($page));
-                if ($objCalendar->pageTitle) {
-                    $page->setTitle($objCalendar->pageTitle);
-                    $page->setContentTitle($objCalendar->pageTitle);
-                    $page->setMetaTitle($objCalendar->pageTitle);
-                }
                 break;
 
             case \Cx\Core\Core\Controller\Cx::MODE_BACKEND:
@@ -120,8 +115,7 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
     {
         // Get Calendar Events
         $widgetController = $this->getComponent('Widget');
-        $calendarLib      = new CalendarLibrary('');
-        foreach ($calendarLib->getHeadlinePlaceholders() as $widgetName) {
+        foreach (CalendarLibrary::getHeadlinePlaceholders() as $widgetName) {
             $widget = new \Cx\Core_Modules\Widget\Model\Entity\EsiWidget(
                 $this,
                 $widgetName
@@ -155,4 +149,99 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
             $this->cx->getEvents()->addModelListener(\Doctrine\ORM\Events::onFlush, $entityClassName, $eventListener);
         }
    }
+
+    /**
+     * {@inheritdoc}
+     */
+   public function adjustResponse(
+        \Cx\Core\Routing\Model\Entity\Response $response
+    ) {
+        $page = $response->getPage();
+        if (
+            !$page ||
+            $page->getModule() !== $this->getName() ||
+            !in_array($page->getCmd(), array('detail', 'register', 'sign'))
+        ) {
+            return;
+        }
+
+        $calendar = new \Cx\Modules\Calendar\Controller\Calendar('');
+        $calendar->loadEventManager();
+        $event = $calendar->getEventManager()->eventList[0];
+        if (!$event) {
+            return;
+        }
+
+        //Set the Page Title
+        $pageTitle = $this->getPageTitle($event, $page->getCmd());
+        if ($pageTitle) {
+            $page->setTitle($pageTitle);
+            $page->setContentTitle($pageTitle);
+            $page->setMetaTitle($pageTitle);
+        }
+
+        //Set the Page Meta Description
+        if ($page->getCmd() == 'detail') {
+            $metaDesc = $this->getPageDescription($event);
+            if ($metaDesc) {
+                $page->setMetadesc($metaDesc);
+            }
+        }
+
+        // Set the Page Meta Image
+        if ($event->pic) {
+            $page->setMetaimage($event->pic);
+        }
+   }
+
+   /**
+    * Get the Page title
+    *
+    * @param \Cx\Modules\Calendar\Controller\CalendarEvent $event Event object
+    * @param string                                        $cmd   Page CMD
+    *
+    * @return string
+    */
+    protected function getPageTitle(CalendarEvent $event, $cmd)
+    {
+        $eventTitle = html_entity_decode(
+            $event->title,
+            ENT_QUOTES,
+            CONTREXX_CHARSET
+        );
+        if ($cmd === 'detail') {
+            return $eventTitle;
+        }
+
+        if (in_array($cmd, array('register', 'sign'))) {
+            if (
+                !$event->status ||
+                ($event->access == 1 && !\FWUser::getFWUserObject()->objUser->login())
+            ) {
+                return '';
+            }
+            $calendarLib = new CalendarLibrary('.');
+            return $calendarLib->format2userDate($event->startDate)
+                . ": " . $eventTitle;
+        }
+    }
+
+    /**
+     * Get the Page description
+     *
+     * @param \Cx\Modules\Calendar\Controller\CalendarEvent $event Event object
+     *
+     * @return string
+     */
+    protected function getPageDescription(CalendarEvent $event)
+    {
+        // Set the meta page description to the teaser text if displaying calendar details
+        $teaser = html_entity_decode($event->teaser, ENT_QUOTES, CONTREXX_CHARSET);
+        if ($teaser) {
+            return contrexx_raw2xhtml(contrexx_strip_tags($teaser));
+        }
+
+        $description = html_entity_decode($event->description, ENT_QUOTES, CONTREXX_CHARSET);
+        return contrexx_raw2xhtml(contrexx_strip_tags($description));
+    }
 }

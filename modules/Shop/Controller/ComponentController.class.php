@@ -133,23 +133,67 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
     }
 
     /**
-     * Do something with a Response object
-     * You may do page alterations here (like changing the metatitle)
-     * You may do response alterations here (like set headers)
-     * PLEASE MAKE SURE THIS METHOD IS MOCKABLE. IT MAY ONLY INTERACT WITH
-     * resolve() HOOK.
-     *
-     * @param \Cx\Core\Routing\Model\Entity\Response $response Response object to adjust
+     * Called for additional, component specific resolving
+     * 
+     * If /en/Path/to/Page is the path to a page for this component
+     * a request like /en/Path/to/Page/with/some/parameters will
+     * give an array like array('with', 'some', 'parameters') for $parts
+     * 
+     * This may be used to redirect to another page
+     * @param array $parts List of additional path parts
+     * @param \Cx\Core\ContentManager\Model\Entity\Page $page Resolved virtual page
+     */
+    public function resolve($parts, $page) {
+        $canonicalUrl = \Cx\Core\Routing\Url::fromPage($page, $this->cx->getRequest()->getUrl()->getParamArray());
+        header('Link: <' . $canonicalUrl->toString() . '>; rel="canonical"');
+    }
+
+    /**
+     * {@inheritdoc}
      */
     public function adjustResponse(\Cx\Core\Routing\Model\Entity\Response $response) {
-        $params = $response->getRequest()->getUrl()->getParamArray();
+        // in case of an ESI request, the request URL will be set through Referer-header
+        $headers = $response->getRequest()->getHeaders();
+        if (isset($headers['Referer'])) {
+            $refUrl = new \Cx\Lib\Net\Model\Entity\Url($headers['Referer']);
+        } else {
+            $refUrl = new \Cx\Lib\Net\Model\Entity\Url($response->getRequest()->getUrl()->toString());
+        }
+
+        $page   = $response->getPage();
+        $params = $refUrl->getParamArray();
         unset($params['section']);
         unset($params['cmd']);
-        $canonicalUrl = \Cx\Core\Routing\Url::fromPage($response->getPage(), $params);
+        $canonicalUrl = \Cx\Core\Routing\Url::fromPage($page, $params);
         $response->setHeader(
             'Link',
             '<' . $canonicalUrl->toString() . '>; rel="canonical"'
         );
+
+        if (
+            !$page ||
+            $page->getModule() !== $this->getName() ||
+            !in_array(
+                $page->getCmd(),
+                array('', 'details', 'lastFive', 'products')
+            )
+        ) {
+            return;
+        }
+
+        Shop::getPage('');
+        // show product title if the user is on the product details page
+        $page_metatitle = Shop::getPageTitle();
+        if ($page_metatitle) {
+            $page->setTitle($page_metatitle);
+            $page->setContentTitle($page_metatitle);
+            $page->setMetaTitle($page_metatitle);
+        }
+
+        $metaImage = Shop::getPageMetaImage();
+        if ($metaImage) {
+            $page->setMetaimage($metaImage);
+        }
     }
 
     /**

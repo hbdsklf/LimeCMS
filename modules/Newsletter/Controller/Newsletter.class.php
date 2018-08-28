@@ -105,8 +105,11 @@ class Newsletter extends NewsletterLib
         global $objDatabase, $_ARRAYLANG;
         $this->_objTpl->setTemplate($this->pageContent, true, true);
 
-        $userEmail = isset($_GET['email']) ? rawurldecode(contrexx_input2raw($_GET['email'])) : '';
-        $count     = 0;
+        $userEmail   = isset($_GET['email']) ? rawurldecode(contrexx_input2raw($_GET['email'])) : '';
+        $count       = 0;
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $dateTime = $cx->getComponent('DateTime')->createDateTimeForDb('');
+        $currentTime = $dateTime->format('Y-m-d H:i:s');
         if (!empty($userEmail)) {
             $query     = "SELECT id FROM ".DBPREFIX."module_newsletter_user where status=0 and email='". contrexx_raw2db($userEmail) ."'";
             $objResult = $objDatabase->Execute($query);
@@ -117,7 +120,33 @@ class Newsletter extends NewsletterLib
             $this->_objTpl->setVariable("NEWSLETTER_MESSAGE", '<span class="text-danger">'.$_ARRAYLANG['TXT_NOT_VALID_EMAIL'].'</span>');
             return;
         }
-        $objResult     = $objDatabase->Execute("UPDATE ".DBPREFIX."module_newsletter_user SET status=1 where email='". contrexx_raw2db($userEmail) ."'");
+
+        // Update a consent value in module_newsletter_rel_user_cat table based
+        // on recipient id.
+        $objUserCat = $objDatabase->Execute('
+            UPDATE
+                `' . DBPREFIX . 'module_newsletter_rel_user_cat`
+            SET
+                `consent` = "' . $currentTime . '"
+            WHERE
+                `user` = "' . contrexx_raw2db($userId) . '" AND
+                `source` = "opt-in" AND
+                `consent` IS NULL
+        ');
+
+        // Update a consent and status value in module_newsletter_user table based
+        // on recipient email id.
+        $objResult = $objDatabase->Execute('
+            UPDATE
+                `' . DBPREFIX . 'module_newsletter_user`
+            SET
+                `status` = 1,
+                `source` = "opt-in",
+                `consent` = "' . $currentTime . '"
+            WHERE
+                `email` = "' . contrexx_raw2db($userEmail) . '" AND
+                `consent` IS NULL
+        ');
         if ($objResult !== false) {
             $this->_objTpl->setVariable("NEWSLETTER_MESSAGE", $_ARRAYLANG['TXT_NEWSLETTER_CONFIRMATION_SUCCESSFUL']);
 
@@ -259,6 +288,7 @@ class Newsletter extends NewsletterLib
         $arrAssociatedLists = array();
         $arrPreAssociatedInactiveLists = array();
         $code = isset($_REQUEST['code']) ? contrexx_addslashes($_REQUEST['code']) : '';
+        $source = 'opt-in';
 
         if (!empty($code) && !empty($requestedMail)) {
             $objRecipient = $objDatabase->SelectLimit("SELECT accessUserID
@@ -440,14 +470,14 @@ class Newsletter extends NewsletterLib
                                 if ($captchaOk && $this->_isUniqueRecipientEmail($recipientEmail, $recipientId)) {
                                     if (!empty($arrAssociatedInactiveLists) || !empty($arrAssociatedLists) && ($objList = $objDatabase->SelectLimit('SELECT id FROM '.DBPREFIX.'module_newsletter_category WHERE status=1 AND (id='.implode(' OR id=', $arrAssociatedLists).')' , 1)) && $objList->RecordCount() > 0) {
                                         if ($recipientId > 0) {
-                                            if ($this->_updateRecipient($recipientAttributeStatus, $recipientId, $recipientEmail, $recipientUri, $recipientSex, $recipientSalutation, $recipientTitle, $recipientLastname, $recipientFirstname, $recipientPosition, $recipientCompany, $recipientIndustrySector, $recipientAddress, $recipientZip, $recipientCity, $recipientCountry, $recipientPhoneOffice, $recipientPhonePrivate, $recipientPhoneMobile, $recipientFax, $recipientNotes, $recipientBirthday, 1, $arrAssociatedLists, $recipientLanguage)) {
+                                            if ($this->_updateRecipient($recipientAttributeStatus, $recipientId, $recipientEmail, $recipientUri, $recipientSex, $recipientSalutation, $recipientTitle, $recipientLastname, $recipientFirstname, $recipientPosition, $recipientCompany, $recipientIndustrySector, $recipientAddress, $recipientZip, $recipientCity, $recipientCountry, $recipientPhoneOffice, $recipientPhonePrivate, $recipientPhoneMobile, $recipientFax, $recipientNotes, $recipientBirthday, 1, $arrAssociatedLists, $recipientLanguage, $source)) {
                                                 array_push($arrStatusMessage['ok'], $_ARRAYLANG['TXT_NEWSLETTER_YOUR_DATE_SUCCESSFULLY_UPDATED']);
                                                 $showForm = false;
                                             } else {
                                                 array_push($arrStatusMessage['error'], $_ARRAYLANG['TXT_NEWSLETTER_FAILED_UPDATE_YOUR_DATA']);
                                             }
                                         } else {
-                                            if ($this->_addRecipient($recipientEmail, $recipientUri, $recipientSex, $recipientSalutation, $recipientTitle, $recipientLastname, $recipientFirstname, $recipientPosition, $recipientCompany, $recipientIndustrySector, $recipientAddress, $recipientZip, $recipientCity, $recipientCountry, $recipientPhoneOffice, $recipientPhonePrivate, $recipientPhoneMobile, $recipientFax, $recipientNotes, $recipientBirthday, $recipientStatus, $arrAssociatedLists, $recipientLanguage)) {
+                                            if ($this->_addRecipient($recipientEmail, $recipientUri, $recipientSex, $recipientSalutation, $recipientTitle, $recipientLastname, $recipientFirstname, $recipientPosition, $recipientCompany, $recipientIndustrySector, $recipientAddress, $recipientZip, $recipientCity, $recipientCountry, $recipientPhoneOffice, $recipientPhonePrivate, $recipientPhoneMobile, $recipientFax, $recipientNotes, $recipientBirthday, $recipientStatus, $arrAssociatedLists, $recipientLanguage, $source)) {
                                                 if ($this->_sendAuthorizeEmail($recipientEmail, $recipientSex, $recipientSalutation, $recipientFirstname, $recipientLastname)) {
                                                     array_push($arrStatusMessage['ok'], $_ARRAYLANG['TXT_NEWSLETTER_SUBSCRIBE_OK']);
                                                     $showForm = false;
@@ -489,7 +519,7 @@ class Newsletter extends NewsletterLib
                                         // himself been unsubscribed from the newsletter system some time in the past. Therefore the user most likey does not want
                                         // to be subscribed to any lists more than to those he just selected
                                         $arrAssociatedLists = array_unique($arrAssociatedLists);
-                                        $this->_setRecipientLists($recipientId, $arrAssociatedLists);
+                                        $this->_setRecipientLists($recipientId, $arrAssociatedLists, $source);
                                         if (!$objRecipient->fields['status']) {
                                             $recipientLanguage = $objRecipient->fields['language'];
 

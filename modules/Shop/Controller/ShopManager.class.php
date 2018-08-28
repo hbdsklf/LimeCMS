@@ -3114,7 +3114,7 @@ if ($test === NULL) {
             $password = \User::make_password();
         }
         if ($password != '') {
-            $objCustomer->password($password);
+            $objCustomer->setPassword($password);
         }
         $objCustomer->setFrontendLanguage($lang_id);
         if (!$objCustomer->store()) {

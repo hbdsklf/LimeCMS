@@ -70,6 +70,16 @@ class YamlSettingEventListener extends \Cx\Core\Event\Model\Entity\DefaultEventL
                         \Message::add($_ARRAYLANG['TXT_CORE_TIMEZONE_INVALID'], \Message::CLASS_ERROR);
                         throw new YamlSettingEventListenerException($_ARRAYLANG['TXT_CORE_TIMEZONE_INVALID']);
                     }
+
+                    if ($value != $_CONFIG[$objSetting->getName()]) {
+                        //clear cache
+                         $widgetNames = array(
+                            'DATE',
+                        );
+                        $this->cx->getEvents()->triggerEvent(
+                            'clearEsiCache', array('Widget',  $widgetNames)
+                        );
+                    }
                     break;
 
                 case 'mainDomainId':

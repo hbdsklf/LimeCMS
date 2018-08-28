@@ -120,8 +120,14 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
         $data = array(
             'DefaultFrontendLocaleId' => 0,
             'Hashtables' => array(
+                // locale -> id
+                // i.e.: de-CH -> 3
                 'IdByCode' => array(),
+                // country -> locale
+                // i.e.: CH -> de-CH
                 'CodeByCountry' => array(),
+                // locale -> language
+                // i.e.: de-CH -> de
                 'Iso1ByCode' => array(),
             ),
         );

@@ -110,8 +110,14 @@ class FWUser extends User_Setting
     {
         global $_CORELANG;
 
-        $username = isset($_POST['USERNAME']) && $_POST['USERNAME'] != '' ? contrexx_stripslashes($_POST['USERNAME']) : null;
-        $password = isset($_POST['PASSWORD']) && $_POST['PASSWORD'] != '' ? md5(contrexx_stripslashes($_POST['PASSWORD'])) : null;
+        $username = null;
+        if (isset($_POST['USERNAME']) && $_POST['USERNAME'] != '') {
+            $username = contrexx_input2raw($_POST['USERNAME']);
+        }
+        $password = null;
+        if (isset($_POST['PASSWORD']) && $_POST['PASSWORD'] != '') {
+            $password = contrexx_input2raw($_POST['PASSWORD']);
+        }
         $authToken = !empty($_GET['auth-token']) ? contrexx_input2raw($_GET['auth-token']) : null;
         $userId = !empty($_GET['user-id']) ? contrexx_input2raw($_GET['user-id']) : null;
 
@@ -163,8 +169,14 @@ class FWUser extends User_Setting
      */
     public function checkLogin()
     {
-        $username = isset($_POST['USERNAME']) && $_POST['USERNAME'] != '' ? contrexx_stripslashes($_POST['USERNAME']) : null;
-        $password = isset($_POST['PASSWORD']) && $_POST['PASSWORD'] != '' ? md5(contrexx_stripslashes($_POST['PASSWORD'])) : null;
+        $username = null;
+        if (isset($_POST['USERNAME']) && $_POST['USERNAME'] != '') {
+            $username = contrexx_input2raw($_POST['USERNAME']);
+        }
+        $password = null;
+        if (isset($_POST['PASSWORD']) && $_POST['PASSWORD'] != '') {
+            $password = contrexx_input2raw($_POST['PASSWORD']);
+        }
 
         if (isset($username) && isset($password)) {
             return $this->objUser->checkLoginData($username, $password, \Cx\Core_Modules\Captcha\Controller\Captcha::getInstance()->check());
@@ -425,7 +437,7 @@ class FWUser extends User_Setting
     }
 
 
-    private function setLoggedInInfos($objTemplate, $blockName = '')
+    public function setLoggedInInfos($objTemplate, $blockName = '')
     {
         global $_CORELANG;
 

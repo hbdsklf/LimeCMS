@@ -137,7 +137,7 @@ CREATE TABLE `contrexx_access_users` (
   `id` int NOT NULL AUTO_INCREMENT,
   `is_admin` tinyint(1) NOT NULL DEFAULT '0',
   `username` varchar(255) DEFAULT NULL,
-  `password` varchar(32) DEFAULT NULL,
+  `password` varchar(255) DEFAULT NULL,
   `auth_token` varchar(32) NOT NULL,
   `auth_token_timeout` int NOT NULL DEFAULT '0',
   `regdate` int NOT NULL DEFAULT '0',
@@ -1086,7 +1086,8 @@ CREATE TABLE `contrexx_module_contact_form_submit_data` (
   `id_field` int(10) unsigned NOT NULL,
   `formlabel` text NOT NULL,
   `formvalue` text NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  INDEX `id_entry` (`id_entry`)
 ) ENGINE=InnoDB ;
 CREATE TABLE `contrexx_module_contact_recipient` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -1834,33 +1835,6 @@ CREATE TABLE `contrexx_module_egov_products` (
   `alternative_names` text NOT NULL,
   PRIMARY KEY (`product_id`)
 ) ENGINE=InnoDB ;
-CREATE TABLE `contrexx_module_egov_settings` (
-  `set_id` int(11) NOT NULL DEFAULT '0',
-  `set_sender_name` varchar(255) NOT NULL DEFAULT '',
-  `set_sender_email` varchar(255) NOT NULL DEFAULT '',
-  `set_recipient_email` varchar(255) NOT NULL DEFAULT '',
-  `set_state_subject` varchar(255) NOT NULL DEFAULT '',
-  `set_state_email` text NOT NULL,
-  `set_calendar_color_1` varchar(255) NOT NULL DEFAULT '',
-  `set_calendar_color_2` varchar(255) NOT NULL DEFAULT '',
-  `set_calendar_color_3` varchar(255) NOT NULL DEFAULT '',
-  `set_calendar_legende_1` varchar(255) NOT NULL DEFAULT '',
-  `set_calendar_legende_2` varchar(255) NOT NULL DEFAULT '',
-  `set_calendar_legende_3` varchar(255) NOT NULL DEFAULT '',
-  `set_calendar_background` varchar(255) NOT NULL DEFAULT '',
-  `set_calendar_border` varchar(255) NOT NULL DEFAULT '',
-  `set_calendar_date_label` varchar(255) NOT NULL DEFAULT '',
-  `set_calendar_date_desc` varchar(255) NOT NULL DEFAULT '',
-  `set_orderentry_subject` varchar(255) NOT NULL DEFAULT '',
-  `set_orderentry_email` text NOT NULL,
-  `set_orderentry_name` varchar(255) NOT NULL DEFAULT '',
-  `set_orderentry_sender` varchar(255) NOT NULL DEFAULT '',
-  `set_orderentry_recipient` varchar(255) NOT NULL DEFAULT '',
-  `set_paypal_email` text NOT NULL,
-  `set_paypal_currency` text NOT NULL,
-  `set_paypal_ipn` tinyint(1) NOT NULL DEFAULT '0',
-  KEY `set_id` (`set_id`)
-) ENGINE=InnoDB;
 CREATE TABLE `contrexx_module_feed_category` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(150) NOT NULL DEFAULT '',
@@ -2489,6 +2463,20 @@ CREATE TABLE `contrexx_module_mediadir_entries` (
   KEY `lang_id` (`lang_id`),
   KEY `active` (`active`)
 ) ENGINE=InnoDB ;
+CREATE TABLE `contrexx_module_mediadir_entry_associated_entry` (
+  `source_entry_id` int(11) unsigned NOT NULL,
+  `target_entry_id` int(11) unsigned NOT NULL,
+  `ord` int(11) unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`source_entry_id`, `target_entry_id`),
+  KEY (`ord`)
+) ENGINE=InnoDB ;
+CREATE TABLE `contrexx_module_mediadir_form_associated_form` (
+  `source_form_id` int(11) unsigned NOT NULL,
+  `target_form_id` int(11) unsigned NOT NULL,
+  `ord` int(11) unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`source_form_id`, `target_form_id`),
+  KEY (`ord`)
+) ENGINE=InnoDB ;
 CREATE TABLE `contrexx_module_mediadir_form_names` (
   `lang_id` int(1) NOT NULL,
   `form_id` int(7) NOT NULL,
@@ -2504,6 +2492,7 @@ CREATE TABLE `contrexx_module_mediadir_forms` (
   `use_level` int(1) NOT NULL,
   `use_category` int(1) NOT NULL,
   `use_ready_to_confirm` int(1) NOT NULL,
+  `use_associated_entries` tinyint(1) unsigned NOT NULL DEFAULT '0',
   `entries_per_page` int(7) NOT NULL DEFAULT '0',
   `cmd` varchar(50) NOT NULL,
   PRIMARY KEY (`id`)
@@ -2937,6 +2926,8 @@ CREATE TABLE `contrexx_module_newsletter_rel_crm_membership_newsletter` (
 CREATE TABLE `contrexx_module_newsletter_rel_user_cat` (
   `user` int(11) NOT NULL DEFAULT '0',
   `category` int(11) NOT NULL DEFAULT '0',
+  `source` enum('backend','opt-in','api') NOT NULL DEFAULT 'backend',
+  `consent` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`user`,`category`)
 ) ENGINE=InnoDB;
 CREATE TABLE `contrexx_module_newsletter_rel_usergroup_newsletter` (
@@ -2998,6 +2989,8 @@ CREATE TABLE `contrexx_module_newsletter_user` (
   `status` int(1) NOT NULL DEFAULT '0',
   `emaildate` int(14) unsigned NOT NULL DEFAULT '0',
   `language` int(3) unsigned NOT NULL DEFAULT '0',
+  `source` enum('backend','opt-in','api') NOT NULL DEFAULT 'backend',
+  `consent` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`),
   KEY `status` (`status`)

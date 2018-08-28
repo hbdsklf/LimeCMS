@@ -314,6 +314,13 @@ class User extends User_Profile
     private $defaultEmailAccessType;
 
     /**
+     * Contains the default hash algorithm to be used for password generation
+     *
+     * @var string
+     */
+    protected $defaultHashAlgorithm;
+
+    /**
      * Contains the message if an error occurs
      * @var string
      */
@@ -339,6 +346,7 @@ class User extends User_Profile
 // TODO:  Provide default values here in case the settings are missing!
         $this->defaultProfileAccessTyp = $arrSettings['default_profile_access']['value'];
         $this->defaultEmailAccessType = $arrSettings['default_email_access']['value'];
+        $this->defaultHashAlgorithm = \PASSWORD_BCRYPT;
         $this->clean();
     }
 
@@ -351,7 +359,7 @@ class User extends User_Profile
      * and the users last authentication time gets updated.
      * Returns TRUE on success or FALSE on failure.
      * @param   string    $username   The username
-     * @param   string    $password   The MD5 hash of the password
+     * @param   string    $password   The raw password
      * @param   boolean   $backend    Tries to authenticate for the backend
      *                                if true, false otherwise
      * @return  boolean               True on success, false otherwise
@@ -362,6 +370,13 @@ class User extends User_Profile
 
         if (!$userId || !$this->load($userId) || !$this->hasModeAccess($backend) || !$this->updateLastAuthTime()) {
             return false;
+        }
+
+        // ensure the password is properly hashed 
+        try {
+            $this->updatePasswordHash($password);
+        } catch (UserException $e) {
+            \DBG::log($e->getMessage());
         }
 
         return true;
@@ -405,30 +420,37 @@ class User extends User_Profile
         }
 
         if ($loginByEmail) {
-            $loginCheck = '`email` = "' . addslashes($username) . '"';
+            $loginCheck = '`email` = "' . contrexx_raw2db($username) . '"';
         } else {
-            $loginCheck = '`username` = "' . addslashes($username) . '"';
+            $loginCheck = '`username` = "' . contrexx_raw2db($username) . '"';
         }
 
         $loginStatusCondition = $captchaCheckResult == false ? 'AND `last_auth_status` = 1' : '';
 
 // TODO: add verificationTimeout as configuration option
         $verificationExpired = time() - 30 * 86400;
-        $objResult = $objDatabase->SelectLimit('
-            SELECT `id`
+        $objResult = $objDatabase->SelectLimit(
+            'SELECT `id`, `password`
               FROM `' . DBPREFIX . 'access_users`
              WHERE ' . $loginCheck . '
-               AND `password` = "'.addslashes($password).'"
                AND `active` = 1
                AND (`verified` = 1 OR `regdate` >= '.$verificationExpired.')
                ' . $loginStatusCondition . '
                AND (`expiration` = 0 OR `expiration` > ' . time() . ')
-        ', 1);
+            ',
+            1
+        );
 
+        // verify that the user is valid and active
         if (!$objResult || $objResult->RecordCount() != 1) {
             return false;
         }
+        // verify that the supplied password is valid
+        if (!$this->checkPassword($password, $objResult->fields['password'])) {
+            return false;
+        }
 
+        // user account is valid and supplied password is also valid
         return $objResult->fields['id'];
     }
 
@@ -465,24 +487,121 @@ class User extends User_Profile
     /**
      * Returns TRUE if the given password matches the current user,
      * FALSE otherwise.
-     * @param string $password
+     *
+     * @param   string  $password     Raw password to be verified
+     * @param   string  $passwordHash The hash of the password to verify the
+     *                                supplied password with. If not supplied,
+     *                                it will be fetched from the database.
      * @return boolean
      */
-    public function checkPassword($password)
+    public function checkPassword($password, $passwordHash = '')
     {
-        global $objDatabase;
+        // do not allow empty passwords
+        if ($password == '') {
+            return false;
+        }
 
-        $query = '
-            SELECT 1
-              FROM `'.DBPREFIX.'access_users`
-             WHERE `id` = '.$this->id.'
-               AND `password` = "'.md5($password).'"
-        ';
-        $objResult = $objDatabase->Execute($query);
+        try {
+            // fetch hash of password from database,
+            // if it has not been supplied as argument
+            if (
+                $passwordHash == '' &&
+                $this->getId()
+            ) {
+                $passwordHash = $this->fetchPasswordHashFromDatabase();
+            }
 
-        return $objResult->RecordCount() ? true : false;
+            // check if password is hashed with legacy algorithm (md5)
+            if (
+                preg_match('/^[a-f0-9]{32}$/i', $passwordHash) &&
+                md5($password) == $passwordHash
+            ) {
+                return true;
+            }
+
+            // verify password
+            if (password_verify($password, $passwordHash)) {
+                return true;
+            }
+
+            return false;
+        } catch (UserException $e) {
+            \DBG::log($e->getMessage());
+            return false;
+        }
     }
 
+    /**
+     * Verify that the password is properly hashed
+     *
+     * If the hashed password is outdated it will be updated in the database.
+     *
+     * @param   string  $password     Current raw password
+     * @param   string  $passwordHash The matching hash of the password. If not
+     *                                supplied, it will be fetched from the
+     *                                database.
+     * @throws  UserException         In case the password hash could not be
+     *                                updated, a UserException is thrown.
+     */
+    protected function updatePasswordHash($password, $passwordHash = '') {
+        // fetch hash of password from database,
+        // if it has not been supplied as argument
+        if (
+            $passwordHash == '' &&
+            $this->getId()
+        ) {
+            $passwordHash = $this->fetchPasswordHashFromDatabase();
+        }
+
+        // verify the supplied password to ensure that a newly
+        // generated password hash will be valid
+        if (!$this->checkPassword($password, $passwordHash)) {
+            throw new UserException('Supplied password does not match hash');
+        }
+
+        if (
+            // verify that password is not hashed by legacy algorithm (md5)
+            !preg_match('/^[a-f0-9]{32}$/i', $passwordHash) &&
+            // and that the password has been hashed by using the prefered
+            // hash algorithm
+            !password_needs_rehash($passwordHash, $this->defaultHashAlgorithm)
+        ) {
+            return;
+        }
+
+        // regenerate hash using new algorithm
+        if (!$this->setPassword($password, null, false, false)) {
+            throw new UserException('New password hash generation failed');
+        }
+        if (!$this->store()) {
+            throw new UserException('Storing new password hash failed');
+        }
+    }
+
+    /**
+     * Fetch the password hash of the currently loaded user from the database
+     *
+     * @return  string  Password hash of currently loaded user.
+     */
+    protected function fetchPasswordHashFromDatabase() {
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $db = $cx->getDb()->getAdoDb();
+
+        $query = '
+            SELECT `password`
+              FROM `'.DBPREFIX.'access_users`
+            WHERE `id` = ' . $this->id;
+        $objResult = $db->Execute($query);
+
+        if (
+            !$objResult ||
+            $objResult->RecordCount() != 1
+        ) {
+            throw new UserException('Unable to load unknown user');
+        }
+
+        return $objResult->fields['password'];
+    }
 
     /**
      * Clean user metadata
@@ -555,6 +674,17 @@ class User extends User_Profile
                 WHERE tblU.`id` = '.$this->id) !== false
             ) {
                 \Env::get('cx')->getEvents()->triggerEvent('model/postRemove', array(new \Doctrine\ORM\Event\LifecycleEventArgs($this, \Env::get('em'))));
+                //Clear cache
+                $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+                $cx->getEvents()->triggerEvent(
+                    'clearEsiCache',
+                    array(
+                        'Widget',
+                        $cx->getComponent('Access')->getUserDataBasedWidgetNames(),
+                    )
+                );
+                \Cx\Core\Core\Controller\Cx::instanciate()->getComponent('Cache')->deleteComponentFiles('Access');
+
                 return true;
                 } else {
                     $this->error_msg[] = sprintf($_CORELANG['TXT_ACCESS_USER_DELETE_FAILED'], $this->username);
@@ -1819,6 +1949,7 @@ class User extends User_Profile
                         $cx->getComponent('Access')->getUserDataBasedWidgetNames(),
                     )
                 );
+                \Cx\Core\Core\Controller\Cx::instanciate()->getComponent('Cache')->deleteComponentFiles('Access');
             }
         } else {
             \Env::get('cx')->getEvents()->triggerEvent('model/postPersist', array(new \Doctrine\ORM\Event\LifecycleEventArgs($this, \Env::get('em'))));
@@ -1832,6 +1963,7 @@ class User extends User_Profile
                     $cx->getComponent('Access')->getUserDataBasedWidgetNames(),
                 )
             );
+            \Cx\Core\Core\Controller\Cx::instanciate()->getComponent('Cache')->deleteComponentFiles('Access');
         }
 
 
@@ -1845,6 +1977,7 @@ class User extends User_Profile
      * @param string $generatedPassword
      */
     protected function sendUserAccountInvitationMail($generatedPassword) {
+
         $objUserMail = \FWUser::getFWUserObject()->getMail();
         if (
             (
@@ -2552,27 +2685,35 @@ class User extends User_Profile
     /**
      * Sets password of user
      *
-     * This will set the attribute password of this object to the md5 hash
+     * This will set the attribute password of this object to the hash
      * of $password if $password is a valid password and if it was confirmed
      * by the second parameter $confirmedPassword.
      * @param   string    $password           The new password
      * @param   string    $confirmedPassword  The new password, again
+     * @param   boolean   $reset
+     * @param   boolean   $verify             Whether or not to verify if
+     *                                        $password is a valid password
+     *                                        according to the set password
+     *                                        complexity rules.
      * @return  boolean                       True on success, false otherwise
      * @global  array     $_CORELANG
      */
-    public function setPassword($password, $confirmedPassword=null, $reset=false)
+    public function setPassword($password, $confirmedPassword=null, $reset=false, $verify=true)
     {
         global $_CORELANG, $_CONFIG;
 
         if ((empty($password) && empty($confirmedPassword) && $this->id && !$reset) || isset($_SESSION['user_id'])) {
             return true;
         }
-        if (self::isValidPassword($password)) {
+        if (
+            !$verify ||
+            self::isValidPassword($password)
+        ) {
             if (isset($confirmedPassword) && $password != $confirmedPassword) {
                 $this->error_msg[] = $_CORELANG['TXT_ACCESS_PASSWORD_NOT_CONFIRMED'];
                 return false;
             }
-            $this->password = md5($password);
+            $this->password = $this->hashPassword($password);
             return true;
         }
         if (isset($_CONFIG['passwordComplexity']) && $_CONFIG['passwordComplexity'] == 'on') {
@@ -2585,18 +2726,18 @@ class User extends User_Profile
     }
 
     /**
-     * Set new password as md5 sum of password
-     * @param   string $hashedPassword The md5 sum of the new password to be set
+     * Set new password as hash of password
+     * @param   string $hashedPassword The hash of the new password to be set
      */
     public function setHashedPassword($hashedPassword) {
         $this->password = $hashedPassword;
     }
 
     /**
-     * Returns the md5 sum of the newly set password of the user account if it has been changed.
-     * This method only returns the password (its md5 sum) of the user account in case it has
+     * Returns the hash of the newly set password of the user account if it has been changed.
+     * This method only returns the password (its hash) of the user account in case it has
      * been changed using {@see \User::setPassword()}.
-     * This method's purpose is to have the newly set password (its md5 sum) available in
+     * This method's purpose is to have the newly set password (its hash) available in
      * the model events through it.
      * @return  string  The newly set password of the user account
      */
@@ -3099,4 +3240,21 @@ class User extends User_Profile
         return;
     }
 
+    /**
+     * Generate hash of password with default hash algorithm
+     *
+     * @param string $password Password to be hashed
+     *
+     * @return string The generated hash of the supplied password
+     * @throws  UserException   In case the password hash generation fails
+     */
+    public function hashPassword($password)
+    {
+        $hash = password_hash($password, $this->defaultHashAlgorithm);
+        if ($hash !== false) {
+            return $hash;
+        }
+
+        throw new UserException('Failed to generate a new password hash');
+    }
 }

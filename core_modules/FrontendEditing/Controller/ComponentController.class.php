@@ -175,7 +175,10 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
             return;
         }
 
-        $componentTemplate = new \Cx\Core\Html\Sigma(ASCMS_CORE_MODULE_PATH . '/' . $this->getName() . '/View/Template/Generic');
+        $componentTemplate = new \Cx\Core\Html\Sigma(
+            $this->cx->getCodeBaseCoreModulePath() . '/' . $this->getName() .
+            '/View/Template/Generic'
+        );
         $componentTemplate->setErrorHandling(PEAR_ERROR_DIE);
 
         // add div around content
@@ -185,11 +188,6 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
 //        $componentTemplate->setVariable('CONTENT', $page->getContent());
 //        $page->setContent($componentTemplate->get());
         $page->setContent('<div id="fe_content">' . $page->getContent() . '</div>');
-
-        // add div around the title
-        $componentTemplate->loadTemplateFile('TitleDiv.html');
-        $componentTemplate->setVariable('TITLE', $page->getContentTitle());
-        $page->setContentTitle($componentTemplate->get());
     }
 
     /**
@@ -226,5 +224,31 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
 
         $frontendEditing = new \Cx\Core_Modules\FrontendEditing\Controller\FrontendController($this, $this->cx);
         $frontendEditing->initFrontendEditing($this);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function adjustResponse(
+        \Cx\Core\Routing\Model\Entity\Response $response
+    ) {
+        // Is frontend editing active?
+        if (
+            !$this->frontendEditingIsActive() ||
+            !$this->userHasPermissionToEditPage()
+        ) {
+            return;
+        }
+
+        $page              = $response->getPage();
+        $componentTemplate = new \Cx\Core\Html\Sigma(
+            $this->cx->getCodeBaseCoreModulePath() . '/' . $this->getName() .
+            '/View/Template/Generic'
+        );
+        $componentTemplate->setErrorHandling(PEAR_ERROR_DIE);
+        // add div around the title
+        $componentTemplate->loadTemplateFile('TitleDiv.html');
+        $componentTemplate->setVariable('TITLE', $page->getContentTitle());
+        $page->setContentTitle($componentTemplate->get());
     }
 }

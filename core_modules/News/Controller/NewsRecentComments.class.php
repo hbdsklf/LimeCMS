@@ -146,6 +146,7 @@ class NewsRecentComments extends \Cx\Core_Modules\News\Controller\NewsLibrary
                    'NEWS_COMMENTS_LONG_DATE'    => date(ASCMS_DATE_FORMAT, $objResult->fields['date']),
                    'NEWS_COMMENTS_DATE'         => date(ASCMS_DATE_FORMAT_DATE, $objResult->fields['date']),
                    'NEWS_COMMENTS_TIME'         => date(ASCMS_DATE_FORMAT_TIME, $objResult->fields['date']),
+                   'NEWS_COMMENTS_TIMESTAMP'    => $objResult->fields['date'],
                    'NEWS_COMMENT_LINK'          => $newsLink,
                    'NEWS_COMMENT_URL'           => $newsUrl
                 ));

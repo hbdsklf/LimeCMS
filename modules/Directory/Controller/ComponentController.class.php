@@ -63,12 +63,6 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
             case \Cx\Core\Core\Controller\Cx::MODE_FRONTEND:
                 $objDirectory = new Directory(\Env::get('cx')->getPage()->getContent());
                 \Env::get('cx')->getPage()->setContent($objDirectory->getPage());
-                $directory_pagetitle = $objDirectory->getPageTitle();
-                if (!empty($directory_pagetitle)) {
-                    \Env::get('cx')->getPage()->setTitle($directory_pagetitle);
-                    \Env::get('cx')->getPage()->setContentTitle($directory_pagetitle);
-                    \Env::get('cx')->getPage()->setMetaTitle($directory_pagetitle);
-                }
                 if ($_GET['cmd'] == 'detail' && isset($_GET['id'])) {
                     $objTemplate->setVariable(array(
                         'DIRECTORY_ENTRY_ID' => intval($_GET['id']),
@@ -153,5 +147,29 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
         $evm               = $this->cx->getEvents();
         $directoryListener = new \Cx\Modules\Directory\Model\Event\DirectoryEventListener();
         $evm->addEventListener('SearchFindContent', $directoryListener);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function adjustResponse(
+        \Cx\Core\Routing\Model\Entity\Response $response
+    ) {
+        $page = $response->getPage();
+        if (
+            !$page ||
+            $page->getModule() !== $this->getName()
+        ) {
+            return;
+        }
+
+        $objDirectory = new Directory('');
+        $directory_pagetitle = $objDirectory->getPageTitle();
+        //Set the Page Title
+        if (!empty($directory_pagetitle)) {
+            $page->setTitle($directory_pagetitle);
+            $page->setContentTitle($directory_pagetitle);
+            $page->setMetaTitle($directory_pagetitle);
+        }
     }
 }

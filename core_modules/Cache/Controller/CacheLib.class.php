@@ -633,6 +633,8 @@ class CacheLib
             'channel',
             'country',
             'currency',
+            'query',
+            'path',
             'ref',
             'targetComponent',
             'targetEntity',
@@ -1113,6 +1115,8 @@ class CacheLib
             'ch' => 'channel',
             'g' => 'country',
             'c' => 'currency',
+            'q' => 'query',
+            'pa' => 'path',
             'r' => 'ref',
             'tc' => 'targetComponent',
             'te' => 'targetEntity',
@@ -1124,7 +1128,7 @@ class CacheLib
                 continue;
             }
             // security: abort if any mysterious characters are found
-            if (!preg_match('/^[a-zA-Z0-9-]+$/', $params[$long])) {
+            if (!preg_match('/^[a-zA-Z0-9-=\.]+$/', $params[$long])) {
                 return array();
             }
             if ($long == 'ref') {
@@ -1163,6 +1167,8 @@ class CacheLib
             'channel',
             'country',
             'currency',
+            'query',
+            'path',
             'ref',
             'targetComponent',
             'targetEntity',

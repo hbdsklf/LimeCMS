@@ -51,6 +51,27 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
         return array();
     }
 
+    /**
+     * {@inheritdoc}
+     */
+    public function adjustResponse(\Cx\Core\Routing\Model\Entity\Response $response)
+    {
+        $page = $response->getPage();
+        if (
+            !$page ||
+            $page->getModule() !== $this->getName() ||
+            $page->getCmd() !== 'thread'
+        ) {
+            return;
+        }
+        $forum     = new Forum('');
+        $pageTitle = $forum->getPageTitle();
+        if (!$pageTitle) {
+            return;
+        }
+
+        $page->setTitle($pageTitle);
+    }
      /**
      * Load your component.
      *

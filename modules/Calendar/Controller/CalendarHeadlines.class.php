@@ -75,7 +75,7 @@ class CalendarHeadlines extends CalendarLibrary
      * @param   integer $categoryId Limits the loaded events by the given category id
      * @return  null
      */
-    function loadEventManager($categoryId = null)
+    function loadEventManager($categoryId = null, $listAll = false)
     {
         if($this->arrSettings['headlinesStatus'] == 1 && $this->_objTpl->blockExists('calendar_headlines_row')) {
             $startDate = new \DateTime();
@@ -105,8 +105,12 @@ class CalendarHeadlines extends CalendarLibrary
                 $categoryId = intval($this->arrSettings['headlinesCategory']);
             }
 
-            $startPos = 0;
-            $endPos = $this->arrSettings['headlinesNum'];
+            $startPos = 0;   
+            if ($listAll) {
+                $endPos = 'n';
+            } else {
+                $endPos = $this->arrSettings['headlinesNum'];  
+            }
 
             $this->objEventManager = new \Cx\Modules\Calendar\Controller\CalendarEventManager($startDate, $endDate, $categoryId, null, true, false, true, $startPos, $endPos);
             $this->objEventManager->getEventList();
@@ -119,7 +123,7 @@ class CalendarHeadlines extends CalendarLibrary
      * @param  integer $categoryId Limits the headline events by the given category id
      * @return string parsed template content
      */
-    function getHeadlines($categoryId = null)
+    function getHeadlines($categoryId = null, $listAll = false)
     {
         global $_CONFIG;
 
@@ -128,7 +132,7 @@ class CalendarHeadlines extends CalendarLibrary
 
         if($this->arrSettings['headlinesStatus'] == 1) {
             if($this->_objTpl->blockExists('calendar_headlines_row')) {
-                self::loadEventManager($categoryId);
+                self::loadEventManager($categoryId, $listAll);
                 if (!empty($this->objEventManager->eventList)) {
                     $this->objEventManager->showEventList($this->_objTpl);
                 }
