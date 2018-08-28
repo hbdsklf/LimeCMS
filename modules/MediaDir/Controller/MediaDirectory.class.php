@@ -967,10 +967,16 @@ class MediaDirectory extends MediaDirectoryLibrary
         if (isset($config['filter']['level'])) {
             $levelId = $config['filter']['level'];
         }
+        $associated = false;
+        if (isset($config['filter']['associated'])) {
+            $associated = true;
+        }
 
         // fetch related entries
         $objEntry->resetEntries();
-        $objEntry->getEntries(null, $levelId, $categoryId, null, $latest, null, true, $offset, $limit, null, null, $formId);
+        $objEntry->getEntries(null, $levelId, $categoryId, null, $latest, null,
+            true, $offset, $limit, null, null, $formId,
+            null, 0, 0, $associated);
 
         // remove currently parsed entry
         unset($objEntry->arrEntries[$intEntryId]);

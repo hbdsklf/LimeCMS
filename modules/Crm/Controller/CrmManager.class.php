@@ -2382,15 +2382,18 @@ END;
 
         // special fields for contacts
         foreach (\FWLanguage::getActiveFrontendLanguages() as $frontendLang) {
-            $this->_objTpl->setVariable(array(
-                    'TXT_LANG_ID'    =>  (int) $frontendLang['id'],
-                    'TXT_LANG_NAME'     =>  contrexx_raw2xhtml($frontendLang['name']),
-                    'TXT_LANG_SELECT'   =>  ($frontendLang['id'] == $this->contact->contact_language) ? "selected=selected" : "",
-            ));
+            $langBlocks = array('showAddtionalContactLanguages' . $contactType);
             if($contactType == 1){
-                $this->_objTpl->parse("ContactLanguages");
+                $langBlocks[] = ('ContactLanguages');
             }
-            $this->_objTpl->parse("showAddtionalContactLanguages" . $contactType);
+            foreach($langBlocks as $langBlock) {
+                $this->_objTpl->setVariable(array(
+                        'TXT_LANG_ID'    =>  (int) $frontendLang['id'],
+                        'TXT_LANG_NAME'     =>  contrexx_raw2xhtml($frontendLang['name']),
+                        'TXT_LANG_SELECT'   =>  ($frontendLang['id'] == $this->contact->contact_language) ? "selected=selected" : "",
+                ));
+                $this->_objTpl->parse($langBlock);
+            }
         }
 
         // special fields for customer
