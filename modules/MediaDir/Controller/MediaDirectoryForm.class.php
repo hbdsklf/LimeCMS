@@ -101,6 +101,7 @@ class MediaDirectoryForm extends MediaDirectoryLibrary
                 form.`use_category` AS `use_category`,
                 form.`use_level` AS `use_level`,
                 form.`use_ready_to_confirm` AS `use_ready_to_confirm`,
+                form.`use_associated_entries`,
                 form.`entries_per_page` AS `entries_per_page`,
                 form.`active` AS `active`,
                 form_names.`form_name` AS `name`,
@@ -161,7 +162,18 @@ class MediaDirectoryForm extends MediaDirectoryLibrary
                 $arrForm['formUseReadyToConfirm'] = intval($objFormsRS->fields['use_ready_to_confirm']);
                 $arrForm['formEntriesPerPage']    = $objFormsRS->fields['entries_per_page'];
                 $arrForm['slug_field_id']         = $this->arrSettings['usePrettyUrls'] ? $objFormsRS->fields['slug_field_id'] : 0;
-
+                $arrForm['use_associated_entries'] =
+                    intval($objFormsRS->fields['use_associated_entries']);
+                if ($arrForm['use_associated_entries']) {
+                    try {
+                        $arrForm['target_form_ids'] =
+                            $this->getAssociatedFormIdsByFormId(
+                                $arrForm['formId']);
+                    } catch (\Exception $e) {
+                        \DBG::log('ERROR: Failed to retrieve associated Form IDs for ID '
+                            . $arrForm['formId'] . ': ' . $e->getMessage());
+                    }
+                }
                 $arrForms[$objFormsRS->fields['id']] = $arrForm;
                 $objFormsRS->MoveNext();
             }
@@ -401,7 +413,10 @@ class MediaDirectoryForm extends MediaDirectoryLibrary
         $intUseLevel = isset($arrData['formUseLevel']) ? contrexx_input2int($arrData['formUseLevel']) : 0;
         $intUseReadyToConfirm = isset($arrData['formUseReadyToConfirm']) ? contrexx_input2int($arrData['formUseReadyToConfirm']) : 0;
         $intEntriesPerPage = isset($arrData['formEntriesPerPage']) ? contrexx_input2int($arrData['formEntriesPerPage']) : 0;
-
+        $useAssociatedEntries = !empty($arrData['use_associated_entries']);
+        $targetFormIds =
+            $useAssociatedEntries && !empty($arrData['target_form_ids'])
+                ? $arrData['target_form_ids'] : [];
         if(empty($intId)) {
             //insert new form
             $objInsertAttributes = $objDatabase->Execute("
@@ -414,6 +429,7 @@ class MediaDirectoryForm extends MediaDirectoryLibrary
                     `use_category`='".$intUseCategory."',
                     `use_level`='".$intUseLevel."',
                     `use_ready_to_confirm`='".$intUseReadyToConfirm."',
+                    `use_associated_entries`=$useAssociatedEntries,
                     `entries_per_page`='".$intEntriesPerPage."',
                     `active`='0'
             ");
@@ -476,7 +492,13 @@ class MediaDirectoryForm extends MediaDirectoryLibrary
                     ");
                 }
 
-                if($objInsertNames !== false && $objCreateCatSelectors !== false && $objCreateLevelSelectors !== false) {
+                $storeAssociationResult = $this->storeAssociatedFormIds(
+                    $intId, $targetFormIds);
+
+                if ($objInsertNames !== false
+                    && $objCreateCatSelectors !== false
+                    && $objCreateLevelSelectors !== false
+                    && $storeAssociationResult !== false) {
                     return true;
                 } else {
                     return false;
@@ -496,6 +518,7 @@ class MediaDirectoryForm extends MediaDirectoryLibrary
                     `use_category`='".$intUseCategory."',
                     `use_level`='".$intUseLevel."',
                     `use_ready_to_confirm`='".$intUseReadyToConfirm."',
+                    `use_associated_entries`=$useAssociatedEntries,
                     `entries_per_page`='".$intEntriesPerPage."'
                 WHERE
                     `id`='".$intId."'
@@ -520,7 +543,11 @@ class MediaDirectoryForm extends MediaDirectoryLibrary
 
                 $objInsertNames = $this->updateFormLocale($arrName, $arrDescription, $intId);
 
-                if($objInsertNames !== false) {
+                $storeAssociationResult = $this->storeAssociatedFormIds(
+                    $intId, $targetFormIds);
+
+                if ($objInsertNames !== false
+                    && $storeAssociationResult !== false) {
                     return true;
                 } else {
                     return false;
@@ -574,7 +601,13 @@ class MediaDirectoryForm extends MediaDirectoryLibrary
                                                                     WHERE
                                                                          `entry_id`='".intval($intEntryId)."'
                                                                     ");
-
+                if (!$objDatabase->Execute('
+                    DELETE FROM ' . DBPREFIX . 'module_'
+                    . $this->moduleTablePrefix . '_entry_associated_entry
+                    WHERE `source_entry_id`=?
+                    OR `target_entry_id`=?', [$intEntryId, $intEntryId])) {
+                    return false;
+                }
                 if ($objRSEntryDeleteRelLevels !== false && $objRSEntryDeleteRelCategories !== false && $objRSEntryDeleteRelInputfields !== false) {
                     //delete entries
                     $objRSEntryDeleteRelInputfields = $objDatabase->Execute("DELETE FROM
@@ -646,5 +679,97 @@ class MediaDirectoryForm extends MediaDirectoryLibrary
 
         return true;
     }
+
+    /**
+     * Return HTML options for associated forms
+     *
+     * Forms associated to the one with the given ID have their "selected"
+     * attribute set.
+     * @param   integer $formId
+     * @author  Reto Kohli <reto.kohli@comvation.com>
+     */
+    public function getAssociatedFormsOptions($formId)
+    {
+        $options = $selected = [];
+        try {
+            $options = $selected =
+                array_flip($this->getAssociatedFormIdsByFormId($formId));
+        } catch (\Exception $e) {
+            \DBG::log('ERROR: Failed to retrieve associated Form IDs for ID '
+                . $formId . ': ' . $e->getMessage());
+        }
+        $forms = $this->getForms();
+        foreach ($forms as $form) {
+            $id = $form['formId'];
+            // Update values for existing selected keys, append others
+            $options[$id] = $form['formName'][0];
+        }
+        return \Html::getOptions($options, $selected);
+    }
+
+    /**
+     * Return an array of form IDs associated to the given Form ID
+     *
+     * Mind that the returned array may be empty.
+     * @param   integer     $formId
+     * @return  array                   The ID array on success
+     * @throws  Exception               With the database error message
+     * @author  Reto Kohli <reto.kohli@comvation.com>
+     */
+    public function getAssociatedFormIdsByFormId($formId)
+    {
+        $objResult = $this->cx->getDb()->getAdoDb()->Execute('
+            SELECT `target_form_id`
+            FROM ' . DBPREFIX . 'module_'
+            . $this->moduleTablePrefix . '_form_associated_form
+            WHERE `source_form_id`=?
+            ORDER BY `ord` ASC',
+            [$formId]);
+        if (!$objResult) {
+            throw new \Exception($this->cx->getDb()->getAdoDb()->ErrorMsg());
+        }
+        $formIds = [];
+        while (!$objResult->EOF) {
+            $formIds[] = intval($objResult->fields['target_form_id']);
+            $objResult->MoveNext();
+        }
+        return $formIds;
+    }
+
+    /**
+     * Store an array of target Form IDs associated to the given source Form ID
+     *
+     * Returns false on error.
+     * Note that associations with Entries of Forms whose ID is not present in
+     * $targetFormIds anymore are not deleted.
+     * @param   integer $sourceFormId
+     * @param   array   $targetFormIds
+     * @return  boolean                 True on success, false otherwise
+     * @author  Reto Kohli <reto.kohli@comvation.com>
+     */
+    protected function storeAssociatedFormIds(
+        $sourceFormId, array $targetFormIds)
+    {
+        if (!$this->cx->getDb()->getAdoDb()->Execute('
+            DELETE FROM ' . DBPREFIX . 'module_'
+            . $this->moduleTablePrefix . '_form_associated_form
+            WHERE `source_form_id`=?',
+            [$sourceFormId])) {
+            return false;
+        }
+        $success = true;
+        foreach ($targetFormIds as $ord => $targetFormId) {
+            $success &= $this->cx->getDb()->getAdoDb()->Execute('
+                INSERT INTO ' . DBPREFIX . 'module_'
+                . $this->moduleTablePrefix . '_form_associated_form (
+                    `source_form_id`, `target_form_id`, `ord`
+                ) VALUES (
+                    ?, ?, ?
+                )',
+                [$sourceFormId, $targetFormId, $ord]);
+        }
+        return $success;
+    }
+
 }
 ?>

@@ -13,6 +13,23 @@ $J(function(){
       mediaBrowseInputBox = $J('#' + inputId);
    });
    handleKeywordAbility();
+  cx.jQuery('input[name=use_associated_entries]')
+    .change(function() {
+      if (cx.jQuery('input[name=use_associated_entries]:checked').val() === "1") {
+        cx.jQuery('#associated-forms-row').show();
+      } else {
+        cx.jQuery('#associated-forms-row').hide();
+      }
+    })
+    .change();
+  cx.jQuery('#associated-forms-select')
+    .chosen({
+      width: '300px',
+      display_selected_options: false,
+      hide_results_on_select: false,
+      no_results_text: '{TXT_MEDIADIR_SELECT_NO_MATCH}',
+      placeholder_text_multiple: '{TXT_MEDIADIR_PLEASE_CHOOSE}'
+    }).chosenSortable();
 });
 
 function resetContextFields() {
@@ -233,7 +250,14 @@ var refreshInputfields = function(formId)
             <tr class="row1">
                 <td valign="top">{TXT_MEDIADIR_USE_CATEGORY}</td>
                 <td>
-                    <input type="radio" name="formUseCategory" value="1" {MEDIADIR_USE_CATEGORY_ON} /> {TXT_MEDIADIR_ACTIVATE} &nbsp;<input type="radio" name="formUseCategory" value="0" {MEDIADIR_USE_CATEGORY_OFF} /> {TXT_MEDIADIR_DEACTIVATE}&nbsp;
+                    <label>
+                        <input type="radio" name="formUseCategory" value="1" {MEDIADIR_USE_CATEGORY_ON} /> {TXT_MEDIADIR_ACTIVATE}
+                    </label>
+                    &nbsp;
+                    <label>
+                        <input type="radio" name="formUseCategory" value="0" {MEDIADIR_USE_CATEGORY_OFF} /> {TXT_MEDIADIR_DEACTIVATE}
+                    </label>
+                    &nbsp;
                     <span class="tooltip-trigger icon-info"></span><span class="tooltip-message">{TXT_MEDIADIR_USE_CATEGORY_INFO}</span>
                 </td>
             </tr>
@@ -241,11 +265,49 @@ var refreshInputfields = function(formId)
             <tr class="row2">
                 <td valign="top">{TXT_MEDIADIR_USE_LEVEL}</td>
                 <td>
-                <input type="radio" name="formUseLevel" value="1" {MEDIADIR_USE_LEVEL_ON} /> {TXT_MEDIADIR_ACTIVATE} &nbsp;<input type="radio" name="formUseLevel" value="0" {MEDIADIR_USE_LEVEL_OFF} /> {TXT_MEDIADIR_DEACTIVATE}&nbsp;
+                    <label>
+                        <input type="radio" name="formUseLevel" value="1" {MEDIADIR_USE_LEVEL_ON} /> {TXT_MEDIADIR_ACTIVATE}
+                    </label>
+                    &nbsp;
+                    <label>
+                        <input type="radio" name="formUseLevel" value="0" {MEDIADIR_USE_LEVEL_OFF} /> {TXT_MEDIADIR_DEACTIVATE}
+                    </label>
+                    &nbsp;
                     <span class="tooltip-trigger icon-info"></span><span class="tooltip-message">{TXT_MEDIADIR_USE_LEVEL_INFO}</span>
-            </td>
+                </td>
             </tr>
             <!-- END mediadirFormUseLevel -->
+            <tr>
+                <td valign="top">{TXT_MEDIADIR_USE_ASSOCIATED_ENTRIES}</td>
+                <td>
+                    <label>
+                        <input type="radio" name="use_associated_entries" value="1"
+                               {MEDIADIR_USE_ASSOCIATED_ENTRIES_ON} />
+                        {TXT_MEDIADIR_ACTIVATE}
+                    </label>
+                    &nbsp;
+                    <label>
+                        <input type="radio" name="use_associated_entries" value="0"
+                               {MEDIADIR_USE_ASSOCIATED_ENTRIES_OFF} />
+                        {TXT_MEDIADIR_DEACTIVATE}
+                    </label>
+                    &nbsp;
+                    <span class="tooltip-trigger icon-info"></span>
+                    <span class="tooltip-message">{TXT_MEDIADIR_USE_ASSOCIATED_ENTRIES_INFO}</span>
+                </td>
+            </tr>
+            <tr id="associated-forms-row">
+                <td valign="top">{TXT_MEDIADIR_ASSOCIATED_FORMS}</td>
+                <td>
+                    <select id="associated-forms-select" name="target_form_ids[]"
+                            class="chosen-sortable" multiple
+                            data-placeholder="{TXT_MEDIADIR_PLEASE_CHOOSE}">
+                      {MEDIADIR_ASSOCIATED_FORMS_OPTIONS}
+                    </select>
+                    <span class="tooltip-trigger icon-info"></span>
+                    <span class="tooltip-message">{TXT_MEDIADIR_ASSOCIATED_FORMS_INFO}</span>
+                </td>
+            </tr>
             <!-- BEGIN mediadirFormUseReadyToConfirm -->
             <tr class="row1">
                 <td valign="top">{TXT_MEDIADIR_USE_READY_TO_CONFIRM}</td>

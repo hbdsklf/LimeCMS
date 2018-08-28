@@ -1384,6 +1384,18 @@ EOF;
             $this->moduleLangVar.'_USE_READY_TO_CONFIRM_ON' => 'checked="checked"',
             'TXT_'.$this->moduleLangVar.'_USE_READY_TO_CONFIRM' =>  $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_READY_TO_CONFIRM'],
             'TXT_'.$this->moduleLangVar.'_FORM_ENTRIES_PER_PAGE' =>  $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_PAGING_NUM_ENTRIES'],
+            'TXT_' . $this->moduleLangVar . '_USE_ASSOCIATED_ENTRIES' =>
+                $_ARRAYLANG['TXT_MEDIADIR_USE_ASSOCIATED_ENTRIES'],
+            'TXT_' . $this->moduleLangVar . '_USE_ASSOCIATED_ENTRIES_INFO' =>
+                $_ARRAYLANG['TXT_MEDIADIR_USE_ASSOCIATED_ENTRIES_INFO'],
+            'TXT_' . $this->moduleLangVar . '_ASSOCIATED_FORMS' =>
+                $_ARRAYLANG['TXT_MEDIADIR_ASSOCIATED_FORMS'],
+            'TXT_' . $this->moduleLangVar . '_ASSOCIATED_FORMS_INFO' =>
+                $_ARRAYLANG['TXT_MEDIADIR_ASSOCIATED_FORMS_INFO'],
+            'TXT_' . $this->moduleLangVar . '_PLEASE_CHOOSE' =>
+                $_ARRAYLANG['TXT_MEDIADIR_PLEASE_CHOOSE'],
+            'TXT_' . $this->moduleLangVar . '_SELECT_NO_MATCH' =>
+                $_ARRAYLANG['TXT_MEDIADIR_SELECT_NO_MATCH'],
         ));
 
         if(isset($_GET['ajax'])) {
@@ -1435,6 +1447,7 @@ EOF;
                 break;
         }
 
+        \JS::activate('chosen-sortable');
         //load form data
         if(!empty($_GET['id'])) {
             $pageTitle = $_ARRAYLANG['TXT_MEDIADIR_EDIT_FORM_TEMPLATE'];
@@ -1456,6 +1469,14 @@ EOF;
                 $this->moduleLangVar.'_USE_READY_TO_CONFIRM_ON' => $objForm->arrForms[$intFormId]['formUseReadyToConfirm'] == 1 ? 'checked="checked"' : '',
                 $this->moduleLangVar.'_USE_READY_TO_CONFIRM_OFF' => $objForm->arrForms[$intFormId]['formUseReadyToConfirm'] == 0 ? 'checked="checked"' : '',
                 $this->moduleLangVar.'_FORM_ENTRIES_PER_PAGE' => contrexx_raw2xhtml($objForm->arrForms[$intFormId]['formEntriesPerPage']),
+                $this->moduleLangVar.'_USE_ASSOCIATED_ENTRIES_ON' =>
+                    $objForm->arrForms[$intFormId]['use_associated_entries']
+                        ? \Html::ATTRIBUTE_CHECKED : '',
+                $this->moduleLangVar.'_USE_ASSOCIATED_ENTRIES_OFF' =>
+                    $objForm->arrForms[$intFormId]['use_associated_entries']
+                        ? '' : \Html::ATTRIBUTE_CHECKED,
+                $this->moduleLangVar.'_ASSOCIATED_FORMS_OPTIONS' =>
+                    $objForm->getAssociatedFormsOptions($intFormId),
             ));
 
             parent::getCommunityGroups();
@@ -1496,6 +1517,12 @@ EOF;
             $pageTitle = $_ARRAYLANG['TXT_MEDIADIR_NEW_FORM_TEMPLATE'];
 
             $objTpl->hideBlock($this->moduleNameLC.'InputfieldsForm');
+            $objTpl->setGlobalVariable(array(
+                $this->moduleLangVar.'_USE_ASSOCIATED_ENTRIES_OFF' =>
+                    \Html::ATTRIBUTE_CHECKED,
+                $this->moduleLangVar.'_ASSOCIATED_FORMS_OPTIONS' =>
+                    $objForm->getAssociatedFormsOptions(null),
+            ));
         }
         $objTpl->setGlobalVariable(array(
             $this->moduleLangVar.'_FORM_IMAGE_BROWSE' => $this->getMediaBrowserButton(

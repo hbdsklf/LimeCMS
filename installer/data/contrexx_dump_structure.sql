@@ -2463,6 +2463,20 @@ CREATE TABLE `contrexx_module_mediadir_entries` (
   KEY `lang_id` (`lang_id`),
   KEY `active` (`active`)
 ) ENGINE=InnoDB ;
+CREATE TABLE `contrexx_module_mediadir_entry_associated_entry` (
+  `source_entry_id` int(11) unsigned NOT NULL,
+  `target_entry_id` int(11) unsigned NOT NULL,
+  `ord` int(11) unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`source_entry_id`, `target_entry_id`),
+  KEY (`ord`)
+) ENGINE=InnoDB ;
+CREATE TABLE `contrexx_module_mediadir_form_associated_form` (
+  `source_form_id` int(11) unsigned NOT NULL,
+  `target_form_id` int(11) unsigned NOT NULL,
+  `ord` int(11) unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`source_form_id`, `target_form_id`),
+  KEY (`ord`)
+) ENGINE=InnoDB ;
 CREATE TABLE `contrexx_module_mediadir_form_names` (
   `lang_id` int(1) NOT NULL,
   `form_id` int(7) NOT NULL,
@@ -2478,6 +2492,7 @@ CREATE TABLE `contrexx_module_mediadir_forms` (
   `use_level` int(1) NOT NULL,
   `use_category` int(1) NOT NULL,
   `use_ready_to_confirm` int(1) NOT NULL,
+  `use_associated_entries` tinyint(1) unsigned NOT NULL DEFAULT '0',
   `entries_per_page` int(7) NOT NULL DEFAULT '0',
   `cmd` varchar(50) NOT NULL,
   PRIMARY KEY (`id`)
