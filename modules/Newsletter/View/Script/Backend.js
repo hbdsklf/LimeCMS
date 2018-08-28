@@ -9,21 +9,22 @@ cx.jQuery(document).ready(function(){
         consentCheckbox.prop("checked", true);
     }
 
-    jQuery("input[name^=\"newsletter_recipient_associated_list\"]").each(function(index, el) {
+    var listCheckboxes = jQuery("input[name^=\"newsletter_recipient_associated_list\"]");
+    listCheckboxes.each(function(index, el) {
         var element = jQuery(el);
         if (element.is(":checked")) {
             element.addClass("pre-checked");
         }
     });
 
-    jQuery("input[name^=\"newsletter_recipient_associated_list\"]").change(function(){
-        if (jQuery(this).hasClass("pre-checked")) {
-            return;
-        }
-        if (consentConfirmDiv.hasClass("inactive")) {
+    listCheckboxes.change(function() {
+        if (listCheckboxes.filter(":checked").not(".pre-checked").length) {
             consentCheckbox.prop("checked", false);
             consentConfirmDiv.removeClass("inactive");
             consentConfirmDiv.addClass("active");
+        } else {
+            consentConfirmDiv.removeClass("active");
+            consentConfirmDiv.addClass("inactive");
         }
     });
 

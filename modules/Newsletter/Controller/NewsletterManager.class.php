@@ -4130,8 +4130,7 @@ $WhereStatement = '';
 // TODO: $query is not defined, this has probably been superseeded by the
 // method call above?
 //        $objResult     = $objDatabase->Execute($query);
-        $StringForFile = $_ARRAYLANG['TXT_NEWSLETTER_STATUS'].$separator;
-        $StringForFile .= $_ARRAYLANG['TXT_NEWSLETTER_EMAIL_ADDRESS'].$separator;
+        $StringForFile = $_ARRAYLANG['TXT_NEWSLETTER_EMAIL_ADDRESS'].$separator;
         $StringForFile .= $_ARRAYLANG['TXT_NEWSLETTER_SEX'].$separator;
         $StringForFile .= $_ARRAYLANG['TXT_NEWSLETTER_SALUTATION'].$separator;
         $StringForFile .= $_ARRAYLANG['TXT_NEWSLETTER_TITLE'].$separator;
@@ -4144,18 +4143,19 @@ $WhereStatement = '';
         $StringForFile .= $_ARRAYLANG['TXT_NEWSLETTER_ZIP'].$separator;
         $StringForFile .= $_ARRAYLANG['TXT_NEWSLETTER_CITY'].$separator;
         $StringForFile .= $_ARRAYLANG['TXT_NEWSLETTER_COUNTRY'].$separator;
-        $StringForFile .= $_ARRAYLANG['TXT_NEWSLETTER_COUNTRY_ID'].$separator;
         $StringForFile .= $_ARRAYLANG['TXT_NEWSLETTER_PHONE'].$separator;
         $StringForFile .= $_ARRAYLANG['TXT_NEWSLETTER_PHONE_PRIVATE'].$separator;
         $StringForFile .= $_ARRAYLANG['TXT_NEWSLETTER_PHONE_MOBILE'].$separator;
         $StringForFile .= $_ARRAYLANG['TXT_NEWSLETTER_FAX'].$separator;
         $StringForFile .= $_ARRAYLANG['TXT_NEWSLETTER_BIRTHDAY'].$separator;
         $StringForFile .= $_ARRAYLANG['TXT_NEWSLETTER_WEBSITE'].$separator;
-        $StringForFile .= $_ARRAYLANG['TXT_NEWSLETTER_NOTES'];
+        $StringForFile .= $_ARRAYLANG['TXT_NEWSLETTER_NOTES'].$separator;
+        $StringForFile .= $_ARRAYLANG['TXT_NEWSLETTER_LANGUAGE'].$separator;
+        $StringForFile .= $_ARRAYLANG['TXT_NEWSLETTER_COUNTRY_ID'].$separator;
+        $StringForFile .= $_ARRAYLANG['TXT_NEWSLETTER_STATUS'];
         $StringForFile .= chr(13).chr(10);
 
         foreach ($users as $user) {
-            $StringForFile .= $user['status'].$separator;
             $StringForFile .= $user['email'].$separator;
             $StringForFile .= $user['sex'].$separator;
             $StringForFile .= $arrRecipientTitles[$user['salutation']].$separator;
@@ -4169,18 +4169,20 @@ $WhereStatement = '';
             $StringForFile .= $user['zip'].$separator;
             $StringForFile .= $user['city'].$separator;
             $StringForFile .= \FWUser::getFWUserObject()->objUser->objAttribute->getById('country_'.$user['country_id'])->getName().$separator;
-            $StringForFile .= $user['country_id'].$separator;
             $StringForFile .= $user['phone_office'].$separator;
             $StringForFile .= $user['phone_private'].$separator;
             $StringForFile .= $user['phone_mobile'].$separator;
             $StringForFile .= $user['fax'].$separator;
             $StringForFile .= $user['birthday'].$separator;
             $StringForFile .= $user['uri'].$separator;
-            $StringForFile .= $user['notes'];
+            $StringForFile .= $user['notes'].$separator;
+            $StringForFile .= $user['language'].$separator;
+            $StringForFile .= $user['country_id'].$separator;
+            $StringForFile .= $user['status'];
             $StringForFile .= chr(13).chr(10);
         }
-        if (strtolower(CONTREXX_CHARSET) == 'utf-8') {
-            $StringForFile = utf8_decode($StringForFile);
+        if (strtolower(CONTREXX_CHARSET) != 'utf-8') {
+            $StringForFile = utf8_encode($StringForFile);
         }
         header("Content-Type: text/comma-separated-values");
         header('Content-Disposition: attachment; filename="'.date('Y_m_d')."-".$listname.'.csv"');
@@ -5543,7 +5545,8 @@ $WhereStatement = '';
                 'notes',
                 'birthday',
                 'type',
-                'emaildate'
+                'emaildate',
+                'language',
             )
         );
 
@@ -5567,7 +5570,8 @@ $WhereStatement = '';
                 'fax'               => array('type' => 'field', 'def' => 'phone_fax'),
                 'notes'             => array('type' => 'data',  'def' => ''),
                 'type'              => array('type' => 'data', 'def' => 'access_user'),
-                'emaildate'          => array('type' => 'field', 'def' => 'regdate')
+                'emaildate'         => array('type' => 'field', 'def' => 'regdate'),
+                'language'          => array('type' => 'data',  'def' => ''),
             )
         );
 
@@ -6734,5 +6738,4 @@ if (!class_exists('DBIterator', false)) {
             return !$this->obj->EOF;
         }
     }
-
 }
