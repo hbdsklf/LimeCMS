@@ -172,6 +172,7 @@ var cxDataList = function() {
                 recipientRow.append($(htmlTd).append($(htmlAFeedback.replace('[id]', user.id).replace('[type]', user.type)).append(user.feedback)));
             }
             recipientRow.append($(htmlTd).append(user.emaildate));
+            recipientRow.append($(htmlTd).append(user.consent));
             recipientRow.append(userFunctions);
 
             htmlList.append(recipientRow);
@@ -373,19 +374,19 @@ var confirmDeleteInactive = function() {
                     <td nowrap width="1%">
                         {TXT_STATUS}
                     </td>
-                    <td nowrap width="20%">
+                    <td nowrap width="15%">
                         <a name="listSort[email]">{TXT_EMAIL_ADDRESS}</a>
                     </td>
                     <td nowrap width="15%">
                         <a name="listSort[company]">{TXT_NEWSLETTER_COMPANY}</a>
                     </td>
-                    <td nowrap width="15%">
+                    <td nowrap width="10%">
                         <a name="listSort[lastname]">{TXT_LASTNAME}</a>
                     </td>
-                    <td nowrap width="15%">
+                    <td nowrap width="10%">
                         <a name="listSort[firstname]">{TXT_FIRSTNAME}</a>
                     </td>
-                    <td nowrap width="10%">
+                    <td nowrap width="15%">
                         <a name="listSort[address]">{TXT_NEWSLETTER_ADDRESS}</a>
                     </td>
                     <td nowrap width="5%">
@@ -404,6 +405,10 @@ var confirmDeleteInactive = function() {
                     <!-- END statistics -->
                     <td nowrap width="5%">
                         <a name="listSort[emaildate]" rel="desc">{TXT_NEWSLETTER_REGISTRATION_DATE}</a>
+                    </td>
+                    <td nowrap width="5%">
+                        {TXT_NEWSLETTER_CONSENT}
+                        <span class="icon-info tooltip-trigger"></span><span class="tooltip-message">{TXT_NEWSLETTER_CONSENT_TOOLTIP}</span>
                     </td>
                     <td width="3%" style="text-align:right;">{TXT_FUNCTIONS}</td>
                 </tr>

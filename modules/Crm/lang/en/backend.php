@@ -502,6 +502,7 @@ $_ARRAYLANG['TXT_CRM_ADD_NEW_ACCOUNT']              = "Add new user account";
 $_ARRAYLANG['TXT_CRM_DATASOURCE']                   = "Data source";
 $_ARRAYLANG['TXT_CRM_SOCIAL_NETWORK']               = "Social network";
 $_ARRAYLANG['TXT_CRM_GENDER']                       = "Gender";
+$_ARRAYLANG['TXT_CRM_SALUTATION']                   = "Salutation";
 $_ARRAYLANG['TXT_CRM_NOT_SPECIFIED']                = "Not specified";
 $_ARRAYLANG['TXT_CRM_GENDER_MALE']                  = "Male";
 $_ARRAYLANG['TXT_CRM_GENDER_FEMALE']                = "Female";

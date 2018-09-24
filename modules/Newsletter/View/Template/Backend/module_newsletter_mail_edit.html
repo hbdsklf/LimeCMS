@@ -78,6 +78,7 @@ function mediaBrowserCallback(data) {
 }
 
 $J(document).ready(function() {
+    $J("#newsletter_mail_crm_memberships").chosen();
     $J("#newsletter_mail_crm_filter_memberships_include").chosen();
     $J("#newsletter_mail_crm_filter_memberships_exclude").chosen();
 });
@@ -201,6 +202,23 @@ $J(document).ready(function() {
     </td>
   </tr>
 
+    <tr class="row1" style="vertical-align:top;">
+        <td width="15%">{TXT_NEWSLETTER_CRM_MEMBERSHIP}
+            <span class="tooltip-trigger icon-warning"></span>
+            <span class="tooltip-message">
+                {TXT_NEWSLETTER_INFO_ABOUT_ASSOCIATED_LISTS_SEND}
+            </span>
+        </td>
+        <td width="85%" colspan="3">
+            <div>
+                <select tabindex="7" data-placeholder="{TXT_NEWSLETTER_CHOOSE_CRM_MEMBERSHIPS}" name="newsletter_mail_crm_memberships[associate][]" id="newsletter_mail_crm_memberships" size="1" multiple autocomplete="off" {NEWSLETTER_LIST_DISABLED}>
+                    <!-- BEGIN crmMembership -->
+                    <option value="{CRM_MEMBERSHIP_ID}" {CRM_MEMBERSHIP_SELECTED}>{CRM_MEMBERSHIP_VALUE}</option>
+                    <!-- END crmMembership -->
+                </select>
+            </div>
+        </td>
+    </tr>
   <tr class="row1" style="vertical-align:top;">
     <td width="15%">{TXT_NEWSLETTER_CRM_MEMBERSHIP_FILTER}
         <span class="tooltip-trigger icon-info"></span>
@@ -302,7 +320,7 @@ $J(document).ready(function() {
   </tr>
   <tr class="row1">
     <td>{TXT_NEWSLETTER_INDUSTRY_SECTOR}</td>
-    <td>[[industry_sector]]</td>
+    <td>[[industry_sector]] <span class="icon-info tooltip-trigger"></span><span class="tooltip-message">{TXT_NEWSLETTER_PLACEHOLDER_NOT_FOR_CRM}</span></td>
   </tr>
   <tr class="row2">
     <td>{TXT_NEWSLETTER_ADDRESS}</td>
@@ -318,7 +336,7 @@ $J(document).ready(function() {
   </tr>
   <tr class="row1">
     <td>{TXT_NEWSLETTER_COUNTRY}</td>
-    <td>[[country]]</td>
+    <td>[[country]] <span class="icon-info tooltip-trigger"></span><span class="tooltip-message">{TXT_NEWSLETTER_PLACEHOLDER_NOT_FOR_CRM}</span></td>
   </tr>
   <tr class="row2">
     <td>{TXT_NEWSLETTER_PHONE}</td>
@@ -326,19 +344,19 @@ $J(document).ready(function() {
   </tr>
   <tr class="row1">
     <td>{TXT_NEWSLETTER_PHONE_PRIVATE}</td>
-    <td>[[phone_private]]</td>
+    <td>[[phone_private]] <span class="icon-info tooltip-trigger"></span><span class="tooltip-message">{TXT_NEWSLETTER_PLACEHOLDER_NOT_FOR_CRM}</span></td>
   </tr>
   <tr class="row2">
     <td>{TXT_NEWSLETTER_PHONE_MOBILE}</td>
-    <td>[[phone_mobile]]</td>
+    <td>[[phone_mobile]] <span class="icon-info tooltip-trigger"></span><span class="tooltip-message">{TXT_NEWSLETTER_PLACEHOLDER_NOT_FOR_CRM}</span></td>
   </tr>
   <tr class="row1">
     <td>{TXT_NEWSLETTER_FAX}</td>
-    <td>[[fax]]</td>
+    <td>[[fax]] <span class="icon-info tooltip-trigger"></span><span class="tooltip-message">{TXT_NEWSLETTER_PLACEHOLDER_NOT_FOR_CRM}</span></td>
   </tr>
   <tr class="row2">
     <td>{TXT_NEWSLETTER_BIRTHDAY}</td>
-    <td>[[birthday]]</td>
+    <td>[[birthday]] <span class="icon-info tooltip-trigger"></span><span class="tooltip-message">{TXT_NEWSLETTER_PLACEHOLDER_NOT_FOR_CRM}</span></td>
   </tr>
   <tr class="row1">
     <td>{TXT_NEWSLETTER_WEBSITE}</td>

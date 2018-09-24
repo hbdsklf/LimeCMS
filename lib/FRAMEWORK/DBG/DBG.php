@@ -832,9 +832,16 @@ class DBG
         $requestHost = isset($_SERVER['REMOTE_HOST']) ? $_SERVER['REMOTE_HOST'] : $requestIp;
         $requestUserAgent = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
         $cachedStr = $cached ? 'cached' : 'uncached';
-        $userHash = $cx->getComponent(
+        $userHash = '';
+        $stats = $cx->getComponent(
             'Stats'
-        )->getCounterInstance()->getUniqueUserId();
+        );
+        if ($stats) {
+            $counter = $stats->getCounterInstance();
+            if ($counter) {
+                $userHash = $counter->getUniqueUserId();
+            }
+        }
         $outputModuleStr = empty($outputModule) ? '' : ' "' . $outputModule . '"';
 
         register_shutdown_function(

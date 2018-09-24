@@ -92,6 +92,7 @@ class NewsHeadlines extends \Cx\Core_Modules\News\Controller\NewsLibrary
             'TXT_MORE_NEWS'         => $_CORELANG['TXT_MORE_NEWS'],
             'TXT_NEWS_MORE'         => $_ARRAYLANG['TXT_NEWS_MORE'],
             'TXT_NEWS_MORE_INFO'    => $_ARRAYLANG['TXT_NEWS_MORE_INFO'],
+            'TXT_NEWS_READ_MORE'    => $_ARRAYLANG['TXT_NEWS_READ_MORE'],
             'TXT_NEWS_HEADLINE'     => $_ARRAYLANG['TXT_NEWS_HEADLINE'],
         ));
 

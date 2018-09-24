@@ -340,8 +340,21 @@ class Login
             'TXT_LOGIN_REMEMBER_ME' => $_CORELANG['TXT_CORE_REMEMBER_ME'],
             'TXT_PASSWORD_LOST'     => $_CORELANG['TXT_PASSWORD_LOST'],
             'LOGIN_REDIRECT'        => $redirect,
-            'LOGIN_STATUS_MESSAGE'  => $this->_statusMessage,
         ));
+        if ($this->_objTpl->blockExists('login_status_message')) {
+            if (empty($this->_statusMessage)) {
+                $this->_objTpl->hideBlock('login_status_message');
+            } else {
+                $this->_objTpl->setVariable(
+                    'LOGIN_STATUS_MESSAGE', $this->_statusMessage
+                );
+                $this->_objTpl->parse('login_status_message');
+            }
+        } else {
+            $this->_objTpl->setVariable(
+                'LOGIN_STATUS_MESSAGE', $this->_statusMessage
+            );
+        }
         return $this->_objTpl->get();
     }
 

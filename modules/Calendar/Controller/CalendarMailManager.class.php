@@ -297,7 +297,7 @@ class CalendarMailManager extends CalendarLibrary {
         $eventStart = $event->all_day ? $this->format2userDate($startDate) : $this->formatDateTime2user($startDate, $this->getDateFormat() . ' (H:i:s)');
         $eventEnd   = $event->all_day ? $this->format2userDate($endDate) : $this->formatDateTime2user($endDate, $this->getDateFormat() . ' (H:i:s)');
 
-        $placeholder = array('[[TITLE]]', '[[START_DATE]]', '[[END_DATE]]', '[[LINK_EVENT]]', '[[LINK_REGISTRATION]]', '[[USERNAME]]', '[[FIRSTNAME]]', '[[LASTNAME]]', '[[URL]]', '[[DATE]]');
+        $placeholder = array('[[TITLE]]', '[[START_DATE]]', '[[END_DATE]]', '[[LINK_EVENT]]', '[[LINK_REGISTRATION]]', '[[USERNAME]]', '[[SALUTATION]]', '[[FIRSTNAME]]', '[[LASTNAME]]', '[[URL]]', '[[DATE]]');
 
         $recipients = $this->getSendMailRecipients($actionId, $event, $regId, $objRegistration);
 
@@ -343,6 +343,7 @@ class CalendarMailManager extends CalendarLibrary {
                     $recipient->setLang($objUser->getFrontendLanguage());
                     $recipient->setType(MailRecipient::RECIPIENT_TYPE_ACCESS_USER);
                     $recipient->setId($objUser->getId());
+                    $recipient->setSalutationId($objUser->getProfileAttribute('title'));
                     $recipient->setFirstname($objUser->getProfileAttribute('firstname'));
                     $recipient->setLastname($objUser->getProfileAttribute('lastname'));
                     $recipient->setUsername($objUser->getUsername());
@@ -477,7 +478,16 @@ class CalendarMailManager extends CalendarLibrary {
                 $regLink   = \Cx\Core\Routing\Url::fromModuleAndCmd($this->moduleName, 'register', $langId, $params)->toString();
             }
 
-            $replaceContent  = array($eventTitle, $eventStart, $eventEnd, $eventLink, $regLink, $recipient->getUsername(), $recipient->getFirstname(), $recipient->getLastname(), $domain, $date);
+            $salutation = '';
+            $salutationId = $recipient->getSalutationId();
+            if (!empty($salutationId)) {
+                // load the title profile attributes from access user
+                $objAttribute = \FWUser::getFWUserObject()->objUser->objAttribute->getById('title_' . $salutationId);
+                if (!$objAttribute->EOF) {
+                    $salutation = $objAttribute->getName($langId);
+                }
+            }
+            $replaceContent  = array($eventTitle, $eventStart, $eventEnd, $eventLink, $regLink, $recipient->getUsername(), $salutation, $recipient->getFirstname(), $recipient->getLastname(), $domain, $date);
 
             $mailTitle       = str_replace($placeholder, array_map('contrexx_xhtml2raw', $replaceContent), $mailTitle);
             $mailContentText = str_replace($placeholder, array_map('contrexx_xhtml2raw', $replaceContent), $mailContentText);
@@ -585,6 +595,12 @@ class CalendarMailManager extends CalendarLibrary {
 
                 // fetch users from Crm groups
                 $db = \Cx\Core\Core\Controller\Cx::instanciate()->getDb()->getAdoDb();
+                $excludeQuery = '';
+                if($objEvent->excludedCrmGroups) {
+                    $excludeQuery = '
+                        AND `crm_contact_membership`.`membership_id` NOT IN (' . join(',', $objEvent->excludedCrmGroups) . ')
+                        AND `crm_company_membership`.`membership_id` NOT IN (' . join(',', $objEvent->excludedCrmGroups) . ')';
+                }
                 $result = $db->Execute('
                     SELECT
                          crm_contact.id
@@ -608,9 +624,11 @@ class CalendarMailManager extends CalendarLibrary {
                         // only select users of which the associated CRM Person or CRM Company has the selected CRM membership
                     'WHERE
                        `crm_contact`.`contact_type` = 2
-                    AND
-                         (   `crm_contact_membership`.`membership_id` IN ('.join(',', $objEvent->invitedCrmGroups).')
-                          OR `crm_company_membership`.`membership_id` IN ('.join(',', $objEvent->invitedCrmGroups).'))'
+                        AND
+                             (   
+                             `crm_contact_membership`.`membership_id` IN (' . join(',', $objEvent->invitedCrmGroups) . ')
+                              OR `crm_company_membership`.`membership_id` IN (' . join(',', $objEvent->invitedCrmGroups) . ')
+                              ) ' . $excludeQuery
                 );
                 if ($result !== false) {
                     $crmContact = new \Cx\Modules\Crm\Model\Entity\CrmContact();
@@ -625,6 +643,7 @@ class CalendarMailManager extends CalendarLibrary {
                             ->setAddress($crmContact->email)
                             ->setType(MailRecipient::RECIPIENT_TYPE_CRM_CONTACT)
                             ->setId($crmContact->id)
+                            ->setSalutationId($crmContact->salutation)
                             ->setFirstname($crmContact->customerName)
                             ->setLastname($crmContact->family_name);
                         $result->MoveNext();
@@ -650,6 +669,7 @@ class CalendarMailManager extends CalendarLibrary {
                                 ->setAddress($objUser->getEmail())
                                 ->setType(MailRecipient::RECIPIENT_TYPE_ACCESS_USER)
                                 ->setId($objUser->getId())
+                                ->setSalutationId($objUser->getProfileAttribute('title'))
                                 ->setFirstname($objUser->getProfileAttribute('firstname'))
                                 ->setLastname($objUser->getProfileAttribute('lastname'))
                                 ->setUsername($objUser->getUsername());
@@ -674,6 +694,7 @@ class CalendarMailManager extends CalendarLibrary {
                             ->setAddress($objUser->getEmail())
                             ->setType(MailRecipient::RECIPIENT_TYPE_ACCESS_USER)
                             ->setId($objUser->getId())
+                            ->setSalutationId($objUser->getProfileAttribute('title'))
                             ->setFirstname($objUser->getProfileAttribute('firstname'))
                             ->setLastname($objUser->getProfileAttribute('lastname'))
                             ->setUsername($objUser->getUsername());

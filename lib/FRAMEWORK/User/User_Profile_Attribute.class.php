@@ -654,7 +654,6 @@ DBG::log("User_Profile_Attribute::loadCoreAttributes(): Attribute $attributeId, 
         }
     }
 
-
     function loadCustomAttributes()
     {
         global $objDatabase;

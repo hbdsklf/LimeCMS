@@ -227,7 +227,12 @@ class User_Profile
                 $newValue = !isset($this->arrCachedUsers[$this->id]['profile'][$attributeId][$historyId]);
                 if ($newValue || $value != $this->arrCachedUsers[$this->id]['profile'][$attributeId][$historyId]) {
                     $value = '"' . contrexx_raw2db($value) . '"';
-                    if ($attributeId == 'title' && $value == '"0"') {
+                    if (
+                        $attributeId == 'title' && (
+                            $value == '""' ||
+                            $value == '"0"'
+                        )
+                    ) {
                         $value = 'NULL';
                     }
                     $query = $this->objAttribute->isCoreAttribute($attributeId) ?
@@ -366,9 +371,23 @@ class User_Profile
 
                     case 'title':
                     case 'country':
-                        $arrConditions[] = '(tblP.`'.$attribute.'` = '.(is_array($condition) ? implode(' OR tblP.`'.$attribute.'` = ',
-                            array_map(create_function('$condition', 'if (preg_match(\'#([0-9]+)#\', $condition, $pattern)) {return $pattern[0];} else {return 0;}'), $condition))
-                            : (preg_match('#([0-9]+)#', $condition, $pattern) ? $pattern[0] : 0)).')';
+                        $arrConditions[] = '(tblP.`' . $attribute . '` = ' . (
+                            is_array($condition)
+                                ? implode(
+                                    ' OR tblP.`' . $attribute . '` = ',
+                                    array_map(
+                                        function ($condition) {
+                                            if (preg_match('#([0-9]+)#', $condition, $pattern)) {
+                                                return $pattern[0];
+                                            }
+
+                                            return 0;
+                                        },
+                                        $condition
+                                    )
+                                )
+                                : (preg_match('#([0-9]+)#', $condition, $pattern) ? $pattern[0] : 0)
+                        ) . ')';
                         break;
 
                     default:

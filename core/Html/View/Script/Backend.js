@@ -140,6 +140,7 @@ cx.ready(function() {
             sortable.ajaxCall(params);
         }
     });
+    cx.jQuery(".chzn").chosen();
 });
 
 jQuery(document).ready(function(){

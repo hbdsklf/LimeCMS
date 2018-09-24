@@ -227,7 +227,7 @@ class LocalFileSystem extends EntityBase implements FileSystem
 
         foreach ($arrays as $array) {
             reset($base); //important
-            while (list($key, $value) = each($array)) {
+            foreach ($array as $key => $value) {
                 if (is_array($value) && isset($base[$key]) && is_array($base[$key])) {
                     $base[$key] = $this->array_merge_recursive($base[$key], $value);
                 } else {

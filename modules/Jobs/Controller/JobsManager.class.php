@@ -227,6 +227,37 @@ class JobsManager extends JobsLibrary
                 '</select>';
         }
 
+        // parse paid filter
+        $jobsPaidOptions = array(
+            ''          => $_ARRAYLANG['TXT_JOBS_PAID'],
+            'paid'      => $_ARRAYLANG['TXT_JOBS_PAID_LABEL'],
+            'non_paid'  => $_ARRAYLANG['TXT_JOBS_NON_PAID_LABEL'],
+        );
+        $paidFilter = '';
+        $jobsPaidSelection = '';
+        if (
+            !empty($_REQUEST['jobs_paid']) &&
+            in_array($_REQUEST['jobs_paid'], array_keys($jobsPaidOptions))
+        ) {
+            $jobsPaidSelection = $_REQUEST['jobs_paid'];
+
+            if ($jobsPaidSelection == 'paid') {
+                $paidFilter = " n.paid='1' AND ";
+            } else {
+                $paidFilter = " n.paid='0' AND ";
+            }
+        }
+        $paidForm = '<select name="jobs_paid">';
+        foreach ($jobsPaidOptions as $option => $label) {
+            $selected = '';
+            if ($jobsPaidSelection == $option) {
+                $selected = ' selected="selected" ';
+            }
+            $paidForm .= '<option value="' . $option . '"' . $selected . '>' .
+                $label . '</option>';
+        }
+        $paidForm .= '</select>';
+
         //Hide the column 'Hot' if the settings options 'templateIntegration' and 'sourceOfJobs' are active
         $isHotOfferAvailable = (    isset($settings['templateIntegration']) 
                                 &&  ($settings['templateIntegration'] == 1) 
@@ -252,6 +283,7 @@ class JobsManager extends JobsLibrary
         $this->_objTpl->setVariable(array(
             'JOBS_CATEGORY_FORM' => $jobscategoryform,
             'JOBS_LOCATION_FORM' => $jobslocationform,
+            'JOBS_PAID_FORM' => $paidForm,
             'TXT_SUBMIT' => $_ARRAYLANG['TXT_SUBMIT']
         ));
         $this->_objTpl->setGlobalVariable(array(
@@ -261,17 +293,17 @@ class JobsManager extends JobsLibrary
                          n.title, n.status, n.author,
                          n.lang,
                          nc.name AS catname,
-                         n.userid, n.hot
+                         n.userid, n.hot, n.paid
                     FROM ".DBPREFIX."module_jobs_categories AS nc,
                          ".DBPREFIX."module_jobs AS n
                          $locationFilter
                      n.lang=$this->langId
-                     AND $docFilter nc.catid=n.catid
+                     AND $docFilter $paidFilter nc.catid=n.catid
                    ORDER BY " . ($isHotOfferAvailable ? 'n.hot DESC,' : '') . " n.id DESC";
         $objResult = $objDatabase->Execute($query);
         $count = $objResult->RecordCount();
         $pos = (isset($_GET['pos'])) ? intval($_GET['pos']) : 0;
-        $paging = ($count>intval($_CONFIG['corePagingLimit'])) ? getPaging($count, $pos, "&cmd=Jobs&location=".$location."&category=".$category."&", $_ARRAYLANG['TXT_DOCUMENTS '],true) : "";
+        $paging = ($count>intval($_CONFIG['corePagingLimit'])) ? getPaging($count, $pos, "&cmd=Jobs&location=".$location."&category=".$category."&jobs_paid=".$jobsPaidSelection."&", $_ARRAYLANG['TXT_DOCUMENTS '],true) : "";
         $objResult = $objDatabase->SelectLimit($query, $_CONFIG['corePagingLimit'],$pos);
         if (!$objResult || $objResult->EOF) {
             $this->_objTpl->hideBlock('row');
@@ -308,6 +340,14 @@ class JobsManager extends JobsLibrary
             ));
             if (!$isHotOfferAvailable) {
                 $this->_objTpl->hideBlock('jobs_overview_show_hot_offer');
+            }
+            if ($objResult->fields['paid']) {
+                $this->_objTpl->setVariable(array(
+                    'TXT_JOBS_PAID_LABEL'   => $_ARRAYLANG['TXT_JOBS_PAID_LABEL'],
+                ));
+                $this->_objTpl->touchBlock('jobs_overview_paid');
+            } else {
+                $this->_objTpl->hideBlock('jobs_overview_paid');
             }
             $this->_objTpl->parse('row');
             $objResult->MoveNext();
@@ -425,7 +465,9 @@ class JobsManager extends JobsLibrary
                 'TXT_ACTIVE'          => $_ARRAYLANG['TXT_ACTIVE'],
                 'TXT_AUTHOR'          => $_ARRAYLANG['TXT_AUTHOR'],
                 'TXT_JOBS_NO_CATEGORY'=> $_ARRAYLANG['TXT_JOBS_NO_CATEGORY'],
-                'TXT_JOBS_NO_TITLE'   => $_ARRAYLANG['TXT_JOBS_NO_TITLE']
+                'TXT_JOBS_NO_TITLE'   => $_ARRAYLANG['TXT_JOBS_NO_TITLE'],
+                'TXT_JOBS_PAID'       => $_ARRAYLANG['TXT_JOBS_PAID'],
+                'TXT_JOBS_PAID_LABEL' => $_ARRAYLANG['TXT_JOBS_PAID_LABEL'],
             ));
             $this->getLocationTable($id);
             $query = "SELECT `catid`,
@@ -441,7 +483,8 @@ class JobsManager extends JobsLibrary
                                `startdate`,
                                `enddate`,
                                `status`,
-                               `hot`
+                               `hot`,
+                               `paid`
                           FROM `".DBPREFIX."module_jobs`
                          WHERE id = '$id'
                          LIMIT 1";
@@ -475,7 +518,8 @@ class JobsManager extends JobsLibrary
                     'JOBS_ENDDATE'    => $endDate,
                     'JOBS_STATUS'        => $status,
                     'JOBS_DATE'       => date(ASCMS_DATE_FORMAT, $objResult->fields['date']),
-                    'JOBS_MODIFY_HOT_OFFER' => ($objResult->fields['hot'] == 1) ? 'checked=checked' : ''
+                    'JOBS_MODIFY_HOT_OFFER' => ($objResult->fields['hot'] == 1) ? 'checked=checked' : '',
+                    'JOBS_PAID' => ($objResult->fields['paid'] == 1) ? 'checked=checked' : ''
                 ));
             }
 
@@ -517,12 +561,15 @@ class JobsManager extends JobsLibrary
                 'JOBS_DATE'  => date(ASCMS_DATE_FORMAT, time()),
                 'TXT_AUTHOR' => $_ARRAYLANG['TXT_AUTHOR'],
                 'JOBS_AUTHOR' => htmlentities($objFWUser->objUser->getUsername(), ENT_QUOTES, CONTREXX_CHARSET),
+                'TXT_JOBS_PAID'       => $_ARRAYLANG['TXT_JOBS_PAID'],
+                'TXT_JOBS_PAID_LABEL' => $_ARRAYLANG['TXT_JOBS_PAID_LABEL'],
             ));
             $this->getLocationTable('');
 
             if (!empty($_POST['jobsTitle'])) {
                 $this->insert();
                 $this->createRSS();
+                $this->clearCache();
             }
         }
 
@@ -573,6 +620,8 @@ class JobsManager extends JobsLibrary
             } else {
                 $this->strErrMessage = $_ARRAYLANG['TXT_DATABASE_QUERY_ERROR'];
             }
+
+            $this->clearCache();
         }
 
         if (is_array($_POST['selectedId'])) {
@@ -592,6 +641,8 @@ class JobsManager extends JobsLibrary
                 }
             }
         }
+
+        $this->clearCache();
     }
 
 
@@ -636,7 +687,9 @@ class JobsManager extends JobsLibrary
             'TXT_ACTIVE'=> $_ARRAYLANG['TXT_ACTIVE'],
             'TXT_AUTHOR' => $_ARRAYLANG['TXT_AUTHOR'],
             'TXT_JOBS_MODIFY_HOT_OFFER_LABEL' => $_ARRAYLANG['TXT_JOBS_MODIFY_HOT_OFFER_LABEL'],
-            'TXT_JOBS_MODIFY_HOT_OFFER'       => $_ARRAYLANG['TXT_JOBS_MODIFY_HOT_OFFER']
+            'TXT_JOBS_MODIFY_HOT_OFFER'       => $_ARRAYLANG['TXT_JOBS_MODIFY_HOT_OFFER'],
+            'TXT_JOBS_PAID'       => $_ARRAYLANG['TXT_JOBS_PAID'],
+            'TXT_JOBS_PAID_LABEL' => $_ARRAYLANG['TXT_JOBS_PAID_LABEL'],
         ));
 
         $this->getLocationTable($id);
@@ -644,7 +697,7 @@ class JobsManager extends JobsLibrary
             SELECT `catid`, `lang`, `date`, `id`,
                    `title`, `author`, `text`,
                    `workloc`, `workload`, `work_start`,
-                   `startdate`, `enddate`, `status`, `hot`
+                   `startdate`, `enddate`, `status`, `hot`, `paid`
               FROM `".DBPREFIX."module_jobs`
              WHERE id=$id";
         $objResult = $objDatabase->Execute($query);
@@ -679,7 +732,8 @@ class JobsManager extends JobsLibrary
                 'JOBS_ENDDATE'    => $endDate,
                 'JOBS_STATUS'        => $status,
                 'JOBS_DATE'       => date(ASCMS_DATE_FORMAT, $objResult->fields['date']),
-                'JOBS_MODIFY_HOT_OFFER' => ($objResult->fields['hot'] == 1) ? 'checked=checked' : ''
+                'JOBS_MODIFY_HOT_OFFER' => ($objResult->fields['hot'] == 1) ? 'checked=checked' : '',
+                'JOBS_PAID' => ($objResult->fields['paid'] == 1) ? 'checked=checked' : ''
             ));
         }
 
@@ -731,6 +785,7 @@ class JobsManager extends JobsLibrary
         $workloc    = get_magic_quotes_gpc() ? strip_tags($_POST['workloc']) : addslashes(strip_tags($_POST['workloc']));
         $workload = get_magic_quotes_gpc() ? strip_tags($_POST['workload']) : addslashes(strip_tags($_POST['workload']));
         $hotOffer = isset($_POST['hotOffer']) ? contrexx_input2int($_POST['hotOffer']) : 0;
+        $paid = isset($_POST['paid']) ? contrexx_input2int($_POST['paid']) : 0;
         if (empty($_POST['work_start']))
             $work_start = "0000-00-00";
         else
@@ -809,7 +864,10 @@ class JobsManager extends JobsLibrary
             'changelog' => array('val' => $date, 'omitEmpty' => true),
             'catId' => array('val' => $catId, 'omitEmpty' => true),
             'hot' => array('val' => $hotOffer, 'omitEmpty' => true),
+            'paid' => array('val' => $paid, 'omitEmpty' => true),
         ))." WHERE id = $id;";
+
+        $this->clearCache();
 
         if (!$objDatabase->Execute($query) or $dberr) {
             $this->strErrMessage = $_ARRAYLANG['TXT_DATABASE_QUERY_ERROR'];
@@ -852,6 +910,8 @@ class JobsManager extends JobsLibrary
                         $this->strOkMessage = $_ARRAYLANG['TXT_DATA_RECORD_UPDATED_SUCCESSFUL'];
                     }
                 }
+
+                $this->clearCache();
             }
         }
     }
@@ -922,6 +982,7 @@ class JobsManager extends JobsLibrary
                                             WHEN `name` = "sourceOfJobs"        THEN "' . contrexx_raw2db($settings['sourceOfJobs']) . '" 
                                             WHEN `name` = "listingLimit"        THEN "' . contrexx_raw2db($settings['listingLimit']) . '"
                                        END)';
+            $this->clearCache();
             if ($objDatabase->Execute($query)) {
                 $this->strOkMessage  = $_ARRAYLANG['TXT_DATA_RECORD_UPDATED_SUCCESSFUL'];
             } else {
@@ -985,6 +1046,7 @@ class JobsManager extends JobsLibrary
         $workloc = get_magic_quotes_gpc() ? strip_tags($_POST['workloc']) : addslashes(strip_tags($_POST['workloc']));
         $workload = get_magic_quotes_gpc() ? strip_tags($_POST['workload']) : addslashes(strip_tags($_POST['workload']));
         $hotOffer = isset($_POST['hotOffer']) ? contrexx_input2int($_POST['hotOffer']) : 0;
+        $paid = isset($_POST['paid']) ? contrexx_input2int($_POST['paid']) : 0;
         if (empty($_POST['work_start']))
              $work_start = "0000-00-00";
         else
@@ -1026,6 +1088,7 @@ class JobsManager extends JobsLibrary
             'userid' => array('val' => $userid, 'omitEmpty' => true),
             'changelog' => array('val' => $date, 'omitEmpty' => true),
             'hot' => array('val' => $hotOffer, 'omitEmpty' => true),
+            'paid' => array('val' => $paid, 'omitEmpty' => true),
         ));
 
         if ($objDatabase->Execute($query)) {
@@ -1110,6 +1173,7 @@ class JobsManager extends JobsLibrary
              } else {
                  $this->strErrMessage = $_ARRAYLANG['TXT_DATABASE_QUERY_ERROR'];
              }
+            $this->clearCache();
         }
 
         // Modify a new category
@@ -1131,6 +1195,7 @@ class JobsManager extends JobsLibrary
                     $this->strErrMessage = $_ARRAYLANG['TXT_DATABASE_QUERY_ERROR'];
                 }
             }
+            $this->clearCache();
         }
 
         $query = "SELECT `catid`,
@@ -1183,6 +1248,7 @@ class JobsManager extends JobsLibrary
                     $this->strErrMessage = $_ARRAYLANG['TXT_DATABASE_QUERY_ERROR'];
                 }
             }
+            $this->clearCache();
         }
     }
 
@@ -1228,6 +1294,7 @@ class JobsManager extends JobsLibrary
              } else {
                  $this->strErrMessage = $_ARRAYLANG['TXT_DATABASE_QUERY_ERROR'];
              }
+            $this->clearCache();
         }
 
         // Modify a new category
@@ -1247,6 +1314,7 @@ class JobsManager extends JobsLibrary
                     $this->strErrMessage = $_ARRAYLANG['TXT_DATABASE_QUERY_ERROR'];
                 }
             }
+            $this->clearCache();
         }
 
         $query = "SELECT `id`,
@@ -1292,7 +1360,7 @@ class JobsManager extends JobsLibrary
             } else {
                 $this->strErrMessage .= $_ARRAYLANG['TXT_DATABASE_QUERY_ERROR']."<br />";
             }
-
+            $this->clearCache();
         }
         unset($locId);
         if (is_array($_POST['selectedId'])) {
@@ -1305,6 +1373,7 @@ class JobsManager extends JobsLibrary
                     $this->strErrMessage .= $_ARRAYLANG['TXT_DATABASE_QUERY_ERROR']."<br />";
                 }
             }
+            $this->clearCache();
         }
     }
 
@@ -1357,5 +1426,4 @@ class JobsManager extends JobsLibrary
         $rssFeed->xmlType = "fulltext";
         $rssFeed->createXML();
     }
-
 }

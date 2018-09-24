@@ -214,9 +214,15 @@ class NewsTop extends \Cx\Core_Modules\News\Controller\NewsLibrary
                     if ($this->_objTemplate->blockExists('news_image')) {
                         $this->_objTemplate->parse('news_image');
                     }
+                    if ($this->_objTemplate->blockExists('news_no_image')) {
+                        $this->_objTemplate->hideBlock('news_no_image');
+                    }
                 } else {
                     if ($this->_objTemplate->blockExists('news_image')) {
                         $this->_objTemplate->hideBlock('news_image');
+                    }
+                    if ($this->_objTemplate->blockExists('news_no_image')) {
+                        $this->_objTemplate->touchBlock('news_no_image');
                     }
                 }
 

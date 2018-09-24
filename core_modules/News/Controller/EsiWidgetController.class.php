@@ -141,11 +141,57 @@ class EsiWidgetController extends \Cx\Core_Modules\Widget\Controller\EsiWidgetCo
         }
 
         // Parse News categories
-        if ($name == 'NEWS_CATEGORIES') {
-            $newsLib = new NewsLibrary();
-            $content = $newsLib->getNewsCategories($langId);
-            $template->setVariable($name, $content);
-            return;
+        switch ($name) {
+            case 'NEWS_CATEGORIES':
+                // manually load template (instead of using
+                // \Cx\Core\Html\Sigma::loadTemplate()) to be able to strip
+                // of any whitespaces to maintain backwards compatibility
+                $widgetTemplate = $this->cx->getClassLoader()->getFilePath(
+                    $this->getDirectory(false) .
+                    '/View/Template/Frontend/Categories.html'
+                );
+
+                // TODO: migrate to MediaSource once CLX-1896 has been completed
+                $templateContent = file_get_contents($widgetTemplate);
+                $templateContent = preg_replace(
+                    '/<!--\s+(BEGIN|END)\s+news_category_widget\s+-->/',
+                    '',
+                    $templateContent
+                );
+
+                // Legacy implementation did not contain any whitespaces.
+                // Therefore, we have to remove them to maintain backwards
+                // compatibility.
+                $templateContent = preg_replace(
+                    '/([\n\r]\s*)+/',
+                    '',
+                    $templateContent
+                );
+
+                // replace placeholder NEWS_CATEGORIES by template block
+                $template->addBlock(
+                    $name,
+                    'news_category_widget',
+                    $templateContent
+                );
+
+                // intentionally no break here
+            case 'news_category_widget':
+                // fetch category-ID from page request
+                $categoryId = 0;
+                if (isset($params['query']['category'])) {
+                    $categoryId = intval($params['query']['category']);
+                } elseif (isset($params['query']['filterCategory'])) {
+                    $categoryId = intval($params['query']['filterCategory']);
+                }
+
+                $newsLib = new NewsLibrary();
+                $newsLib->getNewsCategories($template, $langId, $categoryId);
+                return;
+                break;
+
+            default:
+                break;
         }
 
         // Parse News Archives

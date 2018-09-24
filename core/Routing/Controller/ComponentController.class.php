@@ -57,7 +57,7 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
         }
         $em = $this->cx->getDb()->getEntityManager();
         $rewriteRuleRepo = $em->getRepository($this->getNamespace() . '\\Model\\Entity\\RewriteRule');
-        $rewriteRules = $rewriteRuleRepo->findAll(array(), array('order'=>'asc'));
+        $rewriteRules = $rewriteRuleRepo->findBy(array(), array('orderNo'=>'asc'));
         $last = false;
         $originalUrl = clone $url;
         foreach ($rewriteRules as $rewriteRule) {

@@ -34,14 +34,12 @@ form.cx-ui {
     clear: both;
     display: block;
     width: 100%;
-    overflow: hidden;
 }
 
 form.cx-ui > fieldset {
     border: 0;
     padding: 0;
     margin-left: 0;
-    overflow: hidden;
 }
 
 form.cx-ui > fieldset + fieldset {

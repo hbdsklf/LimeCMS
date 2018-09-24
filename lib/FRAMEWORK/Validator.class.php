@@ -480,6 +480,76 @@ class FWValidator
 
         return true;
     }
+
+    /**
+     * Cut HTML-code in length by a specific amount of visiable characters
+     *
+     * @param   string $html    HTML code to cut
+     * @param   integer $maxLength  Visual length (in characters) to cut the
+     *                              HTML code to
+     * @param   string  $suffix Text to append at the end of the cut HTML code
+     */
+    public static function cutHtmlByDisplayLength(&$html, $maxLength = 250, $suffix = '') {
+        // get plaintext of html code
+        $plaintext = contrexx_html2plaintext($html);
+        $useLength = $maxLength;
+
+        // abort if output is not longer than set length limit
+        if (strlen($plaintext) <= $maxLength) {
+            return;
+        }
+
+        do {
+            // cut html to set length
+            $cutHtml = substr($html, 0, $useLength);
+
+            // strip out any html code
+            $plaintext = contrexx_html2plaintext($cutHtml);
+
+            // obtain length of plaintext of cut html
+            $plaintextLength = strlen($plaintext);
+
+            // determine length of stripped html code
+            $htmlNoise = $maxLength - $plaintextLength;
+
+            // append length of stripped html code to set cut length
+            $useLength += $htmlNoise;
+
+        // repeat above procedere until the length of the raw output
+        // of the cut html reaches the set max length
+        } while ($plaintextLength < $maxLength);
+
+        // now cut the html to the determined length
+        $cutHtml = substr($html, 0, $useLength);
+
+        // cut of the last word-fragment as it might represent
+        // a literal word cut in half
+        $cutHtml = substr($cutHtml, 0, strrpos($cutHtml, ' '));
+
+        // Ensure the html is still valid, by adding any
+        // missing html closing tags.
+        // DOMDocument will do that for us
+        $doc = new \DOMDocument();
+        $doc->loadHTML($cutHtml);
+
+        // fetch only content of html <body> tag
+        $nodeList = $doc->getElementsByTagName('body');
+        $bodyNode = $nodeList->item(0);
+
+        // add optional suffix to the end of the html code
+        $lastNode = $bodyNode->lastChild;
+        if ($suffix && $lastNode) {
+            $lastNode->appendChild($doc->createTextNode($suffix));
+        }
+
+        // fetch content of <body>-tag and strip out <p>-tag
+        // that was automatically added by DOMDocument
+        $body = $doc->saveHTML($bodyNode);
+        $cutHtml = preg_replace('#^<body>(<p>)?\s*|\s*(</p>)?</body>$#', '', $body);
+
+        // assign cut html code to referenced variable
+        $html = $cutHtml;
+    }
 }
 
 /**

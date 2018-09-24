@@ -110,7 +110,7 @@ cx.ready(function() {
 <tr class="row1">
 <td valign="top">
 <form name="jobs" method="post" action="index.php?cmd=Jobs">
-{JOBS_CATEGORY_FORM} {JOBS_LOCATION_FORM} <input type='submit' value='{TXT_JOBS_SEARCH}'/>
+{JOBS_CATEGORY_FORM} {JOBS_LOCATION_FORM} {JOBS_PAID_FORM} <input type='submit' value='{TXT_JOBS_SEARCH}'/>
 </form>
     </td>
   </tr>
@@ -140,7 +140,12 @@ cx.ready(function() {
 <tr class="{JOBS_CLASS}">
   <td nowrap="nowrap"><input type="checkbox" value="{JOBS_ID}" name="selectedId[]" /></td>
   <td nowrap="nowrap">{JOBS_ID}</td>
-  <td nowrap="nowrap"><img border="0" title="{JOBS_STATUS}" alt="{JOBS_STATUS}" src="../core/Core/View/Media/icons/{JOBS_STATUS_PICTURE}" /></td>
+  <td nowrap="nowrap">
+    <img border="0" title="{JOBS_STATUS}" alt="{JOBS_STATUS}" src="../core/Core/View/Media/icons/{JOBS_STATUS_PICTURE}" />
+    <!-- BEGIN jobs_overview_paid -->
+    <img border="0" title="{TXT_JOBS_PAID_LABEL}" alt="{TXT_JOBS_PAID_LABEL}" src="/modules/Jobs/View/Media/Money.png" style="width:14px; height:14px;" />
+    <!-- END jobs_overview_paid -->
+  </td>
   <td nowrap="nowrap">{JOBS_DATE}&nbsp;</td>
   <td><a href="?cmd=Jobs&act=edit&id={JOBS_ID}">{JOBS_TITLE}</a>&nbsp;</td>
   <!-- BEGIN jobs_overview_show_hot_offer -->

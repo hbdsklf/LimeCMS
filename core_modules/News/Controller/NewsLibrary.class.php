@@ -204,60 +204,177 @@ class NewsLibrary
      * Generates the formated ul/li of categories
      * Used in the template's
      *
+     * @param   \Cx\Core\Html\Sigma $template   Template object to be parsed
      * @param integer $langId Language id
+     * @param integer $categoryId ID of category to highlight
      *
      * @return string Formated ul/li of categories
      */
-    public function getNewsCategories($langId = null)
+    public function getNewsCategories($template = null, $langId = null, $categoryId = 0)
     {
-
         $categoriesLang = $this->getCategoriesLangData();
-
-        return $this->_buildNewsCategories($this->nestedSetRootId, $categoriesLang, $langId);
+        return $this->_buildNewsCategories($template, $this->nestedSetRootId, $categoriesLang, $langId, $categoryId);
     }
 
     /**
      * Generates the formated ul/li of categories
      * Used in the template's
      *
+     * @param \Cx\Core\Sigma    $template   Template object to be parsed
      * @param integer   $catId          Category id
      * @param array     $categoriesLang Category locale
      * @param integer   $langId         Language id
+     * @param integer $categoryId ID of category to highlight
      *
      * @return string Formated ul/li of categories
      */
-    function _buildNewsCategories($catId, $categoriesLang, $langId = null)
-    {
-        $html = '';
-        if ($this->categoryExists($catId)) {
-            if ($langId === null) {
-                $langId = FRONTEND_LANG_ID;
-            }
-            $category = $this->objNestedSet->pickNode($catId, true);
-            if ($catId != $this->nestedSetRootId) {
-                $html .= "<li>";
-
-                $newsUrl = \Cx\Core\Routing\Url::fromModuleAndCmd('News');
-                $newsUrl->setParam('category', $catId);
-
-                $html .= '<a href="'.$newsUrl.'" title="'.contrexx_raw2xhtml($categoriesLang[$catId][$langId]).'">'.contrexx_raw2xhtml($categoriesLang[$catId][$langId]).'</a>';
-            }
-
-            $subCategories = $this->objNestedSet->getChildren($catId, true);
-            if (!empty($subCategories)) {
-                $html .= "<ul class='news_category_lvl_{$category['level']}'>";
-                foreach ($subCategories as $subCat) {
-                    $html .= $this->_buildNewsCategories($subCat['id'], $categoriesLang, $langId);
-                }
-                $html .= "</ul>";
-            }
-
-            if ($catId != $this->nestedSetRootId) {
-                $html .= "</li>";
-            }
+    function _buildNewsCategories(
+        $template,
+        $catId,
+        $categoriesLang,
+        $langId = null,
+        $categoryId = 0
+    ) {
+        if (!$this->categoryExists($catId)) {
+            return;
         }
 
-        return $html;
+        if ($langId === null) {
+            $langId = FRONTEND_LANG_ID;
+        }
+
+        $category = $this->objNestedSet->pickNode($catId, true);
+        $category['url'] = null;
+        $category['title'] = '';
+
+        if ($catId != $this->nestedSetRootId) {
+            $newsUrl = \Cx\Core\Routing\Url::fromModuleAndCmd('News');
+            $newsUrl->setParam('category', $catId);
+            $category['url'] = $newsUrl;
+            $category['title'] = contrexx_raw2xhtml(
+                $categoriesLang[$catId][$langId]
+            );
+
+            $this->parseNewsCategoryWidgetBlock(
+                $template,
+                'news_category_widget_item_open',
+                $category,
+                $categoryId
+            );
+
+            $this->parseNewsCategoryWidgetBlock(
+                $template,
+                'news_category_widget_item_content',
+                $category,
+                $categoryId
+            );
+        }
+
+        $subCategories = $this->objNestedSet->getChildren($catId, true);
+        if (!empty($subCategories)) {
+            $this->parseNewsCategoryWidgetBlock(
+                $template,
+                'news_category_widget_list_open',
+                $category,
+                $categoryId
+            );
+            foreach ($subCategories as $subCat) {
+                $this->_buildNewsCategories(
+                    $template,
+                    $subCat['id'],
+                    $categoriesLang,
+                    $langId,
+                    $categoryId
+                );
+            }
+            $this->parseNewsCategoryWidgetBlock(
+                $template,
+                'news_category_widget_list_close',
+                $category,
+                $categoryId
+            );
+        }
+
+        if ($catId != $this->nestedSetRootId) {
+            $this->parseNewsCategoryWidgetBlock(
+                $template,
+                'news_category_widget_item_close',
+                $category,
+                $categoryId
+            );
+        }
+
+        if ($catId != $this->nestedSetRootId) {
+            return;
+        }
+
+        return $template->get();
+    }
+
+    /**
+     * Parse element of category widget block
+     *
+     * The element identified by $block will be parsed in template $template.
+     * All other elements (blocks) in the template will be hidden.
+     *
+     * @param   \Cx\Core\Html\Sigma $template   Template object to parse
+     * @param   string  $block  Name of block to parse
+     * @param   array   $category   Category data as array
+     * @param   integer $categoryId ID of category to highlight
+     */
+    protected function parseNewsCategoryWidgetBlock(
+        $template,
+        $block,
+        $category,
+        $categoryId
+    ) {
+        $blocks = array(
+            'news_category_widget_list_open',
+            'news_category_widget_item_open',
+            'news_category_widget_item_content',
+            'news_category_widget_item_close',
+            'news_category_widget_list_close',
+        );
+
+        foreach ($blocks as $element) {
+            if (!$template->blockExists($element)) {
+                continue;
+            }
+
+            // parse selected list element
+            if ($element == $block) {
+                $template->setVariable(array(
+                    'NEWS_CATEGORY_ID'      => $category['id'],
+                    'NEWS_CATEGORY_TITLE'   => $category['title'],
+                    'NEWS_CATEGORY_LEVEL'   => $category['level'],
+                    'NEWS_CATEGORY_URL'     => $category['url'],
+                ));
+
+                if ($category['id'] == $categoryId) {
+                    if ($template->blockExists($element . '_active')) {
+                        $template->touchBlock($element . '_active');
+                    }
+                    if ($template->blockExists($element . '_inactive')) {
+                        $template->hideblock($element . '_inactive');
+                    }
+                } else {
+                    if ($template->blockExists($element . '_active')) {
+                        $template->hideBlock($element . '_active');
+                    }
+                    if ($template->blockExists($element . '_inactive')) {
+                        $template->touchBlock($element . '_inactive');
+                    }
+                }
+
+                $template->touchBlock($element);
+                continue;
+            }
+
+            // hide all other list elements
+            $template->hideBlock($element);
+        }
+
+        $template->parse('news_category_widget');
     }
 
     /**
@@ -2979,6 +3096,8 @@ EOF;
            $templateVariablePrefix . 'NEWS_LASTUPDATE'     => $newsLastUpdate,
            $templateVariablePrefix . 'NEWS_SOURCE'         => $newsSource,
            $templateVariablePrefix . 'NEWS_URL'            => $newsUrlLink,
+           $templateVariablePrefix . 'NEWS_LINK1_SRC'      => contrexx_raw2encodedUrl($url1),
+           $templateVariablePrefix . 'NEWS_LINK2_SRC'      => contrexx_raw2encodedUrl($url2),
            $templateVariablePrefix . 'NEWS_TITLE'          => contrexx_raw2xhtml($newstitle),
            $templateVariablePrefix . 'NEWS_LONG_DATE'      => date(ASCMS_DATE_FORMAT, $objResult->fields['newsdate']),
            $templateVariablePrefix . 'NEWS_DATE'           => date(ASCMS_DATE_FORMAT_DATE, $objResult->fields['newsdate']),
@@ -3001,6 +3120,14 @@ EOF;
            $templateVariablePrefix . 'HEADLINE_LINK'     => $htmlLinkTitle,
            $templateVariablePrefix . 'HEADLINE_AUTHOR'   => contrexx_raw2xhtml($author),
         ));
+
+        if ($objTpl->blockExists($templateBlockPrefix . 'news_url')) {
+            if (empty($newsUrl)) {
+                $objTpl->hideBlock($templateBlockPrefix . 'news_url');
+            } else {
+                $objTpl->touchBlock($templateBlockPrefix . 'news_url');
+            }
+        }
 
         if ($this->arrSettings['news_use_teaser_text'] != '1' && $objTpl->blockExists($templateBlockPrefix . 'news_use_teaser_text')) {
             $objTpl->hideBlock($templateBlockPrefix . 'news_use_teaser_text');
@@ -3041,8 +3168,16 @@ EOF;
             if ($objTpl->blockExists($templateBlockPrefix . 'news_image')) {
                 $objTpl->parse($templateBlockPrefix . 'news_image');
             }
-        } elseif ($objTpl->blockExists($templateBlockPrefix . 'news_image')) {
-            $objTpl->hideBlock($templateBlockPrefix . 'news_image');
+            if ($objTpl->blockExists($templateBlockPrefix . 'news_no_image')) {
+                $objTpl->hideBlock($templateBlockPrefix . 'news_no_image');
+            }
+        } else {
+            if ($objTpl->blockExists($templateBlockPrefix . 'news_image')) {
+                $objTpl->hideBlock($templateBlockPrefix . 'news_image');
+            }
+            if ($objTpl->blockExists($templateBlockPrefix . 'news_no_image')) {
+                $objTpl->touchBlock($templateBlockPrefix . 'news_no_image');
+            }
         }
 
         self::parseImageBlock($objTpl, $objResult->fields['teaser_image_thumbnail_path'], $newstitle, $newsUrl, 'image_thumbnail', $templatePrefix);
@@ -3075,6 +3210,20 @@ EOF;
             $text = preg_replace('/\\[\\[([A-Z0-9_-]+)\\]\\]/', '{\\1}', $text);
             \LinkGenerator::parseTemplate($text);
             $objTpl->setVariable($templateVariablePrefix . 'NEWS_TEXT', $text);
+
+            // parse short html version of news text,
+            // but only if placeholder is present, as the parsing costs
+            // a lot of time
+            if ($objTpl->placeholderExists($templateVariablePrefix . 'NEWS_TEXT_SHORT')) {
+                // cut html in length by maximum 200 output characters
+                $shortText = $text;
+                \FWValidator::cutHtmlByDisplayLength($shortText, 200, ' ...');
+
+                $objTpl->setVariable(
+                    $templateVariablePrefix . 'NEWS_TEXT_SHORT', $shortText
+                );
+            }
+
             if ($objTpl->blockExists($templateBlockPrefix . 'news_text')) {
                 $objTpl->parse($templateBlockPrefix . 'news_text');
             }
@@ -3117,10 +3266,29 @@ EOF;
 
         if (!empty($newsCategories) && $objTpl->blockExists($templateBlockPrefix . 'news_category_list')) {
             foreach ($newsCategories as $catId => $catTitle) {
+
+                $url = null;
+                try {
+                    $url = \Cx\Core\Routing\Url::fromModuleAndCmd('News', $catId, '', array(), '', false);
+                } catch (\Cx\Core\Routing\UrlException $e) {}
+                if (!$url) {
+                    try {
+                        $url = \Cx\Core\Routing\Url::fromModuleAndCmd('News', '', '', array(), '', false);
+                    } catch (\Cx\Core\Routing\UrlException $e) {}
+                }
+
                 $objTpl->setVariable(array(
                     $templateVariablePrefix . 'NEWS_CATEGORY_TITLE'   => contrexx_raw2xhtml($catTitle),
-                    $templateVariablePrefix . 'NEWS_CATEGORY_ID'      => contrexx_input2int($catId)
+                    $templateVariablePrefix . 'NEWS_CATEGORY_ID'      => contrexx_input2int($catId),
+                    $templateVariablePrefix . 'NEWS_CATEGORY_URL'      => contrexx_raw2xhtml($url),
                 ));
+                if ($objTpl->blockExists($templateBlockPrefix . 'news_category_url')) {
+                    if ($url) {
+                        $objTpl->touchBlock($templateBlockPrefix . 'news_category_url');
+                    } else {
+                        $objTpl->hideBlock($templateBlockPrefix . 'news_category_url');
+                    }
+                }
                 $objTpl->parse($templateBlockPrefix . 'news_category');
             }
         }
@@ -3370,5 +3538,49 @@ EOF;
             $template->parse('news_tag');
         }
         $template->parse('news_tag_cloud');
+    }
+
+    /**
+     * Fetch ID of latest news article. If $categoryId is specified, then
+     * the ID of the latest news article of the category identified by ID
+     * $categoryId is returned.
+     *
+     * @param   integer $categoryId ID of category to fetch the latest news
+     *                              article from
+     * @return  integer ID of latest news article
+     * @throws  NewsLibraryException In case no latest news article was found
+     */
+    protected function getIdOfLatestNewsArticle($categoryId = 0) {
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $db = $cx->getDb()->getAdoDb();
+        $categorySelect = '';
+        if ($categoryId) {
+            $categorySelect = 'AND nc.`category_id` = '.intval($categoryId);
+        }
+        $query = '  SELECT      n.id
+                    FROM        '.DBPREFIX.'module_news AS n
+                    INNER JOIN  '.DBPREFIX.'module_news_locale AS nl ON nl.news_id = n.id
+                    INNER JOIN '.DBPREFIX.'module_news_rel_categories AS nc ON nc.`news_id` = n.id
+                    WHERE       status = 1
+                                AND nl.is_active=1
+                                AND nl.lang_id='.FRONTEND_LANG_ID.'
+                                AND (n.startdate<=\''.date('Y-m-d H:i:s').'\' OR n.startdate="0000-00-00 00:00:00")
+                                AND (n.enddate>=\''.date('Y-m-d H:i:s').'\' OR n.enddate="0000-00-00 00:00:00")
+                                ' . $categorySelect
+                               .($this->arrSettings['news_message_protection'] == '1' && !\Permission::hasAllAccess() ? (
+                                    ($objFWUser = \FWUser::getFWUserObject()) && $objFWUser->objUser->login() ?
+                                        " AND (frontend_access_id IN (".implode(',', array_merge(array(0), $objFWUser->objUser->getDynamicPermissionIds())).") OR userid = ".$objFWUser->objUser->getId().") "
+                                        :   " AND frontend_access_id=0 ")
+                                    :   '')
+                                .' ORDER BY n.date DESC';
+        $result = $db->SelectLimit($query, 1);
+        if (
+            $result === false ||
+            $result->EOF
+        ) {
+            throw new NewsLibraryException('No latest news available');
+        }
+
+        return $result->fields['id'];
     }
 }

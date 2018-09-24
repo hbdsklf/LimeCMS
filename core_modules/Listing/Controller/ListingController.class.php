@@ -147,6 +147,18 @@ class ListingController {
     private $entityName = '';
 
     /**
+     * List of field names that can be filtered
+     * @var array
+     */
+    protected $filterFields = array();
+
+    /**
+     * List of field names that can be searched by a term
+     * @var array
+     */
+    protected $searchFields = array();
+
+    /**
      * Number of entries without filtering or paging
      * @var int
      */
@@ -175,6 +187,14 @@ class ListingController {
         }
         if (isset($options['sortBy']['entity'])) {
             $this->entityName = $options['sortBy']['entity'];
+        }
+        $this->filtering = isset($options['filtering']) && $options['filtering'];
+        if (isset($options['filterFields'])) {
+            $this->filterFields = $options['filterFields'];
+        }
+        $this->searching = isset($options['searching']) && $options['searching'];
+        if (isset($options['searchFields'])) {
+            $this->searchFields = $options['searchFields'];
         }
         // init handlers (filtering, paging and sorting)
         $this->handlers[] = new FilteringController();
@@ -289,26 +309,69 @@ class ListingController {
         foreach ($this->order as $field=>&$order) {
             $order = $order == SORT_DESC ? 'DESC' : 'ASC';
         }
-        $entities = $entityRepository->findBy(
-            $this->criteria,
-            $this->order,
-            $this->count ? $this->count : null,
-            $this->offset
-        );
 
         // YAMLRepository:
         if ($entityRepository instanceof \Countable) {
+            if (!empty($this->filter)) {
+                \DBG::msg('YAMLRepository does not support "filter" yet');
+            }
+            $entities = $entityRepository->findBy(
+                $this->criteria,
+                $this->order,
+                $this->count ? $this->count : null,
+                $this->offset
+            );
             $this->dataSize = count($entityRepository);
         } else {
-            $metaData = $em->getClassMetaData($this->entityClass);
             $qb = $em->createQueryBuilder();
-            $this->dataSize = (int) $qb->select(
-                'count(e.' . reset($metaData->getIdentifierFieldNames()) . ')'
-            )->from($this->entityClass, 'e')->getQuery()->getSingleScalarResult();
+            $qb->select('x')->from($this->entityClass, 'x');
+            $i = 1;
+            // filtering: advanced search
+            if ($this->filtering) {
+                foreach ($this->criteria as $field=>$crit) {
+                    if (
+                        !empty($this->filterFields) &&
+                        !in_array($field, $this->filterFields)
+                    ) {
+                        continue;
+                    }
+                    $qb->andWhere($qb->expr()->eq('x.' . $field, '?' . $i));
+                    $qb->setParameter($i, $crit);
+                    $i++;
+                }
+            }
+            // filtering: simple search by term
+            if ($this->searching) {
+                if (!empty($this->filter) && count($this->searchFields)) {
+                    $ors = array();
+                    $orX = new \Doctrine\DBAL\Query\Expression\CompositeExpression(
+                        \Doctrine\DBAL\Query\Expression\CompositeExpression::TYPE_OR
+                    );
+                    // TODO: If $this->searchFields is empty allow all
+                    foreach ($this->searchFields as $field) {
+                        $orX->add($qb->expr()->like('x.' . $field, '?' . $i));
+                    }
+                    $qb->andWhere($orX);
+                    $qb->setParameter($i, '%' . $this->filter . '%');
+                }
+            }
+            foreach ($this->order as $field=>&$order) {
+                $qb->orderBy('x.' . $field, $order);
+            }
+            $qb->setFirstResult($offset);
+            $qb->setMaxResults($this->count ? $this->count : null);
+            $entities = $qb->getQuery()->getResult();
+
+            $metaData = $em->getClassMetaData($this->entityClass);
+            $qb->select(
+                'count(x.' . reset($metaData->getIdentifierFieldNames()) . ')'
+            );
+            $this->dataSize = $qb->getQuery()->getSingleScalarResult();
         }
 
         // return calculated data
         $data = new \Cx\Core_Modules\Listing\Model\Entity\DataSet($entities);
+        $data->setDataType($this->entityClass);
         $this->data = $data;
         return $data;
     }

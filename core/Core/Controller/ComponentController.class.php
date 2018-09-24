@@ -78,7 +78,11 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
             false
         );
         return array(
-            'help',
+            'help' => new \Cx\Core_Modules\Access\Model\Entity\Permission(
+                array(),
+                array('get', 'post', 'cli', 'head'),
+                false
+            ),
             'status' => $cliOnlyPermission,
             'diff' => $cliOnlyPermission,
             'version',

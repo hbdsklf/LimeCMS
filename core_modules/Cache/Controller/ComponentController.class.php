@@ -74,13 +74,27 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
      * @param \Cx\Core\Core\Controller\Cx $cx The instance of \Cx\Core\Core\Controller\Cx
      */
     public function preInit(\Cx\Core\Core\Controller\Cx $cx) {
+        global $argv;
+
         if ($this->cx->getMode() == \Cx\Core\Core\Controller\Cx::MODE_FRONTEND) {
             $this->cache = new \Cx\Core_Modules\Cache\Controller\Cache();
         } else { // load CacheLib for other modes than frontend
             //- ATTENTION: never load CacheManager here, because it uses not yet defined constants which will cause a fatal error
             $this->cache = new \Cx\Core_Modules\Cache\Controller\CacheLib();
         }
-        $this->cacheDriver = $this->cache->getDoctrineCacheDriver();
+        // disable user cache when calling Cache command from CLI
+        if (
+            $this->cx->getMode() == \Cx\Core\Core\Controller\Cx::MODE_COMMAND &&
+            php_sapi_name() == 'cli' &&
+            isset($argv) &&
+            count($argv) > 2 &&
+            $argv[1] == 'Cache'
+        ) {
+            // do not activate db cache
+            $this->cacheDriver = new \Doctrine\Common\Cache\ArrayCache();
+        } else {
+            $this->cacheDriver = $this->cache->getDoctrineCacheDriver();
+        }
         if ($this->cx->getMode() == \Cx\Core\Core\Controller\Cx::MODE_FRONTEND) {
             $this->cache->deactivateNotUsedOpCaches();
         } elseif (!isset($_GET['cmd']) || $_GET['cmd'] != 'settings') {
@@ -124,7 +138,7 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
         //       Proper handling of ResultCache must be implemented.
         $evm->addModelListener(
             'postFlush',
-            'Cx\Core\Model\Entity\EntityBase',
+            'Cx\Core\Core\Model\Entity\EntityBase',
             new \Cx\Core_Modules\Cache\Model\Event\CoreEntityBaseEventListener(
                 $this->cx
             )
@@ -302,6 +316,16 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
     }
 
     /**
+     * Set the cache driver to use
+     *
+     * @param   $driver \Doctrine\Common\Cache\AbstractCache The doctrine cache driver object
+     */
+    public function setCacheDriver($driver)
+    {
+        $this->cacheDriver = $driver;
+    }
+
+    /**
      * Returns the validated file search parts of the URL
      * @param string $url URL to parse
      * @param string $originalUrl URL of the page that ESI is parsed for
@@ -426,9 +450,8 @@ Cache clear all';
     protected function clearCacheCommand($type, $options = '') {
         $types = array('user', 'page', 'esi', 'proxy', 'opcode');
         if ($type == 'all') {
-            foreach ($types as $type) {
-                $this->commandClearCache($type);
-            }
+            $this->clearCache();
+            $this->clearCache(CacheLib::CACHE_ENGINE_MEMCACHED);
             return;
         }
         if (!in_array($type, $types)) {

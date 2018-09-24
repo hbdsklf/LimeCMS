@@ -158,6 +158,22 @@ class Request {
     }
 
     /**
+     * Returns all params
+     * @param boolean $get (optional) Set to false to check POST
+     * @return array Parameters values
+     */
+    public function getParams($get = true)
+    {
+        // return data from GET
+        if ($get) {
+            return $this->getUrl()->getParamArray();
+        }
+
+        // return data from POST
+        return $this->postData;
+    }
+
+    /**
      * Tells whether a cookie is set
      * @todo This should be based on a member variable instead of superglobal
      * @param string $name Name of the param to check

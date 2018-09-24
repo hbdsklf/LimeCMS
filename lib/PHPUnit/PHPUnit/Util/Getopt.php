@@ -42,7 +42,9 @@ class PHPUnit_Util_Getopt
         reset($args);
         array_map('trim', $args);
 
-        while (list($i, $arg) = each($args)) {
+        while (false !== $arg = current($args)) {
+            $i = key($args);
+            next($args);
             if ($arg == '') {
                 continue;
             }
@@ -52,10 +54,9 @@ class PHPUnit_Util_Getopt
                 break;
             }
 
-            if ($arg[0] != '-' ||
-                (strlen($arg) > 1 && $arg[1] == '-' && !$long_options)) {
-                $non_opts = array_merge($non_opts, array_slice($args, $i));
-                break;
+            if ($arg[0] != '-' || (strlen($arg) > 1 && $arg[1] == '-' && !$long_options)) {
+                $non_opts[] = $args[$i];
+                continue;
             } elseif (strlen($arg) > 1 && $arg[1] == '-') {
                 self::parseLongOption(
                     substr($arg, 2),
@@ -92,21 +93,17 @@ class PHPUnit_Util_Getopt
             }
 
             if (strlen($spec) > 1 && $spec[1] == ':') {
-                if (strlen($spec) > 2 && $spec[2] == ':') {
-                    if ($i + 1 < $argLen) {
-                        $opts[] = array($opt, substr($arg, $i + 1));
-                        break;
-                    }
-                } else {
-                    if ($i + 1 < $argLen) {
-                        $opts[] = array($opt, substr($arg, $i + 1));
-                        break;
-                    } elseif (list(, $opt_arg) = each($args)) {
-                    } else {
+                if ($i + 1 < $argLen) {
+                    $opts[] = array($opt, substr($arg, $i + 1));
+                    break;
+                }
+                if (!(strlen($spec) > 2 && $spec[2] == ':')) {
+                    if (false === $opt_arg = current($args)) {
                         throw new PHPUnit_Framework_Exception(
                             "option requires an argument -- $opt"
                         );
                     }
+                    next($args);
                 }
             }
 
@@ -146,11 +143,13 @@ class PHPUnit_Util_Getopt
 
             if (substr($long_opt, -1) == '=') {
                 if (substr($long_opt, -2) != '==') {
-                    if (!strlen($opt_arg) &&
-                        !(list(, $opt_arg) = each($args))) {
-                        throw new PHPUnit_Framework_Exception(
-                            "option --$opt requires an argument"
-                        );
+                    if (!strlen($opt_arg)) {
+                        if (false === $opt_arg = current($args)) {
+                            throw new PHPUnit_Framework_Exception(
+                                "option --$opt requires an argument"
+                            );
+                        }
+                        next($args);
                     }
                 }
             } elseif ($opt_arg) {

@@ -182,7 +182,7 @@ abstract class DataSource extends \Cx\Model\Base\EntityBase {
      * So if this is called without any arguments, all entries of this
      * DataSource are returned.
      * If no entry is found, an empty array is returned.
-     * @param string $elementId (optional) ID of the element if only one is to be returned
+     * @param array $elementId (optional) field=>value-type condition array identifying an entry
      * @param array $filter (optional) field=>value-type condition array, only supports = for now
      * @param array $order (optional) field=>order-type array, order is either "ASC" or "DESC"
      * @param int $limit (optional) If set, no more than $limit results are returned
@@ -192,7 +192,7 @@ abstract class DataSource extends \Cx\Model\Base\EntityBase {
      * @return array Two dimensional array (/table) of results (array($row=>array($fieldName=>$value)))
      */
     public abstract function get(
-        $elementId = null,
+        $elementId = array(),
         $filter = array(),
         $order = array(),
         $limit = 0,
@@ -209,7 +209,7 @@ abstract class DataSource extends \Cx\Model\Base\EntityBase {
 
     /**
      * Updates an existing entry of this DataSource
-     * @param string $elementId ID of the element to update
+     * @param array $elementId field=>value-type condition array identifying an entry
      * @param array $data Field=>value-type array. Not all fields are required.
      * @throws \Exception If something did not go as planned
      */
@@ -217,7 +217,7 @@ abstract class DataSource extends \Cx\Model\Base\EntityBase {
 
     /**
      * Drops an entry from this DataSource
-     * @param string $elementId ID of the element to update
+     * @param array $elementId field=>value-type condition array identifying an entry
      * @throws \Exception If something did not go as planned
      */
     public abstract function remove($elementId);

@@ -478,7 +478,11 @@
 
         for (i = 0; i < elm.length; i++) {
             if (elm[i].value == '') {
-                elm[i].style.border = "#ff0000 1px solid";
+                var element = cx.jQuery(elm[i]);
+                if (cx.jQuery(elm[i]).next().is(".chosen-container")) {
+                    element = cx.jQuery(elm[i]).next().find("ul.chosen-choices");
+                }
+                element.css("border", "#ff0000 1px solid");
                 document.getElementById('errorMessage').style.display = 'block';
                 status = false;
             } else {
@@ -771,8 +775,41 @@
             cx.jQuery('.event_minimized_block').find('input').trigger('keyup');
         }
     }
+    function checkCrmMemebership(evt, params) {
+        // Only show the exclude select if the include select is not empty, because
+        // you can not exclude anything if nothing is included
+        var display = 'none';
+        if (cx.jQuery("#calendar_event_invite_crm_memberships").val() !== null) {
+            display = 'inline-block';
+        }
+        cx.jQuery("#calendar_event_excluded_crm_memberships_chosen").parent().parent().css('display', display);
+
+        // Do not allow the user to exclude memberships which are selected in the include filter
+        // if param is set, the user changed some values in the include select
+        // if params is not set, the page was reloaded and we have to check which
+        // values were already stored
+        if (params) {
+            if (params.selected) {
+                cx.jQuery("#calendar_event_excluded_crm_memberships option[value='" + params.selected + "']").prop('disabled', true);
+            } else if (params.deselected){
+                cx.jQuery("#calendar_event_excluded_crm_memberships option[value='" + params.deselected + "']").prop('disabled', false);
+            }
+        } else {
+            cx.jQuery(cx.jQuery("#calendar_event_invite_crm_memberships").val()).each(
+                function(key, value) {
+                    cx.jQuery("#calendar_event_excluded_crm_memberships option[value='" + value + "']").prop('disabled', true);
+                }
+            );
+        }
+        cx.jQuery('#calendar_event_excluded_crm_memberships').trigger("chosen:updated");
+    }
     cx.ready(function() {
         cx.jQuery("#calendar_event_invite_crm_memberships").chosen({ width: '250px' });
+        cx.jQuery("#calendar_event_excluded_crm_memberships").chosen({ width: '250px' });
+        cx.jQuery('#calendar_event_invite_crm_memberships').change(function(evt, params){
+            checkCrmMemebership(evt, params)
+        });
+        checkCrmMemebership(null, null);
     });
 </script>
 <form action="index.php?cmd={CALENDAR_MODULE_NAME}&act=modify_event" id="formModifyEvent" name="formModifyEvent" method="post" onsubmit="selectAll(document.formModifyEvent.elements['selectedGroups[]']); {CALENDAR_EVENT_ONSUBMIT_PUBLICATIONS} return formCheck();">
@@ -826,7 +863,7 @@
                 <td valign="top">{TXT_CALENDAR_EVENT_CATEGORY} <font color="#ff0000">*</font></td>
                 <td>
           <select multiple="multiple" id="category" name="category_ids[]"
-                  style="width: 258px">
+                data-placeholder="{TXT_CORE_HTML_PLEASE_CHOOSE}" style="width: 258px">
                         {CALENDAR_EVENT_CATEGORIES}
                     </select>
                 </td>
@@ -1280,13 +1317,28 @@
                 </td>
             </tr>
             <tr class="row2">
-                <td width="180" valign="top">{TXT_CALENDAR_CRM_MEMBERSHIPS}</td>
-                <td colspan="2">
+                <td width="180" valign="top">
+                    {TXT_CALENDAR_CRM_MEMBERSHIPS}
+                    <span class="icon-info tooltip-trigger"></span>
+                    <span class="tooltip-message">{TXT_CALENDAR_CRM_MEMBERSHIPS_TOOLTIP}</span>
+                </td>
+                <td>
+                    {TXT_CALENDAR_CRM_INVITED_MEMBERSHIPS}
                     <div>
-                        <select tabindex="7" data-placeholder="{TXT_CALENDAR_CHOOSE_CRM_MEMBERSHIPS}" name="calendar_event_invite_crm_memberships[]" id="calendar_event_invite_crm_memberships" size="1" multiple autocomplete="off">
+                        <select data-placeholder="{TXT_CALENDAR_CHOOSE_CRM_MEMBERSHIPS}" name="calendar_event_invite_crm_memberships[]" id="calendar_event_invite_crm_memberships" size="1" multiple autocomplete="off">
                             <!-- BEGIN calendar_event_invite_crm_membership -->
                             <option value="{CRM_MEMBERSHIP_ID}" {CRM_MEMBERSHIP_SELECTED}>{CRM_MEMBERSHIP_VALUE}</option>
                             <!-- END calendar_event_invite_crm_membership -->
+                        </select>
+                    </div>
+                </td>
+                <td>
+                    {TXT_CALENDAR_CRM_EXCLUDED_MEMBERSHIPS}
+                    <div>
+                        <select data-placeholder="{TXT_CALENDAR_CHOOSE_CRM_MEMBERSHIPS}" name="calendar_event_excluded_crm_memberships[]" id="calendar_event_excluded_crm_memberships" size="1" multiple autocomplete="off">
+                            <!-- BEGIN calendar_event_excluded_crm_membership -->
+                            <option value="{CRM_MEMBERSHIP_ID}" {CRM_MEMBERSHIP_SELECTED}>{CRM_MEMBERSHIP_VALUE}</option>
+                            <!-- END calendar_event_excluded_crm_membership -->
                         </select>
                     </div>
                 </td>

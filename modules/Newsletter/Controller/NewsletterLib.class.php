@@ -59,6 +59,7 @@ class NewsletterLib
     const USER_TYPE_NEWSLETTER = 'newsletter';
     const USER_TYPE_ACCESS = 'access';
     const USER_TYPE_CORE = 'core';
+    const USER_TYPE_CRM = 'crm';
 
     public $_arrRecipientTitles = null;
 
@@ -137,12 +138,58 @@ class NewsletterLib
         return $arrLists;
     }
 
+    /**
+     * Parses the consent icons
+     * @param string $source Either "backend", "api", "opt-in", "undefined"
+     * @param string $consent Date parseable by DateTime or empty string
+     * @return string HTML content
+     */
+    public static function parseConsentView($source, $consent) {
+        global $_ARRAYLANG;
+
+        if ($source == 'undefined') {
+            // show empty icon
+            $consentValue = '<img src="/core/Core/View/Media/icons/pixel.gif" height="13" width="13" />';
+            return $consentValue;
+        } else if (empty($source)) {
+            // show orange icon with source as tooltip
+            $langVarName = 'TXT_NEWSLETTER_CONSENT_SOURCE_';
+            $langVarName .= str_replace('-', '_', strtoupper($source));
+            $consentValue = $_ARRAYLANG[$langVarName];
+            $consentValue = '<img src="/core/Core/View/Media/icons/led_orange.gif" title="' . $consentValue . '" />';
+            return $consentValue;
+        }
+        // show green icon with date as tooltip
+        $consentValue = sprintf(
+            $_ARRAYLANG['TXT_NEWSLETTER_CONSENT_SOURCE_OPT_IN'],
+            static::getUserDateTime($consent)
+        );
+        $consentValue = '<img src="/core/Core/View/Media/icons/led_green.gif" title="' . $consentValue . '" />';
+        return $consentValue;
+    }
+
+    /**
+     * Get a user dateTime in H:i:s d.m.Y format from db data
+     *
+     * @param string $userDateTime DateTime from a db
+     * @return string Return a formatted dateTime as string
+     */
+    protected static function getUserDateTime($userDateTime)
+    {
+        $cx                  = \Cx\Core\Core\Controller\Cx::instanciate();
+        $dateTime            = $cx->getComponent('DateTime');
+        $createDateTimeForDb = $dateTime->createDateTimeForDb($userDateTime);
+        $db2User             = $dateTime->db2user($createDateTimeForDb);
+
+        return $db2User->format('H:i:s d.m.Y');
+    }
 
     /**
      * Returns the Language ID for a newsletter user
      *
      * If the user's preferred language can not be found, the default language
      * ID is returned.
+     * For crm email addresses this will be the system default language by now
      * @param string $email E-mail address of the user
      * @param string $type User type (see constants)
      * @return integer Language ID
@@ -150,7 +197,7 @@ class NewsletterLib
     public function getUsersPreferredLanguageId($email, $type) {
         global $objDatabase;
 
-        $userLanguage = \FWLanguage::getDefaultLangId();
+        $userLanguage = \FWLanguage::getDefaultLangId(); // used also for crm
         switch ($type) {
             case self::USER_TYPE_CORE:
             case self::USER_TYPE_ACCESS:
@@ -184,7 +231,6 @@ class NewsletterLib
         }
         return $userLanguage;
     }
-
 
     /**
      * Return the count of recipients of a list
@@ -326,7 +372,7 @@ class NewsletterLib
     function _updateRecipient(
         $recipientAttributeStatus, $id, $email, $uri, $sex, $salutation, $title, $lastname, $firstname, $position, $company, $industry_sector,
         $address, $zip, $city, $country, $phone_office, $phone_private, $phone_mobile, $fax, $notes, $birthday, $status,
-        $arrLists, $language, $source
+        $arrLists, $language, $source, $setTime = false
     ) {
         global $objDatabase;
 
@@ -430,7 +476,7 @@ class NewsletterLib
         if (!$objDatabase->Execute($query)) {
             return false;
         }
-        return static::_setRecipientLists($id, $arrLists, $source);
+        return static::_setRecipientLists($id, $arrLists, $source, $setTime);
     }
 
 
@@ -440,10 +486,11 @@ class NewsletterLib
      * @param   integer   $recipientId      The recipient ID
      * @param   array     $arrLists         The array of list IDs to subscribe
      * @param string $source One of "opt-in", "backend", "api"
+     * @param boolean $setTime (optional) if set to true, consent is stored as confirmed
      * @return  boolean                     True on success, false otherwise
      * @static
      */
-    static function _setRecipientLists($recipientId, $arrLists, $source)
+    static function _setRecipientLists($recipientId, $arrLists, $source, $setTime = false)
     {
         global $objDatabase;
 
@@ -459,18 +506,26 @@ class NewsletterLib
         }
 
         // insert missing relations
+        $currentTime = 'NULL';
+        if ($setTime) {
+            $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+            $dateTime = $cx->getComponent('DateTime')->createDateTimeForDb('');
+            $currentTime = '"' . $dateTime->format('Y-m-d H:i:s') . '"';
+        }
         if ($objDatabase->Execute('
             INSERT IGNORE INTO
                 `' . DBPREFIX . 'module_newsletter_rel_user_cat`
                 (
                     `user`,
                     `category`,
-                    `source`
+                    `source`,
+                    `consent`
                 )
             SELECT
-                ' . $recipientId . ' as `user`,
-                `id` as `category`,
-                "' . $source . '" as `source`
+                ' . $recipientId . ' AS `user`,
+                `id` AS `category`,
+                "' . $source . '" AS `source`,
+                ' . $currentTime . ' AS `consent`
             FROM
                 `' . DBPREFIX . 'module_newsletter_category`
             WHERE
@@ -858,7 +913,7 @@ class NewsletterLib
         return true;
     }
 
-    protected static function prepareNewsletterLinksForSend($MailId, $MailHtmlContent, $UserId, $realUser)
+    protected static function prepareNewsletterLinksForSend($MailId, $MailHtmlContent, $UserId, $recipientType)
     {
         global $objDatabase;
 
@@ -910,11 +965,25 @@ class NewsletterLib
                     // replace href attribute
                     if (isset($arrLinks[$linkId])) {
 // TODO: use new URL-format
+                        $shortType = '';
+                        switch ($recipientType) {
+                            case NewsletterLib::USER_TYPE_ACCESS:
+                            case NewsletterLib::USER_TYPE_CORE:
+                                $shortType = 'r';
+                                break;
+                            case NewsletterLib::USER_TYPE_NEWSLETTER:
+                                $shortType = 'm';
+                                break;
+                            case NewsletterLib::USER_TYPE_CRM:
+                                $shortType = 'c';
+                                break;
+                        }
+
                         $arrParameters = array(
                             'section'               => 'Newsletter',
                             'n'                     => $MailId,
                             'l'                     => $linkId,
-                            ($realUser ? 'r' : 'm') => $UserId,
+                            $shortType              => $UserId,
                         );
                         $protocol = null;
                         if (\Env::get('config')['forceProtocolFrontend'] != 'none') {
@@ -945,4 +1014,206 @@ class NewsletterLib
         return $Text;
     }
 
+    /**
+     * Auto clean a registers
+     */
+    public function autoCleanRegisters()
+    {
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $objDatabase = $cx->getDb()->getAdoDb();
+        $arrSettings = $this->_getSettings();
+        $confirmLinkHour = $arrSettings['confirmLinkHour']['setvalue'];
+        $dateTime = $cx->getComponent('DateTime')->createDateTimeForDb('now');
+        $dateTime->modify('-' . $confirmLinkHour . ' hours');
+
+        if ($arrSettings['defUnsubscribe']['setvalue'] == 1) {
+            $objUser = $objDatabase->Execute('
+                DELETE
+                    `userCat`,
+                    `users`
+                FROM
+                    `' . DBPREFIX . 'module_newsletter_user` AS `users`
+                INNER JOIN
+                    `' . DBPREFIX . 'module_newsletter_rel_user_cat` AS `userCat`
+                ON
+                    `users`.`id` = `userCat`.`user`
+                WHERE
+                    `users`.`source` = "opt-in" AND
+                    `users`.`consent` IS NULL AND
+                    `users`.`emaildate` < "' . $dateTime->getTimeStamp() . '"
+            ');
+        } else {
+            $objUser = $objDatabase->Execute('
+                UPDATE
+                    `' . DBPREFIX . 'module_newsletter_user` AS `users`
+                SET
+                    `users`.`status` = 0
+                WHERE
+                    `users`.`source` = "opt-in" AND
+                    `users`.`consent` IS NULL AND
+                    `users`.`emaildate` < "' . $dateTime->getTimeStamp() . '"
+            ');
+        }
+    }
+
+    /**
+     * Send a consent confirmation mail to users based on mailing list
+     * @param array $categoryIds Category to send mail for
+     * @param string $email (optional) Only sends the mail to this user
+     * @return boolean False if something went wrong, true otherwise
+     */
+    public function sendConsentConfirmationMail($categoryIds, $email = '')
+    {
+        global $_ARRAYLANG, $_CONFIG;
+
+        $objDatabase = \Cx\Core\Core\Controller\Cx::instanciate()->getDb()->getAdoDb();
+        $arrSettings = $this->_getSettings();
+
+        $userQuery = '';
+        if (!empty($email)) {
+            $userQuery = ' AND
+                `u`.`email` = "' . contrexx_raw2db($email) . '"';
+        }
+        $objUserRel = $objDatabase->Execute('
+            SELECT
+                `u`.`code`,
+                `u`.`email`,
+                `u`.`sex`,
+                `u`.`title`,
+                `u`.`firstname`,
+                `u`.`lastname`,
+                `c`.`id`,
+                `c`.`name`
+            FROM
+                `' . DBPREFIX . 'module_newsletter_rel_user_cat` AS `r`
+            INNER JOIN
+                `' . DBPREFIX . 'module_newsletter_user` AS `u`
+            ON
+                `u`.`id` = `r`.`user`
+            INNER JOIN
+                `' . DBPREFIX . 'module_newsletter_category` AS `c`
+            ON
+                `c`.`id` = `r`.`category`
+            WHERE
+                `r`.`category` IN(' . implode(
+                    ', ',
+                    array_map('contrexx_raw2db', $categoryIds)
+                ) . ') AND
+                `r`.`consent` IS NULL AND
+                `u`.`status` = 1' . $userQuery . '
+        ');
+
+        if ($objUserRel && $objUserRel->RecordCount() == 0) {
+            return true;
+        }
+
+        $objDatabase->Execute('
+            UPDATE
+                `' . DBPREFIX . 'module_newsletter_user` AS `u`
+            INNER JOIN
+                `' . DBPREFIX . 'module_newsletter_rel_user_cat` AS `r`
+            ON
+                `u`.`id` = `r`.`user`
+            SET
+                `u`.`emaildate` = "' . time() . '"
+            WHERE
+                `r`.`category` IN(' . implode(
+                    ', ',
+                    array_map('contrexx_raw2db', $categoryIds)
+                ) . ') AND
+                `r`.`consent` IS NULL AND
+                `u`.`status` = 1' . $userQuery . '
+        ');
+
+        $mailData = array();
+        $notSentTo = array();
+        while (!$objUserRel->EOF) {
+            $sex = '';
+            switch ($objUserRel->fields['sex']) {
+                case 'm':
+                    $sex = 'MALE';
+                    break;
+                case 'f':
+                    $sex = 'FEMALE';
+                    break;
+            }
+
+            $email = $objUserRel->fields['email'];
+            if (!isset($mailData[$email])) {
+                $mailData[$email] = array();
+            }
+            if (!isset($mailData[$email]['categories'])) {
+                $mailData[$email]['categories'] = array(
+                    $objUserRel->fields['id'] => $objUserRel->fields['name'],
+                );
+            } else {
+                $mailData[$email]['categories'][
+                    $objUserRel->fields['id']
+                ] = $objUserRel->fields['name'];
+            }
+            $mailData[$email]['data'] = array(
+                'lang_id' => $this->getUsersPreferredLanguageId(
+                    $email,
+                    static::USER_TYPE_NEWSLETTER
+                ),
+                'sex' => $sex,
+                'title' => $objUserRel->fields['title'],
+                'firstname' => $objUserRel->fields['firstname'],
+                'lastname' => $objUserRel->fields['lastname'],
+                'code' => $objUserRel->fields['code'],
+            );
+            $objUserRel->MoveNext();
+        }
+
+        foreach ($mailData as $email=>$data) {
+            $arrMailTemplate = array(
+                'key'          => 'consent_confirmation_email',
+                'section'      => 'Newsletter',
+                'lang_id'      => $data['data']['lang_id'],
+                'to'           => $email,
+                'from'         => $arrSettings['sender_mail']['setvalue'],
+                'sender'       => $arrSettings['sender_name']['setvalue'],
+                'reply'        => $arrSettings['reply_mail']['setvalue'],
+                'substitution' => array(
+                    'NEWSLETTER_USER_SEX' => $_ARRAYLANG[
+                        'TXT_NEWSLETTER_' . $data['data']['sex']
+                    ],
+                    'NEWSLETTER_USER_TITLE' => $data['data']['title'],
+                    'NEWSLETTER_USER_FIRSTNAME' => $data['data']['firstname'],
+                    'NEWSLETTER_USER_LASTNAME' => $data['data']['lastname'],
+                    'NEWSLETTER_USER_EMAIL' => $email,
+                    'NEWSLETTER_CONSENT_CONFIRM_CODE' => \Cx\Core\Routing\Url::fromDocumentRoot(
+                        array(
+                            'section' => 'Newsletter',
+                            'cmd' => 'confirm',
+                            'email' => urlencode($email),
+                            'code' => $data['data']['code'],
+                            'category' => implode(
+                                '/',
+                                array_keys($data['categories'])
+                            ),
+                        )
+                    )->toString(),
+                    'NEWSLETTER_DOMAIN_URL' => $_CONFIG['domainUrl'],
+                    'NEWSLETTER_LISTS' => array(),
+                ),
+            );
+            foreach ($data['categories'] as $catId=>$catName) {
+                $arrMailTemplate['substitution']['NEWSLETTER_LISTS'][] = array(
+                    'NEWSLETTER_LIST' => contrexx_raw2xhtml($catName),
+                );
+            }
+            if (!\Cx\Core\MailTemplate\Controller\MailTemplate::send($arrMailTemplate)) {
+                $notSentTo[] = $objUserRel->fields['email'];
+            }
+        }
+        if (count($notSentTo)) {
+            static::$strErrMessage = ' ' . sprintf(
+                $_ARRAYLANG['TXT_NEWSLETTER_CONSENT_SOME_NOT_SENT'],
+                implode('<br />', $notSentTo)
+            );
+        }
+
+        return empty($notSentTo);
+    }
 }

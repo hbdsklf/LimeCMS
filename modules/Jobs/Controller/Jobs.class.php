@@ -170,7 +170,8 @@ class Jobs extends JobsLibrary
                                date,
                                changelog,
                                title,
-                               author
+                               author,
+                               paid
                           FROM ".DBPREFIX."module_jobs
                          WHERE status = 1
                            AND id = $id
@@ -212,7 +213,9 @@ class Jobs extends JobsLibrary
                 }
 
                 if(!empty($link)) {
-                    $url = str_replace("%URL%",urlencode($_SERVER['SERVER_NAME'].$_SERVER['REQUEST_URI']),$url);
+                    $domainRepo = new \Cx\Core\Net\Model\Repository\DomainRepository();
+                    $domain = $domainRepo->getMainDomain()->getName();
+                    $url = str_replace("%URL%",urlencode($domain.$_SERVER['REQUEST_URI']),$url);
                     $url = htmlspecialchars(str_replace("%TITLE%",urlencode(stripslashes($title)),$url), ENT_QUOTES, CONTREXX_CHARSET);
                     $footnotelink = "<a href='$url'>$link</a>";
 			        $footnotelinkSrc = $url;
@@ -231,6 +234,22 @@ class Jobs extends JobsLibrary
                     'JOBS_WORKLOC' => $workloc,
                     'JOBS_WORKLOAD'=> $workload,
                     'JOBS_WORK_START' => $work_start));
+
+                if ($this->_objTpl->blockExists('job_paid')) {
+                    if ($objResult->fields['paid']) {
+                        $this->_objTpl->touchBlock('job_paid');
+                    } else {
+                        $this->_objTpl->hideBlock('job_paid');
+                    }
+                }
+                if ($this->_objTpl->blockExists('job_not_paid')) {
+                    if ($objResult->fields['paid']) {
+                        $this->_objTpl->hideBlock('job_not_paid');
+                    } else {
+                        $this->_objTpl->touchBlock('job_not_paid');
+                    }
+                }
+
                 $objResult->MoveNext();
             }
         } else {
@@ -318,9 +337,12 @@ class Jobs extends JobsLibrary
         $query = "SELECT n.date AS date,
                          n.id AS docid,
                          n.title AS title,
+                         n.workloc AS workloc,
                          n.workload AS workload,
+                         n.work_start AS work_start,
                          n.author AS author,
-                         nc.name AS name
+                         nc.name AS name,
+                         n.paid
                     FROM ".DBPREFIX."module_jobs AS n,
                          ".DBPREFIX."module_jobs_categories AS nc
                          ". $locationFilter."
@@ -377,6 +399,13 @@ class Jobs extends JobsLibrary
 
                 $detailUrl = \Cx\Core\Routing\Url::fromModuleAndCmd('Jobs', 'details', FRONTEND_LANG_ID, array('id' => $objResult->fields['docid']));
 
+                $work_start = stripslashes($objResult->fields['work_start']);
+                if (empty($work_start) or time() >= $work_start) {
+                    $work_start = $_ARRAYLANG['TXT_JOBS_WORK_START_NOW'];
+                } else {
+                    $work_start = date('d.m.Y', $work_start);
+                }
+
                 $this->_objTpl->setVariable(array(
                     'JOBS_STYLE'      => $class,
                     'JOBS_ID'            => $objResult->fields['docid'],
@@ -386,8 +415,25 @@ class Jobs extends JobsLibrary
                     'JOBS_TITLE'        => contrexx_raw2xhtml($objResult->fields['title']),
                     'JOBS_LINK_SRC'     => $detailUrl->toString(),
                     'JOBS_AUTHOR'       => stripslashes($objResult->fields['author']),
-                    'JOBS_WORKLOAD' => stripslashes($objResult->fields['workload'])
+                    'JOBS_WORKLOC'      => stripslashes($objResult->fields['workloc']),
+                    'JOBS_WORKLOAD' => stripslashes($objResult->fields['workload']),
+                    'JOBS_WORK_START'   => $work_start,
                 ));
+
+                if ($this->_objTpl->blockExists('job_paid')) {
+                    if ($objResult->fields['paid']) {
+                        $this->_objTpl->touchBlock('job_paid');
+                    } else {
+                        $this->_objTpl->hideBlock('job_paid');
+                    }
+                }
+                if ($this->_objTpl->blockExists('job_not_paid')) {
+                    if ($objResult->fields['paid']) {
+                        $this->_objTpl->hideBlock('job_not_paid');
+                    } else {
+                        $this->_objTpl->touchBlock('job_not_paid');
+                    }
+                }
 
                 $this->_objTpl->parse("row");
                 $i++;

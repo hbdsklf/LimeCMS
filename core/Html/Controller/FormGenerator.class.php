@@ -301,15 +301,17 @@ class FormGenerator {
                     $_ARRAYLANG['TXT_CORE_HTML_FORM_VALIDATION_ERROR'],
                     'core/Html/lang'
                 );
-                if (\Env::get('em')->getClassMetadata($this->entityClass)->isSingleValuedAssociation($name)) {
+                $cx = \Cx\Core\Core\Controller\Cx::Instanciate();
+                $em = $cx->getDb()->getEntityManager();
+                $localMetaData = $em->getClassMetadata($this->entityClass);
+                if ($localMetaData->isSingleValuedAssociation($name)) {
                     // this case is used to create a select field for 1 to 1 associations
-                    $entities = \Env::get('em')->getRepository($associatedClass)->findAll();
-                    $foreignMetaData = \Env::get('em')->getClassMetadata($associatedClass);
+                    $entities = $em->getRepository($associatedClass)->findAll();
+                    $foreignMetaData = $em->getClassMetadata($associatedClass);
                     $primaryKeyName = $foreignMetaData->getSingleIdentifierFieldName();
                     $selected = $foreignMetaData->getFieldValue($value, $primaryKeyName);
                     $arrEntities = array();
-                    $closeMetaData = \Env::get('em')->getClassMetadata($this->entityClass);
-                    $assocMapping = $closeMetaData->getAssociationMapping($name);
+                    $assocMapping = $localMetaData->getAssociationMapping($name);
                     $validator = null;
                     if (!isset($assocMapping['joinColumns'][0]['nullable']) || $assocMapping['joinColumns'][0]['nullable']) {
                         $arrEntities['NULL'] = $_ARRAYLANG['TXT_CORE_NONE'];
@@ -317,7 +319,7 @@ class FormGenerator {
                         $validator = new \Cx\Core\Validate\Model\Entity\RegexValidator('/^(?!null$|$)/');
                     }
                     foreach ($entities as $entity) {
-                        $arrEntities[\Env::get('em')->getClassMetadata($associatedClass)->getFieldValue($entity, $primaryKeyName)] = $entity;
+                        $arrEntities[$em->getClassMetadata($associatedClass)->getFieldValue($entity, $primaryKeyName)] = $entity;
                     }
                     $select = new \Cx\Core\Html\Model\Entity\DataElement(
                         $name,
@@ -331,51 +333,95 @@ class FormGenerator {
                     }
                     return $select;
                 } else {
-                    // this case is used to list all existing values and show an add button for 1 to many associations
-                    $closeMetaData = \Env::get('em')->getClassMetadata($this->entityClass);
-                    $assocMapping = $closeMetaData->getAssociationMapping($name);
-                    $mainDiv = new \Cx\Core\Html\Model\Entity\HtmlElement('div');
-                    $mainDiv->setAttribute('class', 'entityList');
-                    $addButton = new \Cx\Core\Html\Model\Entity\HtmlElement('input');
-                    $addButton->setAttribute('type', 'button');
-                    $addButton->setClass(array('form-control', 'add_'.$this->createCssClassNameFromEntity($associatedClass), 'mappedAssocciationButton'));
-                    $addButton->setAttribute('value', $_CORELANG['TXT_ADD']);
-                    $addButton->setAttribute('data-params',
-                        'entityClass:'.$associatedClass.';'.
-                        'mappedBy:'.$assocMapping['mappedBy'].';'.
-                        'cssName:'.$this->createCssClassNameFromEntity($associatedClass).';'.
-                        'sessionKey:'.$this->entityClass
-                    );
-                    if (!isset($_SESSION['vgOptions'])) {
-                        $_SESSION['vgOptions'] = array();
-                    }
-                    $_SESSION['vgOptions'][$this->entityClass] = $this->componentOptions;
-                    if ($entityId != 0) {
-                        // if we edit the main form, we also want to show the existing associated values we already have
-                        $existingValues = $this->getIdentifyingDisplayValue($assocMapping, $associatedClass, $entityId, $options);
-                    }
-                    if (!empty($existingValues)) {
-                        foreach ($existingValues as $existingValue) {
-                            $mainDiv->addChild($existingValue);
+                    $mode = 'create';
+                    if (isset($options['mode'])) {
+                        if (in_array($options['mode'], array(
+                            'create',
+                            'associate',
+                        ))) {
+                            $mode = $options['mode'];
                         }
                     }
-                    $mainDiv->addChild($addButton);
-
-                    // if standard tooltip is not disabled, we load the one to n association text
-                    if (!isset($options['showstanardtooltip']) || $options['showstanardtooltip']) {
-                        if (!empty($options['tooltip'])) {
-                            $options['tooltip'] = $options['tooltip'] . '<br /><br /> ' . $_ARRAYLANG['TXT_CORE_RECORD_ONE_TO_N_ASSOCIATION'];
-                        } else {
-                            $options['tooltip'] = $_ARRAYLANG['TXT_CORE_RECORD_ONE_TO_N_ASSOCIATION'];
+                    if ($mode == 'associate') {
+                        // get all currently assigned entities
+                        $values = array();
+                        if ($entityId != 0) {
+                            // if we edit the main form, we also want to show the existing associated values we already have
+                            $assocMapping = $localMetaData->getAssociationMapping($name);
+                            $data = $this->getForeignEntitySelectOptionData($assocMapping, $associatedClass, $entityId, $options, true);
+                            $values = $data['all'];
                         }
-                    }
-                    $cxjs = \ContrexxJavascript::getInstance();
-                    $cxjs->setVariable('TXT_CANCEL', $_CORELANG['TXT_CANCEL'], 'Html/lang');
-                    $cxjs->setVariable('TXT_SUBMIT', $_CORELANG['TXT_SUBMIT'], 'Html/lang');
-                    $cxjs->setVariable('TXT_EDIT', $_CORELANG['TXT_EDIT'], 'Html/lang');
-                    $cxjs->setVariable('TXT_DELETE', $_CORELANG['TXT_DELETE'], 'Html/lang');
+                        if (!count($values)) {
+                            $values = array('');
+                        }
+                        $_ARRAYLANG += \Env::get('init')->getComponentSpecificLanguageData('Html', false);
+                        // get all assigned entities (by ajax?)
+                        // add chosen
+                        $select = new \Cx\Core\Html\Model\Entity\DataElement(
+                            $name . '[]',
+                            '',
+                            \Cx\Core\Html\Model\Entity\DataElement::TYPE_SELECT,
+                            null,
+                            $values
+                        );
+                        foreach ($select->getChildren() as $option) {
+                            if (isset($data['selected'][$option->getAttribute('value')])) {
+                                $option->setAttribute('selected');
+                            }
+                        }
+                        $select->addClass('chzn');
+                        $select->setAttribute('data-placeholder', $_ARRAYLANG['TXT_CORE_HTML_PLEASE_CHOOSE']);
+                        $select->setAttribute('multiple');
+                        if (isset($options['attributes'])) {
+                            $select->setAttributes($options['attributes']);
+                        }
+                        return $select;
+                    } else {
+                        // this case is used to list all existing values and show an add button for 1 to many associations
+                        $assocMapping = $localMetaData->getAssociationMapping($name);
+                        $mainDiv = new \Cx\Core\Html\Model\Entity\HtmlElement('div');
+                        $mainDiv->setAttribute('class', 'entityList');
+                        $addButton = new \Cx\Core\Html\Model\Entity\HtmlElement('input');
+                        $addButton->setAttribute('type', 'button');
+                        $addButton->setClass(array('form-control', 'add_'.$this->createCssClassNameFromEntity($associatedClass), 'mappedAssocciationButton'));
+                        $addButton->setAttribute('value', $_CORELANG['TXT_ADD']);
+                        $addButton->setAttribute('data-params',
+                            'entityClass:'.$associatedClass.';'.
+                            'mappedBy:'.$assocMapping['mappedBy'].';'.
+                            'cssName:'.$this->createCssClassNameFromEntity($associatedClass).';'.
+                            'sessionKey:'.$this->entityClass
+                        );
+                        if (!isset($_SESSION['vgOptions'])) {
+                            $_SESSION['vgOptions'] = array();
+                        }
+                        $_SESSION['vgOptions'][$this->entityClass] = $this->componentOptions;
+                        if ($entityId != 0) {
+                            // if we edit the main form, we also want to show the existing associated values we already have
+                            $existingValues = $this->getIdentifyingDisplayValue($assocMapping, $associatedClass, $entityId, $options);
+                        }
+                        if (!empty($existingValues)) {
+                            foreach ($existingValues as $existingValue) {
+                                $mainDiv->addChild($existingValue);
+                            }
+                        }
+                        $mainDiv->addChild($addButton);
 
-                    return $mainDiv;
+                        // if standard tooltip is not disabled, we load the one to n association text
+                        if (!isset($options['showstanardtooltip']) || $options['showstanardtooltip']) {
+                            if (!empty($options['tooltip'])) {
+                                $options['tooltip'] = $options['tooltip'] . '<br /><br /> ' . $_ARRAYLANG['TXT_CORE_RECORD_ONE_TO_N_ASSOCIATION'];
+                            } else {
+                                $options['tooltip'] = $_ARRAYLANG['TXT_CORE_RECORD_ONE_TO_N_ASSOCIATION'];
+                            }
+                        }
+                        $cxjs = \ContrexxJavascript::getInstance();
+                        $cxjs->setVariable('TXT_CANCEL', $_CORELANG['TXT_CANCEL'], 'Html/lang');
+                        $cxjs->setVariable('TXT_SUBMIT', $_CORELANG['TXT_SUBMIT'], 'Html/lang');
+                        $cxjs->setVariable('TXT_EDIT', $_CORELANG['TXT_EDIT'], 'Html/lang');
+                        $cxjs->setVariable('TXT_DELETE', $_CORELANG['TXT_DELETE'], 'Html/lang');
+
+                        return $mainDiv;
+                    }
                 }
                 break;
             case 'Country':
@@ -791,6 +837,84 @@ CODE;
                 break;
         }
         return $element;
+    }
+
+    /**
+     * Returns the data needed to create a n:x multiselect
+     *
+     * This returns an array with two indexes, each containig an array in the
+     * following form: array(<entityIndexData> => <entity>). Entity index data
+     * is a string of all all identifier field values joined by "/".
+     * The two main keys are "all" and "selected". "all" contains all "foreign"
+     * entities, "selected" only the ones selected by the current entity.
+     * @param array $assocMapping Mapping information for this relation
+     * @param string $entityClass FQCN of the foreign entity
+     * @param int $entityId ID of the local entity
+     * @param arrray $options Options for this view
+     * @return array Array with two indexes, see method description
+     */
+    protected function getForeignEntitySelectOptionData($assocMapping, $entityClass, $entityId, $options) {
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $em = $cx->getDb()->getEntityManager();
+        $localEntityMetadata = $em->getClassMetadata($this->entityClass);
+        $localEntityRepo = $em->getRepository($this->entityClass);
+        $foreignEntityRepo = $em->getRepository($assocMapping['targetEntity']);
+        $localEntity = $localEntityRepo->find($entityId);
+        if (!$localEntity) {
+            throw new \Exception('Entity not found');
+        }
+
+        $methodBaseName = \Doctrine\Common\Inflector\Inflector::classify(
+            $assocMapping['fieldName']
+        );
+        $foreignEntityGetter = 'get' . $methodBaseName;
+        if ($assocMapping['fetch'] == \Doctrine\ORM\Mapping\ClassMetadata::FETCH_EXTRA_LAZY) {
+            // TODO: Handle this case as we'll otherwise probably run out of memory
+        }
+        $allForeignEntities = $foreignEntityRepo->findAll();
+        $data = array(
+            'all' => array(),
+            'selected' => array(),
+        );
+        foreach ($allForeignEntities as $foreignEntity) {
+            $data['all'][implode('/', static::getEntityIndexData($foreignEntity))] = (string) $foreignEntity;
+        }
+        foreach ($localEntity->$foreignEntityGetter() as $foreignEntity) {
+            $data['selected'][implode('/', static::getEntityIndexData($foreignEntity))] = (string) $foreignEntity;
+        }
+        return $data;
+    }
+
+    /**
+     * Helper function to get a list of all values of identifier fields
+     * @param \Cx\Model\Base\EntityBase $entity Entity to get index data of
+     * @return array List of values
+     */
+    public static function getEntityIndexData($entity) {
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $em = $cx->getDb()->getEntityManager();
+        $entityMetadata = $em->getClassMetadata(get_class($entity));
+        return $entityMetadata->getIdentifierValues($entity);
+    }
+
+    /**
+     * Finds an entity by its index data
+     *
+     * @param string $entityClass Fully qualified class name
+     * @param array $indexData List of index values
+     * @return \Cx\Model\Base\EntityBase The matching entity (or null)
+     */
+    public static function findEntityByIndexData($entityClass, $indexData) {
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $em = $cx->getDb()->getEntityManager();
+        $entityMetadata = $em->getClassMetadata($entityClass);
+        $fieldNames = $entityMetadata->getIdentifierFieldNames();
+        $crit = array();
+        foreach ($fieldNames as $index=>$fieldName) {
+            $crit[$fieldName] = $indexData[$index];
+        }
+        $entityRepository = $em->getRepository($entityClass);
+        return $entityRepository->findOneBy($crit);
     }
 
     /**

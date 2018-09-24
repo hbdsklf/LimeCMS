@@ -555,10 +555,11 @@ class User_Setting_Mail
     function getPlaceholders()
     {
         $arrPlaceholders = array_map(
-            create_function(
-                '$langVar',
-                'global $_CORELANG;return $_CORELANG[$langVar];'
-            ),
+            function ($langVar) {
+                global $_CORELANG;
+
+                return $_CORELANG[$langVar];
+            },
             $this->arrAvailableTypes[$this->type]['placeholders']
         );
 
@@ -581,6 +582,13 @@ class User_Setting_Mail
 
     function getFormats()
     {
-        return array_map(create_function('$langVar', 'global $_CORELANG;return $_CORELANG[$langVar];'), $this->arrAvailableFormats);
+        return array_map(
+            function ($langVar) {
+                global $_CORELANG;
+
+                return $_CORELANG[$langVar];
+            },
+            $this->arrAvailableFormats
+        );
     }
 }

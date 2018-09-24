@@ -396,6 +396,8 @@ class ClassLoader {
      *                                  $file contains the character '?' or '#',
      *                                  then the result of this method is
      *                                  unknown.
+     * @param \Cx\Core\View\Model\Entity\Theme $theme (optional) Theme to get
+     *                                  file from. Defaults to current theme (if set)
      * @return  mixed                   Returns the path (either absolute file
      *                                  system path or relativ web path, based
      *                                  on $webPath) to a customized version of
@@ -403,7 +405,7 @@ class ClassLoader {
      *                                  customized version of the file does
      *                                  exist, then FALSE is being returned.
      */
-    public function getFilePath($file, &$isCustomized = false, &$isWebsite = false, $webPath = false) {
+    public function getFilePath($file, &$isCustomized = false, &$isWebsite = false, $webPath = false, $theme = null) {
         // make lookup algorithm work on Windows by replacing backslashes by forward slashes
         $file = preg_replace('#\\\\#', '/', $file);
 
@@ -428,7 +430,7 @@ class ClassLoader {
         $isWebsite = false;
 
         // 1. check if a customized version exists in the currently loaded theme
-        $path = $this->getFileFromTheme($file, $webPath);
+        $path = $this->getFileFromTheme($file, $webPath, $theme);
         if ($path) return $path;
 
         // 2. check if a customized version exists in the /customizing folder
@@ -505,12 +507,21 @@ class ClassLoader {
      * @param   boolean $webPath    Whether or not to return the relative web
      *                              path instead of the absolute file system
      *                              path (default).
+     * @param \Cx\Core\View\Model\Entity\Theme $theme (optional) Theme to get
+     *                              file from. Defaults to current theme (if set)
      * @return  mixed               Path (as string) to customized version of
      *                              file or FALSE if none exists.
      */
-    public function getFileFromTheme($file, $webPath = false) {
+    public function getFileFromTheme($file, $webPath = false, $theme = null) {
         // custom themed files are only available in frontend
-        if ($this->cx->getMode() != \Cx\Core\Core\Controller\Cx::MODE_FRONTEND) {
+        if (
+            $this->cx->getMode() != \Cx\Core\Core\Controller\Cx::MODE_FRONTEND &&
+            !$theme &&
+            (
+                !$this->cx->getResponse() ||
+                !$this->cx->getResponse()->getTheme()
+            )
+        ) {
             return false;
         }
 
@@ -524,14 +535,14 @@ class ClassLoader {
             return false;
         }
 
-        // check if InitCMS has been initialized yet
-        $objInit = \Env::get('init');
-        if (!$objInit) {
+        // check if frontend theme has been loaded yet
+        if (!$theme) {
+            $theme = $this->cx->getResponse()->getTheme();
+        }
+        if (!$theme) {
             return false;
         }
-
-        // check if frontend theme has been loaded yet
-        $currentThemesPath = $objInit->getCurrentThemesPath();
+        $currentThemesPath = $theme->getFoldername();
         if (!$currentThemesPath) {
             return false;
         }

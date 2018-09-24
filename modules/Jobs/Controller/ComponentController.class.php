@@ -49,7 +49,7 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
     public function getControllerClasses() {
 // Return an empty array here to let the component handler know that there
 // does not exist a backend, nor a frontend controller of this component.
-        return array('JsonJobs');
+        return array('JsonJobs', 'EsiWidget');
     }
 
     /**
@@ -58,7 +58,27 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
      * @return array List of ComponentController classes
      */
     public function getControllersAccessableByJson() {
-        return array('JsonJobsController');
+        return array('JsonJobsController', 'EsiWidgetController');
+    }
+
+    /**
+     * Do something after system initialization
+     *
+     * This event must be registered in the postInit-Hook definition
+     * file config/postInitHooks.yml.
+     * @param \Cx\Core\Core\Controller\Cx   $cx The instance of \Cx\Core\Core\Controller\Cx
+     */
+    public function postInit(\Cx\Core\Core\Controller\Cx $cx)
+    {
+        $widgetController = $this->getComponent('Widget');
+        $widget = new \Cx\Core_Modules\Widget\Model\Entity\EsiWidget(
+            $this,
+            'jobs_list',
+            \Cx\Core_Modules\Widget\Model\Entity\Widget::TYPE_BLOCK
+        );
+        $widgetController->registerWidget(
+            $widget
+        );
     }
 
     /**
@@ -89,21 +109,6 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
             default:
                 break;
         }
-    }
-
-    /**
-     * Do something after content is loaded from DB
-     * 
-     * @param \Cx\Core\ContentManager\Model\Entity\Page $page The resolved page
-     */
-    public function postContentLoad(\Cx\Core\ContentManager\Model\Entity\Page $page) {
-        if ($this->cx->getMode() !== \Cx\Core\Core\Controller\Cx::MODE_FRONTEND) {
-            return;
-        }
-
-        //Parse the Hot / Latest jobs
-        $jobLib = new JobsLibrary();
-        $jobLib->parseHotOrLatestJobs($this->cx->getTemplate());
     }
 
     /**

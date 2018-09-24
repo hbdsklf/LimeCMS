@@ -184,29 +184,44 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
 
         // Get Top news, News categories, News Archives, recent News Comments
         $widgetNames = array(
-            'TOP_NEWS_FILE'   => true,
-            'NEWS_CATEGORIES' => false,
-            'NEWS_ARCHIVES'   => true,
-            'NEWS_RECENT_COMMENTS_FILE' => false,
+            'TOP_NEWS_FILE' => 
+                \Cx\Core_Modules\Widget\Model\Entity\EsiWidget::ESI_VAR_ID_USER,
+            'NEWS_CATEGORIES' => 
+                \Cx\Core_Modules\Widget\Model\Entity\EsiWidget::ESI_VAR_ID_QUERY,
+            'NEWS_ARCHIVES' => 
+                \Cx\Core_Modules\Widget\Model\Entity\EsiWidget::ESI_VAR_ID_USER,
+            'NEWS_RECENT_COMMENTS_FILE' => 0,
         );
-        foreach ($widgetNames as $widgetName => $esiVariable) {
+        foreach ($widgetNames as $widgetName => $esiVariables) {
             $widget = new \Cx\Core_Modules\Widget\Model\Entity\EsiWidget(
                 $this,
                 $widgetName
             );
+
+            // set common esi variables
             $widget->setEsiVariable(
                 \Cx\Core_Modules\Widget\Model\Entity\EsiWidget::ESI_VAR_ID_THEME |
-                \Cx\Core_Modules\Widget\Model\Entity\EsiWidget::ESI_VAR_ID_CHANNEL
+                \Cx\Core_Modules\Widget\Model\Entity\EsiWidget::ESI_VAR_ID_CHANNEL |
+                $esiVariables
             );
-            if ($esiVariable) {
-                $widget->setEsiVariable(
-                    \Cx\Core_Modules\Widget\Model\Entity\EsiWidget::ESI_VAR_ID_USER
-                );
-            }
+
             $widgetController->registerWidget(
                 $widget
             );
         }
+
+        // news category block widget
+        $widget = new \Cx\Core_Modules\Widget\Model\Entity\EsiWidget(
+            $this,
+            'news_category_widget',
+            \Cx\Core_Modules\Widget\Model\Entity\Widget::TYPE_BLOCK
+        );
+        $widget->setEsiVariable(
+            \Cx\Core_Modules\Widget\Model\Entity\EsiWidget::ESI_VAR_ID_QUERY
+        );
+        $widgetController->registerWidget(
+            $widget
+        );
 
         // Register tag-cloud widget
         $widget = new \Cx\Core_Modules\Widget\Model\Entity\EsiWidget(

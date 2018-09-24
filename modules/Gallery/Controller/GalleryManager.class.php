@@ -2325,9 +2325,14 @@ class GalleryManager extends GalleryLibrary
         //width of the image is wider than the allowed value. Show Error.
         $arrImageSize = getimagesize($tempPath.'/'.$file);
         if (intval($arrImageSize[0]) > intval($objGallery->arrSettings['image_width'])) {
-            $objGallery->strErrMessage = str_replace('{WIDTH}', $objGallery->arrSettings['image_width'], $lang['TXT_GALLERY_UPLOAD_ERROR_WIDTH']);
              @unlink($tempPath.'/'.$file);
-
+             throw new \Exception(
+                 str_replace(
+                     '{WIDTH}',
+                     $objGallery->arrSettings['image_width'],
+                     $lang['TXT_GALLERY_UPLOAD_ERROR_WIDTH']
+                 )
+             );
         }
 
         //check if file needs to be renamed

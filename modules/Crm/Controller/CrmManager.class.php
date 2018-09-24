@@ -577,7 +577,7 @@ class CrmManager extends CrmLibrary
             's_postal_code'       => isset($_REQUEST['s_postal_code']) ? $_REQUEST['s_postal_code'] : '',
             's_notes'             => isset($_REQUEST['s_notes']) ? $_REQUEST['s_notes'] : '',
             'customer_type'       => isset($_REQUEST['customer_type']) ? $_REQUEST['customer_type'] : '',
-            'filter_membership'   => isset($_REQUEST['filter_membership']) ? $_REQUEST['filter_membership'] : '',
+            'filter_membership'   => isset($_REQUEST['filter_membership']) ? $_REQUEST['filter_membership'] : array(),
             'term'                => isset($_REQUEST['term']) ? contrexx_input2raw($_REQUEST['term']) : '',
             'sorto'               => isset($_REQUEST['sorto']) ? $_REQUEST['sorto'] : '',
             'sortf'               => isset($_REQUEST['sortf']) ? $_REQUEST['sortf'] : 0,
@@ -597,9 +597,14 @@ class CrmManager extends CrmLibrary
 
         if (isset($searchFields['advanced-search'])) {
             $searchLink .= "&s_name={$searchFields['s_name']}&s_email={$searchFields['s_email']}&s_address={$searchFields['s_address']}&s_city={$searchFields['s_city']}&s_postal_code={$searchFields['s_postal_code']}&s_notes={$searchFields['s_notes']}";
-            }
+        }
 
-        $searchLink .= "&customer_type={$searchFields['customer_type']}&term={$searchFields['term']}&filter_membership={$searchFields['filter_membership']}";
+        $membershipLink = '';
+        foreach ($searchFields['filter_membership'] as $membershipFilter) {
+            $membershipLink .= '&filter_membership[]=' . $membershipFilter;
+        }
+
+        $searchLink .= "&customer_type={$searchFields['customer_type']}&term={$searchFields['term']}" . $membershipLink;
 
         $sortLink = "&sorto={$searchFields['sorto']}&sortf={$searchFields['sortf']}";
 
@@ -740,7 +745,7 @@ class CrmManager extends CrmLibrary
         $this->getCustomerTypeDropDown($this->_objTpl, isset($_GET['customer_type']) ? $_GET['customer_type'] : 0, 'customerTypes', array('is_hide' => true));
 
         $this->membership = new \Cx\Modules\Crm\Model\Entity\Membership();
-        $this->getOverviewMembershipDropdown($this->_objTpl, $this->membership, isset($_GET['filter_membership']) ? $_GET['filter_membership'] : 0, 'memberships', array('is_hide' => true));
+        $this->getOverviewMembershipDropdown($this->_objTpl, $this->membership, isset($_GET['filter_membership']) ? $_GET['filter_membership'] : array(), 'memberships', array('is_hide' => true));
 
         $this->_objTpl->setGlobalVariable('TXT_CRM_DOWNLOAD_VCARD', $_ARRAYLANG['TXT_CRM_DOWNLOAD_VCARD']);
 
@@ -1094,11 +1099,40 @@ class CrmManager extends CrmLibrary
             $membershipLink = array();
             if ($objMembership) {
                 while (!$objMembership->EOF) {
-                    $membershipLink[] = "<a href='?cmd=".$this->moduleName."&act=customers&filter_membership={$objMembership->fields['membership_id']}'>". contrexx_raw2xhtml($objMembership->fields['membership']) ."</a>";
+                    $membershipLink[] = "<a href='?cmd=".$this->moduleName."&act=customers&filter_membership[]={$objMembership->fields['membership_id']}'>". contrexx_raw2xhtml($objMembership->fields['membership']) ."</a>";
                     $objMembership->MoveNext();
                 }
             }
-
+            if ($settings['contact_amount_enabled'] && isset($custDetails['contact_amount'])) {
+                $objTpl->setVariable(
+                    array(
+                        'CRM_CONTACT_AMOUNT' => $custDetails['contact_amount'],
+                        'TXT_CRM_AMOUNT' => $_ARRAYLANG['TXT_CRM_AMOUNT'],
+                    )
+                );
+            } else {
+                $objTpl->hideBlock('contactAmount');
+            }
+            if (isset($custDetails['updated_date'])) {
+                $objTpl->setVariable(
+                    array(
+                        'CRM_CONTACT_LAST_UPDATE' => $custDetails['updated_date'],
+                        'TXT_CRM_CONTACT_LAST_UPDATE' => $_ARRAYLANG['TXT_CRM_LASTUPDATE'],
+                    )
+                );
+            } else {
+                $objTpl->hideBlock('contactLastUpdate');
+            }
+            if (isset($custDetails['notes'])) {
+                $objTpl->setVariable(
+                    array(
+                        'CRM_CONTACT_NOTES' => contrexx_raw2xhtml($custDetails['notes']),
+                        'TXT_CRM_CONTACT_NOTES' => $_ARRAYLANG['TXT_CRM_DESCRIPTION'],
+                    )
+                );
+            } else {
+                $objTpl->hideBlock('contactNotes');
+            }
             if ($custDetails['contact_type'] == 1) {
                 $custDetails['cType'] ? $objTpl->touchBlock('companyCustomerType') : $objTpl->hideBlock('companyCustomerType');
                 $custDetails['industry_name'] ? $objTpl->touchBlock('companyIndustryType') : $objTpl->hideBlock('companyIndustryType');
@@ -1186,7 +1220,14 @@ class CrmManager extends CrmLibrary
                 $langId = $custDetails['contact_language'];
                 $langName = \FWLanguage::getLanguageParameter($langId, 'name');
                 $langName ? $objTpl->touchBlock("contactLang") : $objTpl->hideBlock("contactLang");
+
+                $objAttribute = \FWUser::getFWUserObject()->objUser->objAttribute->getById('title_' . $custDetails['salutation']);
+                $salutationLabel = '';
+                if (!$objAttribute->EOF) {
+                    $salutationLabel = $objAttribute->getName();
+                }
                 $objTpl->setVariable(array(
+                        'CRM_CONTACT_SALUTATION'    => $salutationLabel,
                         'CRM_CONTACT_NAME'          => contrexx_raw2xhtml($custDetails['customer_name']),
                         'CRM_CONTACT_FAMILY_NAME'   => contrexx_raw2xhtml($custDetails['contact_familyname']),
                         'CRM_CONTACT_ROLE'          => contrexx_raw2xhtml($custDetails['contact_role']),
@@ -1220,7 +1261,6 @@ class CrmManager extends CrmLibrary
 
             $objTpl->setVariable(array(
                     'CRM_CONTACT_NAME'        => ($custDetails['contact_type'] == 1) ? contrexx_raw2xhtml($custDetails['customer_name']) : contrexx_raw2xhtml($custDetails['customer_name']." ".$custDetails['contact_familyname']),
-                    'CRM_CONTACT_DESCRIPTION' => html_entity_decode($custDetails['notes'], ENT_QUOTES, CONTREXX_CHARSET),
                     'EDIT_LINK'               => ($custDetails['contact_type'] != 1) ? "index.php?cmd=Crm&redirect=showcustdetail&act=customers&tpl=managecontact&amp;type=contact&amp;id=$contactId&redirect=".base64_encode("&act=customers&tpl=showcustdetail&id=$contactId") : "index.php?cmd=Crm&amp;act=customers&tpl=managecontact&amp;id=$contactId&redirect=".base64_encode("&act=customers&tpl=showcustdetail&id=$contactId"),
             ));
         }
@@ -1239,8 +1279,8 @@ class CrmManager extends CrmLibrary
                 'TXT_CRM_CONTACT_PHONE'       => $_ARRAYLANG['TXT_CRM_PHONE'],
                 'TXT_CRM_CONTACT_WEBSITE'     => $_ARRAYLANG['TXT_CRM_WEBSITE'],
                 'TXT_CRM_SOCIAL_NETWORK'      => $_ARRAYLANG['TXT_CRM_SOCIAL_NETWORK'],
+                'TXT_CRM_SALUTATION'          => $_ARRAYLANG['TXT_CRM_SALUTATION'],
                 'TXT_CRM_CONTACT_ADDRESSES'   => $_ARRAYLANG['TXT_CRM_TITLE_ADDRESS'],
-                'TXT_CRM_CONTACT_DESCRIPTION' => $_ARRAYLANG['TXT_CRM_DESCRIPTION'],
                 'TXT_CRM_IMAGE_DELETE'        => $_ARRAYLANG['TXT_CRM_IMAGE_DELETE'],
                 'TXT_CRM_IMAGE_EDIT'          => $_ARRAYLANG['TXT_CRM_IMAGE_EDIT'],
                 'TXT_CRM_TASKS'               => $_ARRAYLANG['TXT_CRM_TASKS'],
@@ -2010,6 +2050,7 @@ END;
         $this->contact->contactType      = $contactType;
         $this->contact->companySize      = isset($_POST['companySize']) ? contrexx_input2raw($_POST['companySize']) : 0;
         $this->contact->contact_gender   = isset($_POST['contact_gender']) ? (int) $_POST['contact_gender'] : 0;
+        $this->contact->salutation       = isset($_POST['salutation']) ? (int) $_POST['salutation'] : 0;
         $this->contact->emailDelivery    = empty($_POST) || isset($_POST['emailDelivery']) ? 1 : 0;
 
         $accountUserID                   = (isset($_POST['contactId'])) ? intVal($_POST['contactId']) : 0;
@@ -2440,6 +2481,20 @@ END;
             $objUser = false;
         }
 
+        $objAttribute = \FWUser::getFWUserObject()->objUser->objAttribute->getById('title');
+        if (!$objAttribute->EOF) {
+            $titleKeys = $objAttribute->getChildren();
+            foreach ($titleKeys as $title) {
+                $value = $objAttribute->getById($title)->getMenuOptionValue();
+                $this->_objTpl->setVariable(array(
+                    'SALUTATION_SELECT'     =>  $value == $this->contact->salutation ? 'selected=selected' : '',
+                    'SALUTATION_ID'         =>  $value,
+                    'TXT_SALUTATION_NAME'   =>  $objAttribute->getById($title)->getName(),
+                ));
+                $this->_objTpl->parse("crmContactSalutationOptions");
+            }
+        }
+
         $this->_objTpl->setVariable(array(
             'CRM_ADDRESS_HEADER_CLASS'      => $showAddress ? 'header-collapse' : 'header-expand',
             'CRM_ADDRESS_BLOCK_DISPLAY'     => $showAddress ? 'table-row-group' : 'none',
@@ -2542,6 +2597,7 @@ END;
                 'TXT_CRM_CUSTOMERTYPE'        =>    $_ARRAYLANG['TXT_CRM_TITLE_CUSTOMERTYPE'],
                 'TXT_CRM_SOCIAL_NETWORK'      =>    $_ARRAYLANG['TXT_CRM_SOCIAL_NETWORK'],
                 'TXT_CRM_GENDER'              =>    $_ARRAYLANG['TXT_CRM_GENDER'],
+                'TXT_CRM_SALUTATION'          =>    $_ARRAYLANG['TXT_CRM_SALUTATION'],
                 'TXT_CRM_NOT_SPECIFIED'       =>    $_ARRAYLANG['TXT_CRM_NOT_SPECIFIED'],
                 'TXT_CRM_GENDER_MALE'         =>    $_ARRAYLANG['TXT_CRM_GENDER_MALE'],
                 'TXT_CRM_GENDER_FEMALE'       =>    $_ARRAYLANG['TXT_CRM_GENDER_FEMALE'],
@@ -5483,7 +5539,11 @@ END;
             $where[] = " (c.customer_type = '".intval($_REQUEST['customer_type'])."')";
         }
         if (isset($_REQUEST['filter_membership']) && !empty($_REQUEST['filter_membership'])) {
-            $where[] = " mem.membership_id = '".intval($_REQUEST['filter_membership'])."'";
+            $where[] = " mem.membership_id IN(" . 
+                implode(
+                    ',', 
+                    contrexx_input2int($_REQUEST['filter_membership'])
+                ) . ")";
         }
 
         if (isset($_REQUEST['term']) && !empty($_REQUEST['term'])) {

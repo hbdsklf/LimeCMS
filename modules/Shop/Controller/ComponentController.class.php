@@ -45,19 +45,28 @@ namespace Cx\Modules\Shop\Controller;
  * @subpackage  module_shop
  */
 class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentController {
-    public function getControllerClasses() {
-        // Return an empty array here to let the component handler know that there
-        // does not exist a backend, nor a frontend controller of this component.
-        return array();
+
+    /**
+     * Return a list of Controller Classes.
+     * @return array
+     */
+    public function getControllerClasses()
+    {
+        return array('Backend');
     }
 
-     /**
-     * Load your component.
+    /**
+     * Load your component. It is needed for this request.
      *
-     * @param \Cx\Core\ContentManager\Model\Entity\Page $page       The resolved page
+     * This loads your Frontend or BackendController depending on the
+     * mode Cx runs in. For modes other than frontend and backend, nothing is
+     * done. This method is overwritten because the frontend view is loaded
+     * without frontend controller and directly with the ShopManager
+     *
+     * @param \Cx\Core\ContentManager\Model\Entity\Page $page The resolved page
      */
-    public function load(\Cx\Core\ContentManager\Model\Entity\Page $page) {
-        global $_CORELANG, $subMenuTitle, $intAccessIdOffset, $objTemplate;
+    public function load(\Cx\Core\ContentManager\Model\Entity\Page $page)
+    {
         switch ($this->cx->getMode()) {
             case \Cx\Core\Core\Controller\Cx::MODE_FRONTEND:
                 $page->setContent(Shop::getPage($page->getContent()));
@@ -84,13 +93,7 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
                 break;
 
             case \Cx\Core\Core\Controller\Cx::MODE_BACKEND:
-                $this->cx->getTemplate()->addBlockfile('CONTENT_OUTPUT', 'content_master', 'LegacyContentMaster.html');
-                $objTemplate = $this->cx->getTemplate();
-
-                \Permission::checkAccess($intAccessIdOffset+13, 'static');
-                $subMenuTitle = $_CORELANG['TXT_SHOP_ADMINISTRATION'];
-                $objShopManager = new ShopManager();
-                $objShopManager->getPage();
+                parent::load($page);
                 break;
         }
     }
