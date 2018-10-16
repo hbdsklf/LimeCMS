@@ -1058,8 +1058,12 @@ class Resolver {
                     if ($this->aliaspage) {
                         $page = $this->aliaspage;
                     }
+                    $cx = \Cx\Core\Core\Controller\Cx::instanciate();
                     $link = base64_encode(
-                        \Cx\Core\Routing\Url::fromPage($page)->toString()
+                        \Cx\Core\Routing\Url::fromPage(
+                            $page,
+                            $cx->getRequest()->getUrl()->getParamArray()
+                        )->toString()
                     );
                 }
                 \Cx\Core\Csrf\Controller\Csrf::header(
