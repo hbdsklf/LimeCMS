@@ -1054,17 +1054,16 @@ class Resolver {
                 if (isset($_GET['redirect'])) {
                     $link = $_GET['redirect'];
                 } else {
-                    $page = $this->page;
-                    if ($this->aliaspage) {
-                        $page = $this->aliaspage;
-                    }
                     $cx = \Cx\Core\Core\Controller\Cx::instanciate();
-                    $link = base64_encode(
-                        \Cx\Core\Routing\Url::fromPage(
-                            $page,
+                    if ($this->aliaspage) {
+                        $link = \Cx\Core\Routing\Url::fromPage(
+                            $this->aliaspage,
                             $cx->getRequest()->getUrl()->getParamArray()
-                        )->toString()
-                    );
+                        )->toString();
+                    } else {
+                        $link = \Env::get('cx')->getRequest()->getUrl()->toString();
+                    }
+                    $link = base64_encode($link);
                 }
                 \Cx\Core\Csrf\Controller\Csrf::header(
                     'Location: '. \Cx\Core\Routing\Url::fromModuleAndCmd(
