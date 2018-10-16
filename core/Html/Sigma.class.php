@@ -122,6 +122,15 @@ class Sigma extends \HTML_Template_Sigma {
         return $this->parseTarget;
     }
 
+    /**
+     * Sets the parse target after initialization
+     * @deprecated Set parse target on initialization
+     * @param \Cx\Core\View\Model\Entity\ParseTarget Target where this instances will get parsed into (or null)
+     */
+    public function setParseTarget($parseTarget) {
+        $this->parseTarget = $parseTarget;
+    }
+
     function getRoot() {
         return $this->fileRoot;
     }
@@ -185,8 +194,13 @@ class Sigma extends \HTML_Template_Sigma {
             }
         }
 
-        // Renew variable list
-        return $this->_buildBlockVariables();
+        // Renew variable list without dropping existing callbacks
+        // This may lead to too much data in $this->_functions but
+        // Sigma simply does str_replace() which never matches.
+        $func_bkp = $this->_functions;
+        $ret = $this->_buildBlockVariables();
+        $this->_functions = $func_bkp + $this->_functions;
+        return $ret;
     }
 
     /**

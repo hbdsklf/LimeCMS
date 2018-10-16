@@ -297,10 +297,10 @@ class ListingController {
             $data = $data->sort($this->order);
 
             // limit data
+            $this->dataSize = $data->size();
             if ($this->count) {
                 $data = $data->limit($this->count, $this->offset);
             }
-            $this->dataSize = $data->size();
             $this->data = $data;
             return $data;
         }

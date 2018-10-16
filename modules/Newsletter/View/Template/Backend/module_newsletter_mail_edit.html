@@ -202,12 +202,10 @@ $J(document).ready(function() {
     </td>
   </tr>
 
-    <tr class="row1" style="vertical-align:top;">
+  <tr class="row1" style="vertical-align:top;">
         <td width="15%">{TXT_NEWSLETTER_CRM_MEMBERSHIP}
-            <span class="tooltip-trigger icon-warning"></span>
-            <span class="tooltip-message">
-                {TXT_NEWSLETTER_INFO_ABOUT_ASSOCIATED_LISTS_SEND}
-            </span>
+            <!-- BEGIN crmMembershipAssociatedToolTipBeforeSend --><span class="icon-warning tooltip-trigger"></span><span class="tooltip-message">{TXT_NEWSLETTER_INFO_ABOUT_ASSOCIATED_LISTS_SEND}</span><!-- END crmMembershipAssociatedToolTipBeforeSend -->
+            <!-- BEGIN crmMembershipAssociatedToolTipAfterSend --><span class="tooltip-trigger icon-info"></span><span class="tooltip-message">{TXT_NEWSLETTER_INFO_ABOUT_ASSOCIATED_LISTS}</span><!-- END crmMembershipAssociatedToolTipAfterSend -->
         </td>
         <td width="85%" colspan="3">
             <div>
@@ -373,8 +371,16 @@ $J(document).ready(function() {
     <td>[[profile_setup]] <span class="icon-info tooltip-trigger"></span><span class="tooltip-message">{TXT_NEWSLETTER_PLACEHOLDER_NOT_ON_BROWSER_VIEW}</span></td>
   </tr>
   <tr class="row1">
+    <td>{TXT_NEWSLETTER_MODIFY_PROFILE} (URL)</td>
+    <td>[[profile_setup_url]] <span class="icon-info tooltip-trigger"></span><span class="tooltip-message">{TXT_NEWSLETTER_PLACEHOLDER_NOT_ON_BROWSER_VIEW}</span></td>
+  </tr>
+  <tr class="row2">
     <td>{TXT_NEWSLETTER_UNSUBSCRIBE} (Link)</td>
     <td>[[unsubscribe]] <span class="icon-info tooltip-trigger"></span><span class="tooltip-message">{TXT_NEWSLETTER_PLACEHOLDER_NOT_ON_BROWSER_VIEW}</span></td>
+  </tr>
+  <tr class="row1">
+    <td>{TXT_NEWSLETTER_UNSUBSCRIBE} (URL)</td>
+    <td>[[unsubscribe_url]] <span class="icon-info tooltip-trigger"></span><span class="tooltip-message">{TXT_NEWSLETTER_PLACEHOLDER_NOT_ON_BROWSER_VIEW}</span></td>
   </tr>
   <tr class="row2">
     <td>{TXT_NEWSLETTER_DATE}</td>

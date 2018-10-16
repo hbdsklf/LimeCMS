@@ -86,6 +86,7 @@
 <script language="JavaScript" type="text/javascript">
     var defaultLang = cx.variables.get('language_id', 'calendar');
     var activeLang = [];
+    var calendarXhr = null;
     var blankExeception;
     var modifyEvent = {
         // elm => jquery object
@@ -156,8 +157,10 @@
         $J(".sendInvitation").click(function() {
             if ($J(this).is(":checked")) {
                 $J(".invitationEmailTemplateContainer").show();
+                $J("#invitationExclude").show();
             } else {
                 $J(".invitationEmailTemplateContainer").hide();
+                $J("#invitationExclude").hide();
             }
         });
         $J( ".eventLocationType" ).click(function(){
@@ -203,6 +206,44 @@
 
         elm1.style.display = (elm1.style.display=='none') ? 'block' : 'none';
         elm2.style.display = (elm2.style.display=='none') ? 'block' : 'none';
+    }
+
+    function updateRecipientsCount() {
+        // abort last call
+        if(calendarXhr != null){
+            calendarXhr.abort();
+        }
+
+        // add loading animation
+        cx.jQuery("#recipientsCount").html("<img src=\"" + cx.variables.get('basePath', 'contrexx') + "lib/javascript/jquery/jstree/themes/default/throbber.gif\" alt=\"Loading...\" />");
+
+        // parse selected access user groups
+        var selectedGroups = new Array();
+        cx.jQuery('#selectedGroups option').each(function() {
+            selectedGroups.push(cx.jQuery(this).val());
+        });
+
+        calendarXhr = cx.ajax(
+            "calendar",
+            "getRecipientCount",
+            {
+                data: {
+                    'id': '{CALENDAR_EVENT_ID}',
+                    'lang_id': cx.jQuery("input[name='showIn[]']").val(),
+                    'invite_crm_memberships':
+                        cx.jQuery("#calendar_event_invite_crm_memberships").val(),
+                    'excluded_crm_memberships':
+                        cx.jQuery("#calendar_event_excluded_crm_memberships").val(),
+                    'invitedMails':
+                        cx.jQuery("#invitedMails").val(),
+                    'selectedGroups': selectedGroups,
+                    'sendMailTo': cx.jQuery("input[name='sendMailTo']:checked").val()
+                },
+                success: function(json) {
+                    cx.jQuery("#recipientsCount").text(json['data']);
+                }
+            }
+        );
     }
 
     cx.ready(function() {
@@ -362,6 +403,13 @@
                 addExeptionList(key, v);
             }
         });
+        updateRecipientsCount();
+        $J("#calendar_event_invite_crm_memberships").change(updateRecipientsCount);
+        $J("#calendar_event_excluded_crm_memberships").change(updateRecipientsCount);
+        $J("input[name='addElement']").click(updateRecipientsCount);
+        $J("input[name='removeElement']").click(updateRecipientsCount);
+        $J("#invitedMails").change(updateRecipientsCount);
+        $J("input[name='sendMailTo']").change(updateRecipientsCount);
     });
 
     function showOrHidePlaceFields(inputValue, type) {
@@ -1346,13 +1394,14 @@
             <tr class="row1">
                 <td valign="top">{TXT_CALENDAR_EVENT_MORE_INVITATIONS}</td>
                 <td colspan="2">
-                    <textarea name="invitedMails" style="width: 250px; height: 60px;" />{CALENDAR_EVENT_MORE_INVITATIONS}</textarea>&nbsp;&nbsp;<span class="icon-info tooltip-trigger"></span><span class="tooltip-message">{TXT_CALENDAR_EVENT_MORE_INVITATIONS_INFO}</span>
+                    <textarea id="invitedMails" name="invitedMails" style="width: 250px; height: 60px;" />{CALENDAR_EVENT_MORE_INVITATIONS}</textarea>&nbsp;&nbsp;<span class="icon-info tooltip-trigger"></span><span class="tooltip-message">{TXT_CALENDAR_EVENT_MORE_INVITATIONS_INFO}</span>
                 </td>
             </tr>
             <tr class="row2">
                 <td valign="top">{TXT_CALENDAR_EVENT_SEND_INVITATION}</td>
                 <td width="1%">
                     <input name="sendInvitation" class="sendInvitation" type="checkbox" value="1" {CALENDAR_EVENT_SEND_INVITATION}/>
+                    ({TXT_CALENDAR_EVENT_SEND_INVITATION_COUNT}  <div style="display: inline-block;" id="recipientsCount"></div>)
                 </td>
                 <td>
                     <div class="invitationEmailTemplateContainer" style="display: none;">
@@ -1365,6 +1414,20 @@
                         </div>
                         <!-- END invitation_email_template -->
                     </div>
+                </td>
+            </tr>
+            <tr class="row1" id="invitationExclude" style="display: none;">
+                <td valign="top">
+                    {TXT_CALENDAR_EVENT_SEND_INVITATION_TO}
+                    <span class="icon-info tooltip-trigger"></span>
+                    <span class="tooltip-message">{TXT_CALENDAR_EVENT_SEND_INVITATION_TO_TOOLTIP}</span>
+                </td>
+                <td colspan="2">
+                    <input type="radio" name="sendMailTo" id="allUsers" value="all" checked="checked"/><label for="allUsers"> {TXT_CALENDAR_EVENT_SEND_INVITATION_TO_ALL}</label><br />
+                    <input type="radio" name="sendMailTo" id="registeredUsers" value="registered" /><label for="registeredUsers"> {TXT_CALENDAR_EVENT_SEND_INVITATION_TO_REGISTERED}</label><br />
+                    <input type="radio" name="sendMailTo" id="signedInUsers" value="signedIn" /><label for="signedInUsers"> {TXT_CALENDAR_EVENT_SEND_INVITATION_TO_SIGNEDIN}</label><br />
+                    <input type="radio" name="sendMailTo" id="inactiveUsers" value="inactive" /><label for="inactiveUsers"> {TXT_CALENDAR_EVENT_SEND_INVITATION_TO_INACTIVE}</label>
+
                 </td>
             </tr>
         </table>

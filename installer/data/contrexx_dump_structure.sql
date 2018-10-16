@@ -312,6 +312,7 @@ CREATE TABLE `contrexx_core_modules_access_permission` (
   `requires_login` tinyint(1) DEFAULT NULL,
   `valid_user_groups` longtext DEFAULT NULL COMMENT '(DC2Type:array)',
   `valid_access_ids` longtext DEFAULT NULL COMMENT '(DC2Type:array)',
+  `callback` longtext DEFAULT NULL COMMENT '(DC2Type:array)',
   PRIMARY KEY(`id`)
 ) ENGINE = InnoDB;
 CREATE TABLE `contrexx_core_module_data_access` (
@@ -1136,7 +1137,7 @@ CREATE TABLE `contrexx_module_crm_contacts` (
   `contact_customer` int(11) DEFAULT NULL,
   `contact_language` int(11) DEFAULT NULL,
   `gender` tinyint(2) NOT NULL,
-  `salutation` int(11) NOT NULL,
+  `salutation` int(11) NOT NULL DEFAULT '0',
   `notes` text,
   `industry_type` int(11) DEFAULT NULL,
   `contact_type` tinyint(2) DEFAULT NULL,

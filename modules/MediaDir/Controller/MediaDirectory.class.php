@@ -915,7 +915,7 @@ class MediaDirectory extends MediaDirectoryLibrary
         }
 
         // parse related entries
-        $this->parseRelatedEntries($objEntry, $intEntryId, $intCategoryId, $intLevelId);
+        $this->parseRelatedEntries($this->_objTpl, $objEntry, $intEntryId, $intCategoryId, $intLevelId);
 
         // parse previous entry
         $this->parsePreviousEntry($objEntry, $intEntryId, $intCategoryId, $intLevelId);
@@ -929,14 +929,15 @@ class MediaDirectory extends MediaDirectoryLibrary
      * See (@see fetchMediaDirListConfigFromTemplate) for a list of functional
      * placeholders to be used in the template.
      *
+     * @param   \Cx\Core\Html\Sigma $template   Template object to be used for parsing
      * @param   MediaDirectoryEntry $objEntry   Instance of current MediaDirectoryEntry
      * @param   integer $intEntryId ID of the currently processing entry
      * @param   integer $intCategoryId ID of the currently selected category
      * @param   integer $intLevelId ID of the currently selected level
      */
-    protected function parseRelatedEntries($objEntry, $intEntryId, $intCategoryId = 0, $intLevelId = 0) {
+    public function parseRelatedEntries($template, $objEntry, $intEntryId, $intCategoryId = 0, $intLevelId = 0, $templatePrefix = '') {
         // check if we shall parse any related entries
-        if (!$this->_objTpl->blockExists($this->moduleNameLC.'RelatedList')) {
+        if (!$template->blockExists($this->moduleNameLC . $templatePrefix . 'RelatedList')) {
             return;
         }
 
@@ -946,8 +947,10 @@ class MediaDirectory extends MediaDirectoryLibrary
         $formId = null;
         $categoryId = null;
         $levelId = null;
+        $entryId = null;
+        $templatePrefixLC = '';
 
-        $config = MediaDirectoryLibrary::fetchMediaDirListConfigFromTemplate($this->moduleNameLC.'RelatedList', $this->_objTpl, null, $intCategoryId, $intLevelId);
+        $config = MediaDirectoryLibrary::fetchMediaDirListConfigFromTemplate($this->moduleNameLC . $templatePrefix . 'RelatedList', $template, null, $intCategoryId, $intLevelId);
 
         if (isset($config['list']['latest'])) {
             $latest = $config['list']['latest'];
@@ -970,11 +973,12 @@ class MediaDirectory extends MediaDirectoryLibrary
         $associated = false;
         if (isset($config['filter']['associated'])) {
             $associated = true;
+            $entryId = $intEntryId;
         }
 
         // fetch related entries
         $objEntry->resetEntries();
-        $objEntry->getEntries(null, $levelId, $categoryId, null, $latest, null,
+        $objEntry->getEntries($entryId, $levelId, $categoryId, null, $latest, null,
             true, $offset, $limit, null, null, $formId,
             null, 0, 0, $associated);
 
@@ -984,15 +988,18 @@ class MediaDirectory extends MediaDirectoryLibrary
         // abort in case no related entries are present
         if (empty($objEntry->arrEntries)) {
             // hide block being used to display related entries
-            $this->_objTpl->hideBlock($this->moduleNameLC.'RelatedList');
+            $template->hideBlock($this->moduleNameLC . $templatePrefix . 'RelatedList');
             return;
         }
 
         // set mediadirRelatedList tempalte block to be parsed
-        $objEntry->setStrBlockName($this->moduleNameLC.'RelatedListEntry');
+        $objEntry->setStrBlockName($this->moduleNameLC . $templatePrefix . 'RelatedListEntry');
 
         // prarse related entries
-        $objEntry->listEntries($this->_objTpl, 5, 'related');
+        if (!empty($templatePrefix)) {
+            $templatePrefixLC = strtolower($templatePrefix) . '_';
+        }
+        $objEntry->listEntries($template, 5, $templatePrefixLC . 'related');
     }
 
     /**

@@ -436,6 +436,9 @@ class BackendTable extends HTML_Table {
         if (!$virtual && isset($functions['delete']) && $functions['delete']) {
             return true;
         }
+        if (!$virtual && isset($functions['copy']) && $functions['copy']) {
+            return true;
+        }
         return false;
     }
 
@@ -478,6 +481,18 @@ class BackendTable extends HTML_Table {
         }
 
         if(!$virtual){
+            if (isset($functions['copy']) && $functions['copy']) {
+                $actionUrl = clone \Cx\Core\Core\Controller\Cx::instanciate()->getRequest()->getUrl();
+                $actionUrl->setParam('copy', $editId);
+                //remove the parameter 'vg_increment_number' from actionUrl
+                //if the baseUrl contains the parameter 'vg_increment_number'
+                $params = $actionUrl->getParamArray();
+                if (isset($params['vg_increment_number'])) {
+                    \Html::stripUriParam($actionUrl, 'vg_increment_number');
+                }
+                $code = '<a href="'.$actionUrl.'" class="copy" title="'.$_ARRAYLANG['TXT_CORE_RECORD_COPY_TITLE'].'"></a>';
+
+            }
             if (isset($functions['edit']) && $functions['edit']) {
                 $editUrl->setParam('editid', $editId);
                 //remove the parameter 'vg_increment_number' from editUrl

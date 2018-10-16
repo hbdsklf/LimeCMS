@@ -63,7 +63,7 @@ class JsonCalendar implements JsonAdapter {
      * @return array List of method names
      */
     public function getAccessableMethods() {
-        return array('getExeceptionDates');
+        return array('getExeceptionDates', 'getRecipientCount');
     }
 
     /**
@@ -96,5 +96,55 @@ class JsonCalendar implements JsonAdapter {
 
         $calendarLib = new \Cx\Modules\Calendar\Controller\CalendarLibrary();
         return $calendarLib->getExeceptionDates();
+    }
+
+    /**
+     * Get the count of the selected recipients of a event invitation
+     *
+     * @param   array   $params     List of get and post parameters which were
+     *                              sent to the json adapter.
+     *
+     * @return  integer            The count of the recipients
+     */
+    public function getRecipientCount($params = array())
+    {
+        $event = new \Cx\Modules\Calendar\Controller\CalendarEvent();
+        if (intval($params['get']['id']) != 0) {
+            $event->get(
+                intval($params['get']['id']),
+                null,
+                intval($params['get']['lang_id'])
+            );
+
+            if (empty($event->id)) {
+                return 0;
+            }
+        }
+
+        // load current lists of invited people directly from the get params,
+        // because they are not necessarily stored in the database yet
+        // 1.) load access users
+        $event->invitedGroups = $params['get']['selectedGroups'];
+
+        // 2.) load crm users
+        $invited = $params['get']['invite_crm_memberships'];
+        $excluded = $params['get']['excluded_crm_memberships'];
+        $event->invitedCrmGroups = is_array($invited) ? contrexx_input2int($invited) : array();
+        $event->excludedCrmGroups = is_array($excluded) ? contrexx_input2int($excluded) : array();
+
+        // 3.) load emails which were entered manually
+        $event->invitedMails = $params['get']['invitedMails'];
+
+        // get the send to filter
+        $sendInvitationTo = $params['get']['sendMailTo'];
+        $calendarManager = new \Cx\Modules\Calendar\Controller\CalendarMailManager();
+        $recipientsCount = $calendarManager->getSendMailRecipientsCount(
+            \Cx\Modules\Calendar\Controller\CalendarMailManager::MAIL_INVITATION,
+            $event,
+            0,
+            null,
+            $sendInvitationTo
+        );
+        return $recipientsCount;
     }
 }

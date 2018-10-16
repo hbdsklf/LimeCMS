@@ -1108,6 +1108,41 @@ class User extends User_Profile
      * );
      * $objUser = \User::getUsers($filter);
      * </pre>
+     * <h5>Fetch all active users named 'John Doe' or 'Max Muster'</h5>
+     * <pre class="brush: php">
+     * $filter = array(
+     *      'AND' => array(
+     *          0 => array(
+     *              'active' => true,
+     *          ),
+     *          1 => array(
+     *              'OR' => array(
+     *                  0 => array(
+     *                      'AND' => array(
+     *                          0 => array(
+     *                              'firstname' => 'John',
+     *                          ),
+     *                          1 => array(
+     *                              'lastname' => 'Doe',
+     *                          ),
+     *                      ),
+     *                  ),
+     *                  1 => array(
+     *                      'AND' => array(
+     *                          0 => array(
+     *                              'firstname' => 'Max',
+     *                          ),
+     *                          1 => array(
+     *                              'lastname' => 'Muster',
+     *                          ),
+     *                      ),
+     *                  ),
+     *              ),
+     *          ),
+     *      ),
+     * );
+     * $objUser = \User::getUsers($filter);
+     * </pre>
      * @param   string  $search        The optional parameter $search can be used to do a fulltext search on the user accounts.
      *                                 $search is an array whereas its key-value pairs represent a user-account's attribute
      *                                 and its search pattern to apply to. If multiple search conditions are set, only one
@@ -1271,7 +1306,13 @@ class User extends User_Profile
                 $crmUser = true;
             }
         }
-        if (!($arrQuery = $this->setSortedUserIdList($arrSort, $sqlCondition, $limit, $offset, $groupless, $crmUser))) {
+        try {
+            if (!($arrQuery = $this->setSortedUserIdList($arrSort, $sqlCondition, $limit, $offset, $groupless, $crmUser))) {
+                $this->clean();
+                return false;
+            }
+        } catch (\Throwable $e) {
+            // catch invalid $filter or $search definitions
             $this->clean();
             return false;
         }
@@ -1363,11 +1404,20 @@ class User extends User_Profile
      *                                          filtering the custom attributes
      * @param   boolean $groupTables Will be set to TRUE if the SQL statement
      *                               should be grouped (GROUP BY)
+     * @param   boolean $uniqueJoins Whether the filter arguments shall be
+     *                               joined by separate unique JOINs or by
+     *                               a single common JOIN statement.
+     * @param   integer $joinIdx     The current index used for separate
+     *                               unique JOINs.
      * @return  array   List of SQL statements to be used as WHERE arguments
      */
-    protected function parseFilterConditions($filter, &$tblCoreAttributes, &$tblGroup, &$customAttributeJoins, &$groupTables)
+    protected function parseFilterConditions($filter, &$tblCoreAttributes, &$tblGroup, &$customAttributeJoins, &$groupTables, $uniqueJoins = true, &$joinIdx = 0)
     {
         $arrConditions = array();
+
+        // somehow the pointer on $filter is sometimes wrong
+        // therefore we need to reset it
+        reset($filter);
 
         // check if $filter is constructed by an OR or AND condition
         if (count($filter) == 1 && in_array(strtoupper(key($filter)), array('OR', 'AND'))) {
@@ -1377,9 +1427,22 @@ class User extends User_Profile
             // arguments that shall be joined by $joinMethod
             $filterArguments = current($filter);
 
+            // generate new join to custom attribute table
+            if ($uniqueJoins) {
+                $joinIdx++;
+            }
+
             // parse filter arguments (generate SQL statements)
             foreach ($filterArguments as $argument) {
-                $filterConditions = $this->parseFilterConditions($argument, $tblCoreAttributes, $tblGroup, $customAttributeJoins, $groupTables);
+                $filterConditions = $this->parseFilterConditions(
+                    $argument,
+                    $tblCoreAttributes,
+                    $tblGroup,
+                    $customAttributeJoins,
+                    $groupTables,
+                    $joinMethod == 'AND',
+                    $joinIdx
+                );
 
                 // don't add empty arguments to SQL query (through $arrConditions)
                 if (!$filterConditions) {
@@ -1403,12 +1466,21 @@ class User extends User_Profile
             $arrConditions[] = implode(' AND ', $arrCoreAttributeConditions);
             $tblCoreAttributes = true;
         }
-        if (count($arrCustomAttributeConditions = $this->parseCustomAttributeFilterConditions($filter))) {
+        $arrCustomAttributeConditions = $this->parseCustomAttributeFilterConditions(
+            $filter,
+            null,
+            $uniqueJoins,
+            $joinIdx
+        );
+        if (count($arrCustomAttributeConditions)) {
             $groupTables = true;
             $arrConditions[] = implode(' AND ', $arrCustomAttributeConditions);
             foreach (array_keys($arrCustomAttributeConditions) as $customAttributeTable) {
                 $customAttributeJoins[] = ' INNER JOIN `'.DBPREFIX.'access_user_attribute_value` AS ' . $customAttributeTable . ' ON ' . $customAttributeTable . '.`user_id` = tblU.`id` ';
             }
+
+            // drop redundant joins
+            $customAttributeJoins = array_unique($customAttributeJoins);
         }
 
         // filter by user group membership (if set)
@@ -1569,7 +1641,7 @@ class User extends User_Profile
             ).
             ($joinGroupTbl && !FWUser::getFWUserObject()->isBackendMode() ? ' INNER JOIN `'.DBPREFIX.'access_user_groups` AS tblGF ON tblGF.`group_id`=tblG.`group_id`' : '').
             (count($arrCustomJoins) ? ' '.implode(' ',$arrCustomJoins) : '').
-            (count($arrCustomSelection) ? ' WHERE '.implode(' AND ', $arrCustomSelection) : '').
+            (count($arrCustomSelection) ? ' WHERE ('.implode(') AND (', $arrCustomSelection).')' : '').
             (count($arrSortExpressions) ? ' ORDER BY '.implode(', ', $arrSortExpressions) : '');
         $objUserId = false;
         if (empty($limit)) {

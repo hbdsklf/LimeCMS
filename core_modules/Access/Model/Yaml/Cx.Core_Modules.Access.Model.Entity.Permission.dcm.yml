@@ -26,6 +26,10 @@ Cx\Core_Modules\Access\Model\Entity\Permission:
             type: array
             column: valid_access_ids
             nullable: true
+        callback:
+            type: array
+            column: callback
+            nullable: true
     oneToMany:
         readDataAccesses:
             targetEntity: Cx\Core_Modules\DataAccess\Model\Entity\DataAccess

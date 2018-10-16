@@ -376,7 +376,7 @@ class MediaDirectoryCategory extends MediaDirectoryLibrary
                         $objTpl->blockExists($this->moduleNameLC.'CategoriesLevels_row_' . $intBlockId . '_entry')
                     ) {
                         $objEntry = new MediaDirectoryEntry($this->moduleName);
-                        $objEntry->getEntries(null, null, $arrCategory['catId'], null, false, null, true);
+                        $objEntry->getEntries(null, $levelId, $arrCategory['catId'], null, false, null, true);
                         if ($objEntry->countEntries()) {
                             // set mediadirCategoriesLevels_row_N_entry tempalte block to be parsed
                             $objEntry->setStrBlockName($this->moduleNameLC.'CategoriesLevels_row_'. $intBlockId . '_entry');

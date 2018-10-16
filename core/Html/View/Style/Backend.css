@@ -29,6 +29,16 @@ a.edit {
     cursor: pointer;
 }
 
+a.copy {
+    background-image: url(../Media/copy.gif);
+    display: inline-block;
+    height: 16px;
+    width: 16px;
+    margin-top: 4px;
+    margin-left: 4px;
+    cursor: pointer;
+}
+
 form.cx-ui {
     float: none;
     clear: both;

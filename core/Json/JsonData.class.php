@@ -246,6 +246,24 @@ class JsonData {
     }
 
     /**
+     * Checks whether an adapter or an adapter's method exists
+     *
+     * @param string $adapterName Adapter name to check for
+     * @param string $methodName (optional) Method name to check for
+     * @return boolean True if adapter or adapter's method exists, false otherwise
+     */
+    public function hasAdapterAndMethod($adapterName, $methodName = '') {
+        $adapterExists = isset(static::$adapters[$adapterName]);
+        if (empty($methodName) || !$adapterExists) {
+            return $adapterExists;
+        }
+        $adapter = static::$adapters[$adapterName];
+        $methods = $adapter->getAccessableMethods();
+        // $methods has two possible formats: value can be a permission
+        return isset($methods[$methodName]) || in_array($methodName, $methods);
+    }
+
+    /**
      * Passes JSON data to the particular adapter and returns the result
      * Called from jsondata() or any part of Cloudrexx
      * @author Michael Ritter <michael.ritter@comvation.com>

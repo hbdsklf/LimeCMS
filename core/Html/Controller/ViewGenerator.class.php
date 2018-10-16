@@ -175,6 +175,15 @@ class ViewGenerator {
             ) {
                 $this->removeEntry($entityWithNS);
             }
+
+            // execute copy if entry is a doctrine entity (or execute callback if specified in configuration)
+            // post edit
+            if (
+                !empty($this->options['functions']['copy']) &&
+                $this->options['functions']['copy'] != false
+            ) {
+                $this->saveEntry($entityWithNS);
+            }
         } catch (\Exception $e) {
             \Message::add($e->getMessage(), \Message::CLASS_ERROR);
             return;
@@ -691,6 +700,18 @@ class ViewGenerator {
             $isSingle = true;
             return $this->renderFormForEntry(null);
         }
+
+        // this case is used to copy the entry
+        if (
+            !empty($_GET['copy']) &&
+            !empty($this->options['functions']['copy']) &&
+            $this->options['functions']['copy'] != false
+        ) {
+            $isSingle = true;
+            $eId = intval($this->getVgParam($_GET['copy']));
+            return $this->renderFormForEntry($eId);
+        }
+
         $template = new \Cx\Core\Html\Sigma(\Env::get('cx')->getCodeBaseCorePath().'/Html/View/Template/Generic');
         $template->loadTemplateFile('TableView.html');
         $template->setGlobalVariable($_ARRAYLANG);
@@ -1256,10 +1277,14 @@ class ViewGenerator {
             $this->savePropertiesToClass($entity, $entityClassMetadata);
             $param = 'editid';
             $successMessage = $_ARRAYLANG['TXT_CORE_RECORD_UPDATED_SUCCESSFUL'];
-        } else { // add case
+        } else {
+            if (!empty($_GET['copy'])) { // copy case
+                $param = 'copy';
+            } else { // add case
+                $param = 'add';
+            }
             // save main formular class data to its class over $_POST
             $this->savePropertiesToClass($entity, $entityClassMetadata);
-            $param = 'add';
             $successMessage = $_ARRAYLANG['TXT_CORE_RECORD_ADDED_SUCCESSFUL'];
         }
 

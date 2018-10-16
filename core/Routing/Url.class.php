@@ -512,7 +512,6 @@ class Url {
             if (isset($array['csrf'])) {
                 unset($array['csrf']);
             }
-            $array = self::encodeParams($array);
         }
         return $array;
     }
@@ -529,59 +528,7 @@ class Url {
             unset($array['csrf']);
         }
 
-        // Decode parameters since http_build_query() encodes them by default.
-        // Otherwise the percent (which acts as escape character) of the already encoded string would be encoded again.
-        $array = self::decodeParams($array);
-
-        return http_build_query($array, null, '&');
-    }
-
-    /**
-     * Url encode passed array (key and value).
-     *
-     * @access  public
-     * @param   array       $input
-     * @return  array       $output
-     */
-    public static function encodeParams($input = array()) {
-        $output = array();
-
-        foreach ($input as $key => $value) {
-            // First decode url before encode them (in case that the given string is already encoded).
-            // Otherwise the percent (which acts as escape character) of the already encoded string would be encoded again.
-            $key = urlencode(urldecode($key));
-
-            if (is_array($value)) {
-                $output[$key] = self::encodeParams($value);
-            } else {
-                $output[$key] = urlencode(urldecode($value));
-            }
-        }
-
-        return $output;
-    }
-
-    /**
-     * Url decode passed array (key and value).
-     *
-     * @access  public
-     * @param   array       $input
-     * @return  array       $output
-     */
-    public static function decodeParams($input = array()) {
-        $output = array();
-
-        foreach ($input as $key => $value) {
-            $key = urldecode($key);
-
-            if (is_array($value)) {
-                $output[$key] = self::decodeParams($value);
-            } else {
-                $output[$key] = urldecode($value);
-            }
-        }
-
-        return $output;
+        return http_build_query($array, null, '&', PHP_QUERY_RFC3986);
     }
 
     public function getTargetPath() {

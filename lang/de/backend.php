@@ -1440,6 +1440,7 @@ $_ARRAYLANG['TXT_CORE_RECORD_DELETED_SUCCESSFUL'] ='Der Eintrag wurde erfolgreic
 $_ARRAYLANG['TXT_CORE_RECORD_DELETE_CONFIRM'] ='Bitte bestätigen Sie den Löschvorgang des ausgewählten Eintrages.';
 $_ARRAYLANG['TXT_CORE_RECORD_EDIT_TITLE'] ='Eintrag bearbeiten';
 $_ARRAYLANG['TXT_CORE_RECORD_DELETE_TITLE'] ='Eintrag löschen';
+$_ARRAYLANG['TXT_CORE_RECORD_COPY_TITLE'] ='Eintrag kopieren';
 $_ARRAYLANG['TXT_CORE_RECORD_FILL_OUT_AT_LEAST_ONE_FILED'] = "Der Eintrag konnte nicht gespeichert werden, bitte füllen Sie mindestens ein Feld aus";
 $_ARRAYLANG['TXT_CORE_RECORD_VALIDATION_FAILED'] = "Der Eintrag konnte nicht gespeichert werden, die Validation ist fehlgeschlagen";
 $_ARRAYLANG['TXT_CORE_RECORD_NO_SUCH_ENTRY'] = "Der Eintrag konnte nicht gespeichert werden, es wurde kein solcher Eintrag gefunden";

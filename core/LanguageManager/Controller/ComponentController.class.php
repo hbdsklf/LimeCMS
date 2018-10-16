@@ -303,6 +303,28 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
     public function postInit(\Cx\Core\Core\Controller\Cx $cx)
     {
         $widgetController = $this->getComponent('Widget');
+
+        $listProtectedPages = \Cx\Core\Setting\Controller\Setting::getValue(
+            'coreListProtectedPages',
+            'Config'
+        ) == 'on';
+
+        $widget = new \Cx\Core_Modules\Widget\Model\Entity\EsiWidget(
+            $this,
+            'locale_navbar',
+            \Cx\Core_Modules\Widget\Model\Entity\Widget::TYPE_BLOCK
+        );
+
+        if ($listProtectedPages) {
+            $widget->setEsiVariable(
+                \Cx\Core_Modules\Widget\Model\Entity\EsiWidget::ESI_VAR_ID_USER
+            );
+        }
+
+        $widgetController->registerWidget(
+            $widget
+        );
+
         $widgetController->registerWidget(
             new \Cx\Core_Modules\Widget\Model\Entity\FinalStringWidget(
                 $this,
@@ -359,8 +381,16 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
     {
         $activeLanguages = \FWLanguage::getActiveFrontendLanguages();
         foreach ($activeLanguages as $langData) {
-            $placeholders[] = 'LANG_CHANGE_' . str_replace('-', '_', strtoupper($langData['lang']));
-            $placeholders[] = 'LANG_SELECTED_' . str_replace('-', '_', strtoupper($langData['lang']));
+            $placeholders[] = 'LANG_CHANGE_' . str_replace(
+                '-',
+                '_',
+                strtoupper($langData['lang'])
+            );
+            $placeholders[] = 'LANG_SELECTED_' . str_replace(
+                '-',
+                '_',
+                strtoupper($langData['lang'])
+            );
         }
         return $placeholders;
     }

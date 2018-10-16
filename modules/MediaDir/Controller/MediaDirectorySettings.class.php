@@ -1341,6 +1341,10 @@ EOF;
         $objTpl->addBlockfile($this->moduleLangVar.'_SETTINGS_CONTENT', 'settings_content', 'module_'.$this->moduleNameLC.'_settings_modify_form.html');
 
         $langId = static::getOutputLocale()->getId();
+        $intFormId = 0;
+        if (!empty($_GET['id'])) {
+            $intFormId = intval($_GET['id']);
+        }
         $objTpl->setGlobalVariable(array(
             'TXT_'.$this->moduleLangVar.'_SETTINGS_INPUTFIELDS' => $_ARRAYLANG['TXT_MEDIADIR_INPUTFIELDS'],
             'TXT_'.$this->moduleLangVar.'_SETTINGS_FORM' => $_ARRAYLANG['TXT_MEDIADIR_FORM'],
@@ -1409,14 +1413,14 @@ EOF;
         //ajax functions
         switch ($ajax) {
             case 'add':
-                $objInputfields = new MediaDirectoryInputfield(intval($_GET['id']), false, null, $this->moduleName);
+                $objInputfields = new MediaDirectoryInputfield($intFormId, false, null, $this->moduleName);
                 $intInsertId = $objInputfields->addInputfield();
 
                 die($intInsertId);
                 break;
 
             case 'delete':
-                $objInputfields = new MediaDirectoryInputfield(intval($_GET['id']), false, null, $this->moduleName);
+                $objInputfields = new MediaDirectoryInputfield($intFormId, false, null, $this->moduleName);
                 $intInsertId = $objInputfields->deleteInputfield($_GET['field']);
 
                 die('1');
@@ -1430,14 +1434,14 @@ EOF;
                 break;
 
             case 'move':
-                $objInputfields = new MediaDirectoryInputfield(intval($_GET['id']), false, null, $this->moduleName);
+                $objInputfields = new MediaDirectoryInputfield($intFormId, false, null, $this->moduleName);
                 $strInputfields = $objInputfields->moveInputfield($_GET['field'], $_GET['direction']);
 
                 die('1');
                 break;
 
             case 'refresh':
-                $objInputfields = new MediaDirectoryInputfield(intval($_GET['id']), false, null, $this->moduleName);
+                $objInputfields = new MediaDirectoryInputfield($intFormId, false, null, $this->moduleName);
                 $strInputfields = $objInputfields->refreshInputfields($objTpl);
 
                 //return
@@ -1448,12 +1452,11 @@ EOF;
         }
 
         \JS::activate('chosen-sortable');
-        //load form data
-        if(!empty($_GET['id'])) {
-            $pageTitle = $_ARRAYLANG['TXT_MEDIADIR_EDIT_FORM_TEMPLATE'];
-            $intFormId = intval($_GET['id']);
+        $objForm = new MediaDirectoryForm($intFormId, $this->moduleName);
 
-            $objForm = new MediaDirectoryForm($intFormId, $this->moduleName);
+        //load form data
+        if($intFormId) {
+            $pageTitle = $_ARRAYLANG['TXT_MEDIADIR_EDIT_FORM_TEMPLATE'];
 
             //parse data variables
             $objTpl->setGlobalVariable(array(

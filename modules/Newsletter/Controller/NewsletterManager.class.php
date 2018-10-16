@@ -983,6 +983,8 @@ class NewsletterManager extends NewsletterLib
             $this->_objTpl->hideBlock('associatedGroupToolTipBeforeSend');
             $this->_objTpl->touchBlock('crmMembershipFilterToolTipAfterSent');
             $this->_objTpl->hideBlock('crmMembershipFilterToolTipBeforeSend');
+            $this->_objTpl->touchBlock('crmMembershipAssociatedToolTipAfterSend');
+            $this->_objTpl->hideBlock('crmMembershipAssociatedToolTipBeforeSend');
 
             $this->_objTpl->setVariable(array(
                 'TXT_NEWSLETTER_INFO_ABOUT_ASSOCIATED_LISTS' => $_ARRAYLANG['TXT_NEWSLETTER_INFO_ABOUT_ASSOCIATED_LISTS'],
@@ -997,6 +999,10 @@ class NewsletterManager extends NewsletterLib
             $this->_objTpl->hideBlock('associatedListToolTip');
             $this->_objTpl->hideBlock('associatedGroupToolTipAfterSent');
             $this->_objTpl->touchBlock('associatedGroupToolTipBeforeSend');
+            $this->_objTpl->hideBlock('crmMembershipFilterToolTipAfterSent');
+            $this->_objTpl->touchBlock('crmMembershipFilterToolTipBeforeSend');
+            $this->_objTpl->hideBlock('crmMembershipAssociatedToolTipAfterSend');
+            $this->_objTpl->touchBlock('crmMembershipAssociatedToolTipBeforeSend');
         }
 
         // Mediabrowser
@@ -3599,7 +3605,8 @@ class NewsletterManager extends NewsletterLib
 
         // lets prepare all links for tracker before we replace placeholders
 // TODO: migrate tracker to new URL-format
-        $content_text = self::prepareNewsletterLinksForSend($NewsletterID, $content_text, $userData['id'], $userData['type']);
+        $langId = $this->getRecipientLocaleIdByRecipientId($userData['id'], $userData['type']);
+        $content_text = self::prepareNewsletterLinksForSend($NewsletterID, $content_text, $userData['id'], $userData['type'], $langId);
 
         $search = array(
             '[[email]]',
@@ -3654,14 +3661,18 @@ class NewsletterManager extends NewsletterLib
         $search = array(
             '[[display_in_browser_url]]',
             '[[profile_setup]]',
+            '[[profile_setup_url]]',
             '[[unsubscribe]]',
+            '[[unsubscribe_url]]',
             '[[date]]',
             '[[subject]]',
         );
         $replace = array(
             $browserViewUrl,
             $this->GetProfileURL($userData['code'], $TargetEmail, $userData['type']),
+            $this->GetProfileURL($userData['code'], $TargetEmail, $userData['type'], false),
             $this->GetUnsubscribeURL($userData['code'], $TargetEmail, $userData['type']),
+            $this->GetUnsubscribeURL($userData['code'], $TargetEmail, $userData['type'], false),
             date(ASCMS_DATE_FORMAT_DATE),
             $subject,
         );
@@ -3698,8 +3709,8 @@ class NewsletterManager extends NewsletterLib
 
         // Set HTML height and width attributes for img-tags
         $allImgsWithHeightOrWidth = array();
-        preg_match_all('/<img[^>]*style=(["\'])[^\1]*(?:width|height):\s*[^;\1]+;?\s*[^\1]*\1[^>]*>/', $NewsletterBody, $allImgsWithHeightOrWidth);
-        foreach ($allImgsWithHeightOrWidth as $img) {
+        preg_match_all('/<img[^>]+>/', $NewsletterBody, $allImgsWithHeightOrWidth);
+        foreach ($allImgsWithHeightOrWidth[0] as $img) {
             $htmlHeight = $this->getAttributeOfTag($img, 'img', 'height');
             $htmlWidth = $this->getAttributeOfTag($img, 'img', 'width');
             // no need to proceed if attributes are already set
@@ -3708,7 +3719,19 @@ class NewsletterManager extends NewsletterLib
             }
 
             $cssHeight = $this->getCssAttributeOfTag($img, 'img', 'height');
+            if (strpos($cssHeight, 'px') !== false) {
+                $cssHeight = str_replace('px', '', $cssHeight);
+            } else {
+                $cssHeight = '';
+            }
+
             $cssWidth = $this->getCssAttributeOfTag($img, 'img', 'width');
+            if (strpos($cssWidth, 'px') !== false) {
+                $cssWidth = str_replace('px', '', $cssWidth);
+            } else {
+                $cssWidth = '';
+            }
+
             // no need to proceed if we have no values to set
             if (empty($cssHeight) && empty($cssWidth)) {
                 continue;
@@ -3756,7 +3779,7 @@ class NewsletterManager extends NewsletterLib
         $count = 0;
         $html = preg_replace('/(<' . preg_quote($tagName) . '[^>]*' . preg_quote($attributeName) . '=(["\']))[^\2]*/', '\1' . $attributeValue, $html, -1, $count);
         if ($count == 0) {
-            $html = preg_replace('/(<' . preg_quote($tagName) . '[^>]*)(\/?>)/U', '\1 ' . $attributeName . '="' . $attributeValue . '"\s\2', $html);
+            $html = preg_replace('/(<' . preg_quote($tagName) . '[^>]*)(\/?>)/U', '\1 ' . $attributeName . '="' . $attributeValue . '" \2', $html);
         }
         return $html;
     }
@@ -3940,82 +3963,6 @@ class NewsletterManager extends NewsletterLib
 
         return $arrUserData;
     }
-
-
-    /**
-     * Get the URL to the page to unsubscribe
-     */
-    public function GetUnsubscribeURL($code, $email, $type = self::USER_TYPE_NEWSLETTER)
-    {
-        global $_ARRAYLANG, $_CONFIG;
-
-        if (
-            $type == self::USER_TYPE_CORE ||
-            $type == self::USER_TYPE_CRM
-        ) {
-            // recipients that will receive the newsletter through the selection of their user group don't have a profile
-            return '';
-        }
-
-        $cmd = '';
-        switch ($type) {
-            case self::USER_TYPE_ACCESS:
-                $cmd = 'profile';
-                break;
-
-            case self::USER_TYPE_NEWSLETTER:
-            default:
-                $cmd = 'unsubscribe';
-                break;
-        }
-
-        $unsubscribeUrl = \Cx\Core\Routing\Url::fromModuleAndCmd(
-            'Newsletter',
-            $cmd,
-            $this->getUsersPreferredLanguageId(
-                $email,
-                $type
-            ),
-            array(
-                'code' => $code,
-                'mail' => urlencode($email),
-            )
-        );
-
-        return '<a href="'.$unsubscribeUrl->toString().'">'.$_ARRAYLANG['TXT_UNSUBSCRIBE'].'</a>';
-    }
-
-
-    /**
-     * Return link to the profile of a user
-     */
-    function GetProfileURL($code, $email, $type = self::USER_TYPE_NEWSLETTER)
-    {
-        global $_ARRAYLANG;
-
-        if (
-            $type == self::USER_TYPE_CORE ||
-            $type == self::USER_TYPE_CRM
-        ) {
-            // recipients that will receive the newsletter through the selection of their user group don't have a profile
-            return '';
-        }
-
-        $profileUrl = \Cx\Core\Routing\Url::fromModuleAndCmd(
-            'Newsletter',
-            'profile',
-            $this->getUsersPreferredLanguageId(
-                $email,
-                $type
-            ),
-            array(
-                'code' => $code,
-                'mail' => urlencode($email),
-            )
-        );
-        return '<a href="'.$profileUrl->toString().'">'.$_ARRAYLANG['TXT_EDIT_PROFILE'].'</a>';
-    }
-
 
     /**
      * Parse the news section
@@ -6768,7 +6715,7 @@ function MultiAction() {
             'NEWS_DATE' => date(ASCMS_DATE_FORMAT_DATE, $objNews->fields['newsdate']),
             'NEWS_LONG_DATE' => date(ASCMS_DATE_FORMAT_DATETIME, $objNews->fields['newsdate']),
             'NEWS_TITLE' => contrexx_raw2xhtml($newstitle),
-            'NEWS_URL' => $newslink,
+            'NEWS_URL' => $newsUrl,
             'NEWS_TEASER_TEXT' => $newsteasertext,
             'NEWS_TEXT' => $newstext,
             'NEWS_AUTHOR' => $author,

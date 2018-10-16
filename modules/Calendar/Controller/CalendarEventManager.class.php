@@ -815,6 +815,7 @@ class CalendarEventManager extends CalendarLibrary
             $this->moduleLangVar.'_EVENT_START_TIME'        => $this->format2userTime($startDate),
             $this->moduleLangVar.'_EVENT_START_TIME_MINUTE' => $this->formatDateTime2user($startDate, 'i'),
             $this->moduleLangVar.'_EVENT_START_TIME_HOUR'   => $this->formatDateTime2user($startDate, 'H'),
+            $this->moduleLangVar.'_EVENT_START_TIMESTAMP'   => $startDate->getTimestamp(),
             $this->moduleLangVar.'_EVENT_END'               => $this->format2userDateTime($endDate),
             $this->moduleLangVar.'_EVENT_END_DATE'          => $this->format2userDate($endDate),
             $this->moduleLangVar.'_EVENT_END_DATE_DAY'      => $this->formatDateTime2user($endDate, 'd'),
@@ -823,6 +824,7 @@ class CalendarEventManager extends CalendarLibrary
             $this->moduleLangVar.'_EVENT_END_TIME'          => $this->format2userTime($endDate),
             $this->moduleLangVar.'_EVENT_END_TIME_MINUTE'   => $this->formatDateTime2user($endDate, 'i'),
             $this->moduleLangVar.'_EVENT_END_TIME_HOUR'     => $this->formatDateTime2user($endDate, 'H'),
+            $this->moduleLangVar.'_EVENT_END_TIMESTAMP'     => $endDate->getTimestamp(),
             $this->moduleLangVar.'_EVENT_TITLE'             => $objEvent->title,
             $this->moduleLangVar.'_EVENT_TEASER'            => $objEvent->teaser,
             $this->moduleLangVar.'_EVENT_ATTACHMENT'        => $objEvent->attach != '' ? '<a href="'.$hostUri.$objEvent->attach.'" target="_blank" >'.$attachName.'</a>' : '',
@@ -1148,6 +1150,7 @@ class CalendarEventManager extends CalendarLibrary
         //     - or if there are still free places available
         $registrationOpen = true;
         $regLinkTarget = '_self';
+        $regLinkSrcQueryString = '';
         if ((
                 // event registration is handled by external app
                 // and it hasn't been marked as booked out yet
@@ -1208,7 +1211,9 @@ class CalendarEventManager extends CalendarLibrary
                     $params[\CX\Modules\Calendar\Model\Entity\Invite::HTTP_REQUEST_PARAM_RANDOM] = $inviteRandom;
                 }
 
-                $regLinkSrc = \Cx\Core\Routing\Url::fromModuleAndCmd($this->moduleName, 'register', FRONTEND_LANG_ID, $params)->toString();
+                $regLinkUrl = \Cx\Core\Routing\Url::fromModuleAndCmd($this->moduleName, 'register', FRONTEND_LANG_ID, $params);
+                $regLinkSrc = $regLinkUrl->toString();
+                $regLinkSrcQueryString = $regLinkUrl->getSuggestedParams();
             }
             $regLink = '<a href="'.$regLinkSrc.'" '.$hostTarget.'>'.$_ARRAYLANG['TXT_CALENDAR_REGISTRATION'].'</a>';
         } else {
@@ -1225,6 +1230,7 @@ class CalendarEventManager extends CalendarLibrary
         $objTpl->setVariable(array(
             $this->moduleLangVar . '_EVENT_REGISTRATION_LINK'        => $regLink,
             $this->moduleLangVar . '_EVENT_REGISTRATION_LINK_SRC'    => $regLinkSrc,
+            $this->moduleLangVar . '_EVENT_REGISTRATION_LINK_SRC_QUERY_STRING' => $regLinkSrcQueryString,
             $this->moduleLangVar . '_EVENT_REGISTRATION_LINK_TARGET' => $regLinkTarget,
         ));
         if ($objTpl->blockExists('calendarEventRegistrationOpen')) {
@@ -1496,6 +1502,7 @@ class CalendarEventManager extends CalendarLibrary
                 $this->moduleLangVar.'_EVENT_START_TIME'     => $this->format2userTime($startDate),
                 $this->moduleLangVar.'_EVENT_START_TIME_MINUTE'=> $this->formatDateTime2user($startDate, 'i'),
                 $this->moduleLangVar.'_EVENT_START_TIME_HOUR'=> $this->formatDateTime2user($startDate, 'H'),
+                $this->moduleLangVar.'_EVENT_START_TIMESTAMP'=> $startDate->getTimestamp(),
                 $this->moduleLangVar.'_EVENT_DATE'           => $this->format2userDate($startDate),
                 $this->moduleLangVar.'_EVENT_END'            => $this->format2userDateTime($endDate),
                 $this->moduleLangVar.'_EVENT_END_DATE'       => $this->format2userDate($endDate),
@@ -1505,6 +1512,7 @@ class CalendarEventManager extends CalendarLibrary
                 $this->moduleLangVar.'_EVENT_END_TIME'       => $this->format2userTime($endDate),
                 $this->moduleLangVar.'_EVENT_END_TIME_MINUTE'=> $this->formatDateTime2user($endDate, 'i'),
                 $this->moduleLangVar.'_EVENT_END_TIME_HOUR'  => $this->formatDateTime2user($endDate, 'H'),
+                $this->moduleLangVar.'_EVENT_END_TIMESTAMP'  => $endDate->getTimestamp(),
                 $this->moduleLangVar.'_EVENT_LANGUAGES'      => $languages,
                 $this->moduleLangVar.'_EVENT_CATEGORY'       =>
                     implode(', ', $category_names),

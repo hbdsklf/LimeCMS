@@ -1113,7 +1113,10 @@ class CrmManager extends CrmLibrary
             } else {
                 $objTpl->hideBlock('contactAmount');
             }
-            if (isset($custDetails['updated_date'])) {
+            if (
+                !empty($custDetails['updated_date']) &&
+                $custDetails['updated_date'] != '0000-00-00 00:00:00'
+            ) {
                 $objTpl->setVariable(
                     array(
                         'CRM_CONTACT_LAST_UPDATE' => $custDetails['updated_date'],
@@ -1123,7 +1126,7 @@ class CrmManager extends CrmLibrary
             } else {
                 $objTpl->hideBlock('contactLastUpdate');
             }
-            if (isset($custDetails['notes'])) {
+            if (!empty($custDetails['notes'])) {
                 $objTpl->setVariable(
                     array(
                         'CRM_CONTACT_NOTES' => contrexx_raw2xhtml($custDetails['notes']),

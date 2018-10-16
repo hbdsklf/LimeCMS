@@ -965,9 +965,11 @@ class CacheLib
 
     /**
      * Clears all Memcacheddata related to this Domain if Memcache is installed
+     * @param   string  $pattern    Optional pattern to restrict the
+     *                              invalidation of the cache by.
      * @return  integer Returns the number of invalidated keys
      */
-    public function clearMemcached()
+    public function clearMemcached($pattern = '')
     {
         if(!$this->isInstalled(self::CACHE_ENGINE_MEMCACHED)){
             return;
@@ -977,6 +979,12 @@ class CacheLib
         $n = 0;
         foreach($keys as $key){
             if(strpos($key, $this->getCachePrefix()) !== false){
+                if (
+                    !empty($pattern) &&
+                    !preg_match('/' . $pattern . '/', $key)
+                ) {
+                    continue;
+                }
                 $this->memcached->delete($key);
                 $n++;
             }

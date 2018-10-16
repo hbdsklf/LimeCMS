@@ -635,7 +635,7 @@ class MediaDirectoryEntry extends MediaDirectoryInputfield
             case 2:
                 //Frontend View
                 if(!empty($this->arrEntries)) {
-                    foreach ($this->arrEntries as $key => $arrEntry) {
+                    foreach ($this->arrEntries as $arrEntry) {
                         if(($arrEntry['entryDurationStart'] < $intToday && $arrEntry['entryDurationEnd'] > $intToday) || $arrEntry['entryDurationType'] == 1) {
                             $objInputfields = new MediaDirectoryInputfield(intval($arrEntry['entryFormId']),false,$arrEntry['entryTranslationStatus'], $this->moduleName);
                             $objInputfields->listInputfields($objTpl, 3, intval($arrEntry['entryId']));
@@ -687,7 +687,28 @@ class MediaDirectoryEntry extends MediaDirectoryInputfield
                                 $objTpl->setVariable(array(
                                     'MEDIADIR_ENTRY_FIELD_'.$intPos.'_POS' => substr($strFieldValue, 0, 255),
                                 ));
-                                }
+                            }
+
+                            if (
+                                $objTpl->blockExists(
+                                    $this->moduleNameLC . 'EntryRelatedList'
+                                ) && (
+                                    $this->countEntries() == 1 ||
+                                    $this->intLimitEnd == 1
+                                )
+                            ) {
+                                // parse related entries
+                                $objEntry = new MediaDirectoryEntry($this->moduleName);
+                                $objMediadir = new MediaDirectory('', $this->moduleName);
+                                $objMediadir->parseRelatedEntries(
+                                    $objTpl,
+                                    $objEntry,
+                                    $arrEntry['entryId'],
+                                    $this->intCatId,
+                                    $this->intLevelId,
+                                    'Entry'
+                                );
+                            }
 
                             if($this->arrSettings['settingsAllowVotes']) {
                                 $objVoting = new MediaDirectoryVoting($this->moduleName);

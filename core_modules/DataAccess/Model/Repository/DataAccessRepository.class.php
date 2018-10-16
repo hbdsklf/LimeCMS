@@ -76,6 +76,10 @@ class DataAccessRepository extends EntityRepository {
                     continue;
                 }
 
+                if (!$apiKey->getApiKey()) {
+                    continue;
+                }
+
                 if ($apiKey->getApiKey()->getApiKey() != $requestApiKey) {
                     continue;
                 }

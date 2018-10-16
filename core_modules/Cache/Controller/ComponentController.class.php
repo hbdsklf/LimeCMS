@@ -395,7 +395,7 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
         if ($short) {
             return 'Allows to clear caches';
         }
-        return 'Cache clear user [<engine>]
+        return 'Cache clear user [<engine> [<pattern>]]
 Cache clear page [<pageId>]
 Cache clear (esi|proxy) [<urlPattern>]
 Cache clear opcode [<engine>]
@@ -424,7 +424,11 @@ Cache clear all';
                         if (count($arguments)) {
                             $options = array_shift($arguments);
                         }
-                        $this->clearCacheCommand($type, $options);
+                        $pattern = '';
+                        if (count($arguments)) {
+                            $pattern = array_shift($arguments);
+                        }
+                        $this->clearCacheCommand($type, $options, $pattern);
                         break;
                     default:
                         echo 'No such command' . "\n";
@@ -446,8 +450,10 @@ Cache clear all';
      * - all: Drop all of the above
      * @param string $type Cache type to clear
      * @param string $options (optional) Engine for user or opcode cache, filter for page, esi and reverse proxy cache
+     * @param   string  $pattern    Optional pattern to restrict the
+     *                              invalidation of the cache by.
      */
-    protected function clearCacheCommand($type, $options = '') {
+    protected function clearCacheCommand($type, $options = '', $pattern = '') {
         $types = array('user', 'page', 'esi', 'proxy', 'opcode');
         if ($type == 'all') {
             $this->clearCache();
@@ -477,7 +483,7 @@ Cache clear all';
                         if (!extension_loaded('memcached')) {
                             dl('memcached');
                         }
-                        $droppedKeys = $this->cache->clearMemcached();
+                        $droppedKeys = $this->cache->clearMemcached($pattern);
                         echo $droppedKeys . ' keys dropped from Memcached' . "\n";
                         return;
                     }

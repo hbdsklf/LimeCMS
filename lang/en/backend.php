@@ -1369,6 +1369,7 @@ $_ARRAYLANG['TXT_CORE_RECORD_DELETED_SUCCESSFUL'] ='The entry has been removed s
 $_ARRAYLANG['TXT_CORE_RECORD_DELETE_CONFIRM'] ='Please confirm to remove the selected entry.';
 $_ARRAYLANG['TXT_CORE_RECORD_EDIT_TITLE'] ='Edit entry';
 $_ARRAYLANG['TXT_CORE_RECORD_DELETE_TITLE'] ='Delete entry';
+$_ARRAYLANG['TXT_CORE_RECORD_COPY_TITLE'] ='Copy entry';
 $_ARRAYLANG['TXT_CORE_RECORD_FILL_OUT_AT_LEAST_ONE_FILED'] = "Couldn't save entry, please fill out at least one field!";
 $_ARRAYLANG['TXT_CORE_RECORD_VALIDATION_FAILED'] = "Couldn't save entry, validation failed";
 $_ARRAYLANG['TXT_CORE_RECORD_ONE_TO_N_ASSOCCIATION'] = "These entries will be saved/deleted as soon as the main formular is submitted.";
