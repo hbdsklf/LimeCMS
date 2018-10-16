@@ -819,7 +819,12 @@ class Url {
             }
             $getParams = '?' . implode('&', $paramArray);
         }
-        return new Url($protocol.'://'.$host.$offset.'/'.$langDir.$path.$getParams, true);
+        $url = new Url($protocol.'://'.$host.$offset.'/'.$langDir.$path.$getParams, true);
+        if ($page->getType() == \Cx\Core\ContentManager\Model\Entity\Page::TYPE_ALIAS) {
+            $langDir = '';
+            $url->setMode('backend');
+        }
+        return $url;
     }
     
     /**
