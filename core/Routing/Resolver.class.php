@@ -76,6 +76,12 @@ class Resolver {
     protected $page = null;
 
     /**
+     * Aliaspage if we resolve an alias
+     * @var Cx\Core\ContentManager\Model\Entity\Page
+     */
+    protected $aliaspage = null;
+
+    /**
      * @var Cx\Core\ContentManager\Model\Entity\Page
      */
     protected $urlPage = null;
@@ -196,12 +202,12 @@ class Resolver {
 
     public function resolve() {
         // $this->resolveAlias() also sets $this->page
-        $aliaspage = $this->resolveAlias();
+        $this->aliaspage = $this->resolveAlias();
 
-        if ($aliaspage != null) {
-            $this->lang = $aliaspage->getTargetLangId();
-            $aliaspage = clone $aliaspage;
-            $aliaspage->setVirtual(true);
+        if ($this->aliaspage != null) {
+            $this->lang = $this->aliaspage->getTargetLangId();
+            $this->aliaspage = clone $this->aliaspage;
+            $this->aliaspage->setVirtual(true);
         } else {
             // if the current URL points to a file:
             if (
@@ -1048,9 +1054,22 @@ class Resolver {
                 if (isset($_GET['redirect'])) {
                     $link = $_GET['redirect'];
                 } else {
-                    $link=base64_encode(\Env::get('cx')->getRequest()->getUrl()->toString());
+                    $page = $this->page;
+                    if ($this->aliaspage) {
+                        $page = $this->aliaspage;
+                    }
+                    $link = base64_encode(
+                        \Cx\Core\Routing\Url::fromPage($page)->toString()
+                    );
                 }
-                \Cx\Core\Csrf\Controller\Csrf::header('Location: '.\Cx\Core\Routing\Url::fromModuleAndCmd('Login', '', '', array('redirect' => $link)));
+                \Cx\Core\Csrf\Controller\Csrf::header(
+                    'Location: '. \Cx\Core\Routing\Url::fromModuleAndCmd(
+                        'Login',
+                        '',
+                        '',
+                        array('redirect' => $link)
+                    )
+                );
                 exit;
             }
         }
