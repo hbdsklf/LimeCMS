@@ -1513,6 +1513,7 @@ class ViewGenerator {
 
     /**
      * Get the Url to copy an entry in this VG instance
+     * @param int|string|array|object $entryOrId Entity or entity key
      * @param \Cx\Core\Routing\Url $url (optional) If supplied necessary params are applied
      * @return \Cx\Core\Routing\Url URL with copy arguments
      */
@@ -1609,9 +1610,13 @@ class ViewGenerator {
             $cx = \Cx\Core\Core\Controller\Cx::instanciate();
             $em = $cx->getDb()->getEntityManager();
             $meta = $em->getClassMetadata(get_class($entryOrId));
-            $identifier = $meta->getSingleIdentifierFieldName();
-            $getter = 'get' . ucfirst($identifier);
-            $entryOrId = $entryOrId->$getter();
+            $identifier = $meta->getIdentifierFieldNames();
+            $result = '';
+            foreach ($identifier as $item) {
+                $getter = 'get' . ucfirst($item);
+                $result .= $entryOrId->$getter() . ',';
+            }
+            $entryOrId = $result;
         }
         return $entryOrId;
     }
