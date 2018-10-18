@@ -1614,7 +1614,7 @@ class ViewGenerator {
             $result = '';
             foreach ($identifier as $item) {
                 $getter = 'get' . ucfirst($item);
-                $result .= $entryOrId->$getter() . ',';
+                $result .= implode(',', $entryOrId->$getter());
             }
             $entryOrId = $result;
         }
