@@ -326,7 +326,7 @@ class CalendarMailManager extends CalendarLibrary {
         $eventStart = $event->all_day ? $this->format2userDate($startDate) : $this->formatDateTime2user($startDate, $this->getDateFormat() . ' (H:i:s)');
         $eventEnd   = $event->all_day ? $this->format2userDate($endDate) : $this->formatDateTime2user($endDate, $this->getDateFormat() . ' (H:i:s)');
 
-        $placeholder = array('[[TITLE]]', '[[START_DATE]]', '[[END_DATE]]', '[[LINK_EVENT]]', '[[LINK_REGISTRATION]]', '[[USERNAME]]', '[[SALUTATION]]', '[[FIRSTNAME]]', '[[LASTNAME]]', '[[URL]]', '[[DATE]]');
+        $placeholder = array('[[TITLE]]', '[[START_DATE]]', '[[END_DATE]]', '[[LINK_ATTACHMENT]]', '[[LINK_EVENT]]', '[[LINK_REGISTRATION]]', '[[USERNAME]]', '[[SALUTATION]]', '[[FIRSTNAME]]', '[[LASTNAME]]', '[[URL]]', '[[DATE]]');
 
         $recipients = $this->getSendMailRecipients($actionId, $event, $regId, $objRegistration, $sendInvitationTo);
 
@@ -418,6 +418,19 @@ class CalendarMailManager extends CalendarLibrary {
 
             // URL pointing to the event subscription page
             $regLink = '';
+
+            // URL pointing to the event's attachment
+            $linkAttachment = '';
+            if (!empty($event->attach)) {
+                // parse node links
+                $attachment = preg_replace('/\\[\\[([A-Z0-9_-]+)\\]\\]/', '{\\1}', $event->attach);
+                $domainRepo = new \Cx\Core\Net\Model\Repository\DomainRepository();
+                \LinkGenerator::parseTemplate($attachment, true, $domainRepo->getMainDomain());
+
+                // make link absolute
+                $attachmentUrl = \Cx\Core\Routing\Url::fromMagic($attachment);
+                $linkAttachment = $attachmentUrl->toString();
+            }
 
             // URL pointing to the event's detail page
             $eventLink = '';
@@ -516,7 +529,7 @@ class CalendarMailManager extends CalendarLibrary {
                     $salutation = $objAttribute->getName($langId);
                 }
             }
-            $replaceContent  = array($eventTitle, $eventStart, $eventEnd, $eventLink, $regLink, $recipient->getUsername(), $salutation, $recipient->getFirstname(), $recipient->getLastname(), $domain, $date);
+            $replaceContent  = array($eventTitle, $eventStart, $eventEnd, $linkAttachment, $eventLink, $regLink, $recipient->getUsername(), $salutation, $recipient->getFirstname(), $recipient->getLastname(), $domain, $date);
 
             $mailTitle       = str_replace($placeholder, array_map('contrexx_xhtml2raw', $replaceContent), $mailTitle);
             $mailContentText = str_replace($placeholder, array_map('contrexx_xhtml2raw', $replaceContent), $mailContentText);
