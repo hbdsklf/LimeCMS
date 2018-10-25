@@ -1606,19 +1606,7 @@ class ViewGenerator {
         if (is_array($entryOrId)) {
             return implode('/', $entryOrId);
         }
-        if (is_object($entryOrId)) {
-            $cx = \Cx\Core\Core\Controller\Cx::instanciate();
-            $em = $cx->getDb()->getEntityManager();
-            $meta = $em->getClassMetadata(get_class($entryOrId));
-            $identifier = $meta->getIdentifierFieldNames();
-            $result = '';
-            foreach ($identifier as $item) {
-                $getter = 'get' . ucfirst($item);
-                $result .= implode(',', $entryOrId->$getter());
-            }
-            $entryOrId = $result;
-        }
-        return $entryOrId;
+        return (string) $entryOrId;
     }
 
     /**
