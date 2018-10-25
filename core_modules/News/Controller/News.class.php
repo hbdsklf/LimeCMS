@@ -211,6 +211,7 @@ class News extends \Cx\Core_Modules\News\Controller\NewsLibrary {
                 news.teaser_image_thumbnail_path AS newsThumbImg,
                 news.typeid             AS typeid,
                 news.allow_comments     AS commentactive,
+                news.frontend_access_id,
                 locale.text,
                 locale.title            AS title,
                 locale.teaser_text
@@ -239,38 +240,39 @@ class News extends \Cx\Core_Modules\News\Controller\NewsLibrary {
                 )
             ';
         }
-        if (
-            $this->arrSettings['news_message_protection'] == '1' &&
-            !\Permission::hasAllAccess()
-        ) {
-            if (
-                ($objFWUser = \FWUser::getFWUserObject()) &&
-                $objFWUser->objUser->login()
-            ) {
-                $query .= " AND
-                (
-                    frontend_access_id IN (";
-                $query .= implode(
-                    ',',
-                    array_merge(
-                        array(0),
-                        $objFWUser->objUser->getDynamicPermissionIds()
-                    )
-                );
-                $query .= ") OR
-                    userid = ".$objFWUser->objUser->getId()."
-                ) ";
-            } else {
-                $query .= " AND frontend_access_id=0 ";
-            }
-        }
 
         $objResult = $objDatabase->SelectLimit($query, 1);
-
 
         if (!$objResult || $objResult->EOF) {
             header('Location: '.\Cx\Core\Routing\Url::fromModuleAndCmd('News'));
             exit;
+        }
+
+        if (
+            $this->arrSettings['news_message_protection'] == '1' &&
+            !\Permission::hasAllAccess()
+        ) {
+            $validAccessIds = array(0);
+            if (
+                ($objFWUser = \FWUser::getFWUserObject()) &&
+                $objFWUser->objUser->login()
+            ) {
+                $validAccessIds = array_merge(
+                    array(0),
+                    $objFWUser->objUser->getDynamicPermissionIds()
+                );
+            }
+            if (
+                !in_array(
+                    $objResult->fields['frontend_access_id'],
+                    $validAccessIds
+                )
+            ) {
+                header(
+                    'Location: '.\Cx\Core\Routing\Url::fromModuleAndCmd('News')
+                );
+                exit;
+            }
         }
 
         $newsCommentActive  = $objResult->fields['commentactive'];
