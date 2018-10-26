@@ -3570,6 +3570,7 @@ class NewsManager extends \Cx\Core_Modules\News\Controller\NewsLibrary {
             $objDatabase->Execute("UPDATE ".DBPREFIX."module_news_settings SET value='".(!empty($_POST['newsTopDays']) ? intval($_POST['newsTopDays']) : 10)."' WHERE name = 'news_top_days'");
             $objDatabase->Execute("UPDATE ".DBPREFIX."module_news_settings SET value='".(!empty($_POST['newsTopLimit']) ? intval($_POST['newsTopLimit']) : 10)."' WHERE name = 'news_top_limit'");
             $objDatabase->Execute("UPDATE ".DBPREFIX."module_news_settings SET value='".!empty($_POST['newsUseThumbnails'])."' WHERE name = 'use_thumbnails'");
+            $objDatabase->Execute("UPDATE ".DBPREFIX."module_news_settings SET value='".!empty($_POST['newsLoginRedirect'])."' WHERE name = 'login_redirect'");
 
             $newsFilterPublisher =  isset($_POST['newsFilterPublisher']) ? intval($_POST['newsFilterPublisher']) : 0;
             $newsFilterAuthor    =  isset($_POST['newsFilterAuthor']) ? intval($_POST['newsFilterAuthor']) : 0;
@@ -3769,6 +3770,7 @@ class NewsManager extends \Cx\Core_Modules\News\Controller\NewsLibrary {
             'NEWS_USE_PREVIOUS_NEXT_LINK_CHECKED'   => $this->arrSettings['use_previous_next_news_link'] == '1' ? 'checked="checked"' : '',
             'NEWS_USE_TAGS_CHECKED'                 => $this->arrSettings['news_use_tags'] == '1' ? 'checked="checked"' : '',
             'NEWS_USE_THUMBNAILS'                   => $this->arrSettings['use_thumbnails'] == '1' ? 'checked="checked"' : '',
+            'NEWS_LOGIN_REDIRECT'                   => $this->arrSettings['login_redirect'] == '1' ? 'checked="checked"' : '',
             'TXT_STORE'                             => $_ARRAYLANG['TXT_STORE'],
             'TXT_NAME'                              => $_ARRAYLANG['TXT_NAME'],
             'TXT_VALUE'                             => $_ARRAYLANG['TXT_VALUE'],
@@ -3820,6 +3822,8 @@ class NewsManager extends \Cx\Core_Modules\News\Controller\NewsLibrary {
             'TXT_NEWS_SETTINGS_COMMENTS_TIMEOUT_HELP'        => $_ARRAYLANG['TXT_NEWS_SETTINGS_COMMENTS_TIMEOUT_HELP'],
             'TXT_NEWS_SETTINGS_RECENT_MESSAGES_LIMIT_HELP'   => $_ARRAYLANG['TXT_NEWS_SETTINGS_RECENT_MESSAGES_LIMIT_HELP'],
             'TXT_NEWS_USE_PREVIOUS_NEXT_LINK'                => $_ARRAYLANG['TXT_NEWS_USE_PREVIOUS_NEXT_LINK'],
+            'TXT_NEWS_SETTINGS_LOGIN_REDIRECT'               => $_ARRAYLANG['TXT_NEWS_SETTINGS_LOGIN_REDIRECT'],
+            'TXT_NEWS_SETTINGS_LOGIN_REDIRECT_HELP'          => $_ARRAYLANG['TXT_NEWS_SETTINGS_LOGIN_REDIRECT_HELP'],
             'TXT_NEWS_DEFAULT_TEASERS'       => $_ARRAYLANG['TXT_NEWS_DEFAULT_TEASERS'],
             'TXT_NEWS_DEFAULT_TEASERS_HELP'       => $_ARRAYLANG['TXT_NEWS_DEFAULT_TEASERS_HELP'],
             'TXT_NEWS_EXTENDED'                     => $_ARRAYLANG['TXT_NEWS_EXTENDED'],

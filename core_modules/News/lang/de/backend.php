@@ -467,3 +467,5 @@ $_ARRAYLANG['TXT_NEWS_ERROR_SAVE_NEWS_TAG'] = "Die angegebenen Tags konnten nich
 $_ARRAYLANG['TXT_NEWS_ERROR_SAVE_NEWS_TAG_RELATION'] = "Die Zuweisung der Tags konnte nicht gespeichert werden.";
 $_ARRAYLANG['TXT_NEWS_ERROR_DELETE_NEWS_TAG_RELATION'] = "Die Entfernung der Tags konnte nicht gespeichert werden.";
 $_ARRAYLANG['TXT_NEWS_NO_TAGS_FOUND'] = "Keine Tags zugewiesen";
+$_ARRAYLANG['TXT_NEWS_SETTINGS_LOGIN_REDIRECT'] = 'Anmeldung beim Aufruf geschützter News';
+$_ARRAYLANG['TXT_NEWS_SETTINGS_LOGIN_REDIRECT_HELP'] = 'Ist diese Option aktiviert so wird beim Aufruf einer geschützten News auf die Anmelde-Seite weitergeleitet, andernfalls auf die Übersichts-Seite aller Newsmeldungen.';

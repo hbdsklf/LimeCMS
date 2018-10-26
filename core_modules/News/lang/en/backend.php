@@ -513,3 +513,5 @@ $_ARRAYLANG['TXT_NEWS_RELATED_NEWS_IMAGE_THUMB_BLOCK_DESCRITION'] = "Block to di
 $_ARRAYLANG['TXT_NEWS_RELATED_NEWS_IMAGE_THUMB_DESCRITION'] = "Related article teaser thumbnail image";
 $_ARRAYLANG['TXT_NEWS_RELATED_NEWS_IMAGE_THUMB_LINK_DESCRITION'] = "Related article teaser thumbnail image link";
 $_ARRAYLANG['TXT_NEWS_RELATED_NEWS_IMAGE_THUMB_SRC_DESCRITION'] = "Related article teaser thumbnail image source";
+$_ARRAYLANG['TXT_NEWS_SETTINGS_LOGIN_REDIRECT'] = 'Redirect to login when requesting protected news';
+$_ARRAYLANG['TXT_NEWS_SETTINGS_LOGIN_REDIRECT_HELP'] = 'If this option is active, requesting a protected news article redirects to login page. Otherwise the user will be redirected to the overview of all news.';

@@ -3916,6 +3916,7 @@ INSERT INTO `contrexx_module_news_settings` (`name`, `value`) VALUES ('use_relat
 INSERT INTO `contrexx_module_news_settings` (`name`, `value`) VALUES ('news_use_tags','0');
 INSERT INTO `contrexx_module_news_settings` (`name`, `value`) VALUES ('use_previous_next_news_link', '0');
 INSERT INTO `contrexx_module_news_settings` (`name`, `value`) VALUES ('use_thumbnails', '1');
+INSERT INTO `contrexx_module_news_settings` (`name`, `value`) VALUES ('login_redirect', '0');
 INSERT INTO `contrexx_module_news_settings_locale` (`name`, `lang_id`, `value`) VALUES ('news_feed_description',1,'Informationen rund um Cloudrexx');
 INSERT INTO `contrexx_module_news_settings_locale` (`name`, `lang_id`, `value`) VALUES ('news_feed_description',2,'Informationen rund um Cloudrexx');
 INSERT INTO `contrexx_module_news_settings_locale` (`name`, `lang_id`, `value`) VALUES ('news_feed_title',1,'Cloudrexx');
