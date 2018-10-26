@@ -151,7 +151,7 @@ class NewsletterLib
             // show empty icon
             $consentValue = '<img src="/core/Core/View/Media/icons/pixel.gif" height="13" width="13" />';
             return $consentValue;
-        } else if (empty($source)) {
+        } else if (empty($consent)) {
             // show orange icon with source as tooltip
             $langVarName = 'TXT_NEWSLETTER_CONSENT_SOURCE_';
             $langVarName .= str_replace('-', '_', strtoupper($source));
