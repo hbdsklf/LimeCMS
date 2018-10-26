@@ -198,9 +198,13 @@ class Search
                 return $objTpl->get();
             }
         }
-        $noresult = ($term != ''
-                ? sprintf($_ARRAYLANG['TXT_NO_SEARCH_RESULTS'], $term)
-                : $_ARRAYLANG['TXT_PLEASE_ENTER_SEARCHTERM']);
+        $noresult = $_ARRAYLANG['TXT_PLEASE_ENTER_SEARCHTERM'];
+        if (!empty($term)) {
+            $noresult = sprintf(
+                $_ARRAYLANG['TXT_NO_SEARCH_RESULTS'],
+                contrexx_raw2xhtml($term)
+            );
+        }
         $objTpl->setVariable('SEARCH_TITLE', $noresult);
         return $objTpl->get();
     }
