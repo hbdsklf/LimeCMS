@@ -268,6 +268,9 @@ class News extends \Cx\Core_Modules\News\Controller\NewsLibrary {
                     $validAccessIds
                 )
             ) {
+                if ($this->arrSettings['login_redirect'] == '1') {
+                    \Permission::noAccess($base64Redirect);
+                }
                 header(
                     'Location: '.\Cx\Core\Routing\Url::fromModuleAndCmd('News')
                 );
