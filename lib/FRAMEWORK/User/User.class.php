@@ -664,29 +664,30 @@ class User extends User_Profile
         if ($deleteOwnAccount || $this->id != $objFWUser->objUser->getId()) {
             if (!$this->isLastAdmin()) {
                 \Env::get('cx')->getEvents()->triggerEvent('model/preRemove', array(new \Doctrine\ORM\Event\LifecycleEventArgs($this, \Env::get('em'))));
-                if ($objDatabase->Execute(
-                'DELETE tblU, tblP, tblG, tblA, tblN
-                FROM `'.DBPREFIX.'access_users` AS tblU
-                INNER JOIN `'.DBPREFIX.'access_user_profile` AS tblP ON tblP.`user_id` = tblU.`id`
-                LEFT JOIN `'.DBPREFIX.'access_rel_user_group` AS tblG ON tblG.`user_id` = tblU.`id`
-                LEFT JOIN `'.DBPREFIX.'access_user_attribute_value` AS tblA ON tblA.`user_id` = tblU.`id`
-                LEFT JOIN `'.DBPREFIX.'access_user_network` AS tblN ON tblN.`user_id` = tblU.`id`
-                WHERE tblU.`id` = '.$this->id) !== false
-            ) {
-                \Env::get('cx')->getEvents()->triggerEvent('model/postRemove', array(new \Doctrine\ORM\Event\LifecycleEventArgs($this, \Env::get('em'))));
-                //Clear cache
-                $cx = \Cx\Core\Core\Controller\Cx::instanciate();
-                $cx->getEvents()->triggerEvent(
-                    'clearEsiCache',
-                    array(
-                        'Widget',
-                        $cx->getComponent('Access')->getUserDataBasedWidgetNames(),
-                    )
-                );
-                \Cx\Core\Core\Controller\Cx::instanciate()->getComponent('Cache')->deleteComponentFiles('Access');
+                $objDatabase->startTrans();
+                if (
+                    $objDatabase->Execute('DELETE FROM `'.DBPREFIX.'access_user_attribute_value` WHERE `user_id` = ' . $this->id) !== false &&
+                    $objDatabase->Execute('DELETE FROM `'.DBPREFIX.'access_user_profile` WHERE `user_id` = ' . $this->id) !== false &&
+                    $objDatabase->Execute('DELETE FROM `'.DBPREFIX.'access_rel_user_group` WHERE `user_id` = ' . $this->id) !== false &&
+                    $objDatabase->Execute('DELETE FROM `'.DBPREFIX.'access_user_network` WHERE `user_id` = ' . $this->id) !== false &&
+                    $objDatabase->Execute('DELETE FROM `'.DBPREFIX.'access_users` WHERE `id` = ' . $this->id) !== false
+                ) {
+                    $objDatabase->completeTrans();
+                    \Env::get('cx')->getEvents()->triggerEvent('model/postRemove', array(new \Doctrine\ORM\Event\LifecycleEventArgs($this, \Env::get('em'))));
+                    //Clear cache
+                    $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+                    $cx->getEvents()->triggerEvent(
+                        'clearEsiCache',
+                        array(
+                            'Widget',
+                            $cx->getComponent('Access')->getUserDataBasedWidgetNames(),
+                        )
+                    );
+                    \Cx\Core\Core\Controller\Cx::instanciate()->getComponent('Cache')->deleteComponentFiles('Access');
 
-                return true;
+                    return true;
                 } else {
+                    $objDatabase->failTrans();
                     $this->error_msg[] = sprintf($_CORELANG['TXT_ACCESS_USER_DELETE_FAILED'], $this->username);
                 }
             } else {
