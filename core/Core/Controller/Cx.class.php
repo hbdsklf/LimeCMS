@@ -1571,13 +1571,18 @@ namespace Cx\Core\Core\Controller {
 
                     // parse body arguments:
                     // todo: this does not work for form-data encoded body (boundary...)
-                    $dataArguments = array();
+                    $input = '';
                     if (php_sapi_name() == 'cli') {
-                        // the following does block if there's no data:
-                        //$input = trim(stream_get_contents(STDIN));
+                        $read = array(fopen('php://stdin', 'r'));
+                        $write = null;
+                        $except = null;
+                        if (stream_select($read, $write, $except, 0) === 1) {
+                            $input = file_get_contents('php://stdin');
+                        }
                     } else {
                         $input = file_get_contents('php://input');
                     }
+                    $dataArguments = array();
                     parse_str($input, $dataArguments);
                     $dataArguments = contrexx_input2raw($dataArguments);
 

@@ -156,6 +156,11 @@ class Config
                     'type' => \Cx\Core\Setting\Controller\Setting::TYPE_RADIO,
                     'value' => 'on',
                 ),
+                'cookieNoteTtl' => array(
+                    'type'   => \Cx\Core\Setting\Controller\Setting::TYPE_DROPDOWN,
+                    'value'  => 'session',
+                    'values' => '{src:\\' . __CLASS__ . '::getCookieNoteTtlOptions()}',
+                ),
             ),
             'administrationArea' => array(
                 'dashboardNews' => array(
@@ -2244,5 +2249,25 @@ class Config
 
         echo $process;
         die;
+    }
+
+    /**
+     * Returns cookieNoteTtl options
+     *
+     * @return string cookieNoteTtl options as string
+     */
+    public static function getCookieNoteTtlOptions()
+    {
+        global $_ARRAYLANG;
+
+        $options = array(
+            'session:' . $_ARRAYLANG['TXT_SETTINGS_COOKIENOTETTL_SESSION'],
+            'week:' . $_ARRAYLANG['TXT_SETTINGS_COOKIENOTETTL_WEEK'],
+            'month:' . $_ARRAYLANG['TXT_SETTINGS_COOKIENOTETTL_MONTH'],
+            'year:' . $_ARRAYLANG['TXT_SETTINGS_COOKIENOTETTL_YEAR'],
+            'unlimited:' . $_ARRAYLANG['TXT_SETTINGS_COOKIENOTETTL_UNLIMITED'],
+        );
+
+        return implode(',', $options);
     }
 }

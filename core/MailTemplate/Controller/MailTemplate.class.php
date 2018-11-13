@@ -1366,7 +1366,7 @@ die("MailTemplate::init(): Empty section!");
                         'MAILTEMPLATE_ROWCLASS' => ( ++$i % 2 + 1),
                         'MAILTEMPLATE_SPECIAL' => new \Cx\Core\Wysiwyg\Wysiwyg(
                             $name,
-                            $value,
+                            contrexx_raw2xhtml($value),
                             'fullpage'
                         ),
                     ));
@@ -1541,6 +1541,9 @@ die("MailTemplate::init(): Empty section!");
             'section' => $section,
             'key' => $key,
             'to' => $email,
+            'from' => '',
+            'cc' => '',
+            'bcc' => '',
             'do_not_strip_empty_placeholders' => true, ));
         if ($sent) {
             \Message::ok(sprintf(

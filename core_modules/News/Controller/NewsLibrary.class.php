@@ -3109,6 +3109,7 @@ EOF;
            $templateVariablePrefix . 'NEWS_LINK_TARGET'    => $linkTarget,
            $templateVariablePrefix . 'NEWS_CATEGORY'       => implode(', ', contrexx_raw2xhtml($arrNewsCategories)),
            $templateVariablePrefix . 'NEWS_CATEGORY_NAME'  => implode(', ', contrexx_raw2xhtml($arrNewsCategories)),
+           $templateVariablePrefix . 'NEWS_TYPE_ID'        => $objResult->fields['typeid'],
            $templateVariablePrefix . 'NEWS_TYPE_NAME'      => contrexx_raw2xhtml($this->getTypeNameById($objResult->fields['typeid'])),
            $templateVariablePrefix . 'NEWS_PUBLISHER'      => contrexx_raw2xhtml($publisher),
            $templateVariablePrefix . 'NEWS_AUTHOR'         => contrexx_raw2xhtml($author),

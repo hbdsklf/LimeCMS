@@ -71,6 +71,54 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
     }
 
     /**
+     * Returns a list of command mode commands provided by this component
+     * @return array List of command names
+     */
+    public function getCommandsForCommandMode() {
+        return array('Access');
+    }
+
+    /**
+     * Returns the description for a command provided by this component
+     * @param string $command The name of the command to fetch the description from
+     * @param boolean $short Wheter to return short or long description
+     * @return string Command description
+     */
+    public function getCommandDescription($command, $short = false) {
+        switch ($command) {
+            case 'Access':
+                if ($short) {
+                    return 'Provides cleanup functions for user profiles';
+                }
+                return './cx Access removeUselessProfileImages
+
+Drops all no-longer required profile images';
+                break;
+        }
+        return '';
+    }
+
+    /**
+     * Execute one of the commands listed in getCommandsForCommandMode()
+     * @see getCommandsForCommandMode()
+     * @param string $command Name of command to execute
+     * @param array $arguments List of arguments for the command
+     * @param array  $dataArguments (optional) List of data arguments for the command
+     * @return void
+     */
+    public function executeCommand($command, $arguments, $dataArguments = array()) {
+        switch ($command) {
+            case 'Access':
+                switch (current($arguments)) {
+                    case 'removeUselessProfileImages':
+                        \Cx\Core_Modules\Access\Controller\AccessLib::removeUselessImages();
+                        break;
+                }
+                break;
+        }
+    }
+
+    /**
      * Load your component.
      *
      * @param \Cx\Core\ContentManager\Model\Entity\Page $page       The resolved page

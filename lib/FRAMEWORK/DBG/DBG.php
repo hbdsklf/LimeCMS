@@ -919,7 +919,11 @@ class DBG
             }
             self::$memory_logs[] = date($dateFormat).' '.$text;
         } else {
-            echo $text.'<br />';
+            if (php_sapi_name() == 'cli') {
+                echo $text . PHP_EOL;
+            } else {
+                echo $text . '<br />';
+            }
             // force log message output
             if (ob_get_level()) {
                 ob_flush();
@@ -1003,7 +1007,12 @@ class DBG
                     break;
             }
         }
-        if (!self::$log_file && !self::$log_firephp && !self::$log_memory) {
+        if (
+            !self::$log_file &&
+            !self::$log_firephp &&
+            !self::$log_memory &&
+            php_sapi_name() != 'cli'
+        ) {
             // can't use contrexx_raw2xhtml() here, because it might not
             // have been loaded till now
             $sql = htmlentities($sql, ENT_QUOTES, CONTREXX_CHARSET);

@@ -126,19 +126,22 @@ class JsonUser implements JsonAdapter {
         }
 
         $term = !empty($_GET['term']) ? trim($_GET['term']) : '';
+        $term = '%' . $term . '%';
 
-        $arrSearch = array(
-            'company' => $term,
-            'firstname' => $term,
-            'lastname' => $term,
-            'username' => $term,
+        $arrFilter = array(
+            'OR' => array(
+                array('company' => $term),
+                array('firstname' => $term),
+                array('lastname' => $term),
+                array('username' => $term),
+                array('email' => $term),
+            ),
         );
         $arrAttributes = array(
-            'company', 'firstname', 'lastname', 'username',
+            'company', 'firstname', 'lastname', 'username', 'email',
         );
         $arrUsers = array();
-
-        if ($objUser = $objFWUser->objUser->getUsers(null, $arrSearch, null, $arrAttributes)) {
+        if ($objUser = $objFWUser->objUser->getUsers($arrFilter, null, null, $arrAttributes)) {
             while (!$objUser->EOF) {
                 $id = $objUser->getId();
                 $title = $objFWUser->getParsedUserTitle($objUser);

@@ -730,7 +730,19 @@ class ViewGenerator {
         }
 
         // this case is used for the overview of all entities
-        if ($renderObject instanceof \Cx\Core_Modules\Listing\Model\Entity\DataSet && !$isSingle) {
+        if (
+            !$isSingle &&
+            (
+                $renderObject instanceof \Cx\Core_Modules\Listing\Model\Entity\DataSet ||
+                (
+                    $entityId == 0 &&
+                    (
+                        count($this->getVgParam($_GET['term'])) ||
+                        count($this->getVgParam($_GET['search']))
+                    )
+                )
+            )
+        ) {
             if(!empty($this->options['order']['overview'])) {
                 $renderObject->sortColumns($this->options['order']['overview']);
             }
@@ -747,23 +759,7 @@ class ViewGenerator {
                 $addBtn = '<br /><br /><input type="button" name="addEntity" value="'.$_ARRAYLANG['TXT_ADD'].'" onclick="location.href='."'".$actionUrl."&csrf=".\Cx\Core\Csrf\Controller\Csrf::code()."'".'" />';
             }
             $template->setVariable('ADD_BUTTON', $addBtn);
-            if (!count($renderObject) || !count(current($renderObject))) {
-                // make this configurable
-                $template->parse('no-entries');
-                return $template->get();
-            }
 
-            $this->getListingController(
-                $renderObject,
-                $renderObject->getDataType()
-            );
-            $renderObject = $this->listingController->getData();
-            $this->options['functions']['vg_increment_number'] = $this->viewId;
-            $backendTable = new \BackendTable($renderObject, $this->options);
-            $template->setVariable(array(
-                'TABLE' => $backendTable,
-                'PAGING' => $this->listingController,
-            ));
             $searching = (
                 isset($this->options['functions']['searching']) &&
                 $this->options['functions']['searching']
@@ -801,9 +797,22 @@ class ViewGenerator {
             }
             if ($filtering) {
                 // find all filter-able fields
-                $filterableFields = array_keys($renderObject->rewind());
+                if ($renderObject instanceof \Cx\Core_Modules\Listing\Model\Entity\DataSet) {
+                    $filterableFields = array_keys($renderObject->rewind());
+                } else {
+                    $filterableFields = array_map(
+                        function($element) {
+                            // some php versions prepent \NUL*\NUL to protected
+                            // properties (and \NUL<className>\NUL to private
+                            // properties which we ignore as private properties
+                            // are forbidden by guidelines.
+                            return preg_replace('/^\x0\*\x0/', '', $element);
+                        },
+                        array_keys((array) $renderObject)
+                    );
+                }
                 foreach ($filterableFields as $field) {
-                    if ($field == 'virtual') {
+                    if (in_array($field, array('virtual', 'validators'))) {
                         continue;
                     }
                     if (
@@ -855,6 +864,22 @@ class ViewGenerator {
                 $template->touchBlock('filter');
                 $template->parse('filter');
             }
+            if (!count($renderObject) || !count(current($renderObject))) {
+                // make this configurable
+                $template->touchBlock('no-entries');
+                return $template->get();
+            }
+            $this->getListingController(
+                $renderObject,
+                $renderObject->getDataType()
+            );
+            $renderObject = $this->listingController->getData();
+            $this->options['functions']['vg_increment_number'] = $this->viewId;
+            $backendTable = new \BackendTable($renderObject, $this->options);
+            $template->setVariable(array(
+                'TABLE' => $backendTable,
+                'PAGING' => $this->listingController,
+            ));
 
             return $template->get();
         }

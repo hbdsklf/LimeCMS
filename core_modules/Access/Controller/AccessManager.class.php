@@ -135,172 +135,6 @@ class AccessManager extends \Cx\Core_Modules\Access\Controller\AccessLib
     }
 
 
-  /**
-    * Export users of a group as CSV
-    * @param integer $groupId
-    */
-    function _exportUsers($groupId = 0, $langId = null)
-    {
-        global $_CORELANG, $_ARRAYLANG, $objInit;
-
-        $csvSeparator = ";";
-        $groupId = intval($groupId);
-
-        $objFWUser = \FWUser::getFWUserObject();
-        $arrLangs = \FWLanguage::getLanguageArray();
-
-        if($groupId){
-            $objGroup = $objFWUser->objGroup->getGroup($groupId);
-            $groupName = $objGroup->getName(LANG_ID);
-        }else{
-            $groupName = $_CORELANG['TXT_USER_ALL'];
-        }
-
-        header("Content-Type: text/comma-separated-values", true);
-        header(
-            "Content-Disposition: attachment; filename=\"".
-            str_replace(array(' ', ',', '.', '\'', '"'), '_', $groupName).
-            ($langId != null ? '_lang_'.$arrLangs[$langId]['lang'] : '').
-            '.csv"', true);
-
-        $arrFields = array (
-            'active'            => $_ARRAYLANG['TXT_ACCESS_ACTIVE'],
-            'frontend_lang_id'  => $_ARRAYLANG['TXT_ACCESS_LANGUAGE'] . ' ('.$_CORELANG['TXT_LANGUAGE_FRONTEND'].')',
-            'backend_lang_id'   => $_ARRAYLANG['TXT_ACCESS_LANGUAGE'] . ' ('.$_CORELANG['TXT_LANGUAGE_BACKEND'].')',
-            'username'          => $_ARRAYLANG['TXT_ACCESS_USERNAME'],
-            'email'             => $_ARRAYLANG['TXT_ACCESS_EMAIL'],
-            'regdate'           => $_ARRAYLANG['TXT_ACCESS_REGISTERED_SINCE'],
-        );
-
-        // fetch profile attributes
-        $arrProfileFields = array_merge(
-            $objFWUser->objUser->objAttribute->getCoreAttributeIds(),
-            $objFWUser->objUser->objAttribute->getCustomAttributeIds()
-        );
-        foreach ($arrFields as $field) {
-            print $this->_escapeCsvValue($field).$csvSeparator;
-        }
-        foreach ($arrProfileFields as $profileField) {
-            $arrFields[$profileField] = $objFWUser->objUser->objAttribute->getById($profileField)->getName();
-            print $this->_escapeCsvValue($arrFields[$profileField]).$csvSeparator;
-        }
-        print "\n";
-
-        $filter = array();
-        if (!empty($groupId)) {
-            $filter['group_id'] = $groupId;
-        }
-        if (!empty($langId)) {
-            if (\FWLanguage::getLanguageParameter($langId, 'is_default') == 'true') {
-                $filter['frontend_lang_id'] = array($langId, 0);
-            } else {
-                $filter['frontend_lang_id'] = $langId;
-            }
-        }
-        $objUser = $objFWUser->objUser->getUsers($filter, null, array('username'), array_keys($arrFields));
-        if ($objUser) {
-            while (!$objUser->EOF) {
-                $activeStatus = $objUser->getActiveStatus() ? $_CORELANG['TXT_YES'] : $_CORELANG['TXT_NO'];
-
-                $frontendLangId = $objUser->getFrontendLanguage();
-                if (empty($frontendLangId)) {
-                    $frontendLangId = $objInit->getDefaultFrontendLangId();
-                }
-                $frontendLang = $arrLangs[$frontendLangId]['name']." (".$arrLangs[$frontendLangId]['lang'].")";
-
-                $backendLangId = $objUser->getBackendLanguage();
-                if (empty($backendLangId)) {
-                    $backendLangId = $objInit->getDefaultBackendLangId();
-                }
-                $backendLang = $arrLangs[$backendLangId]['name']." (".$arrLangs[$backendLangId]['lang'].")";
-
-                // active
-                print $this->_escapeCsvValue($activeStatus).$csvSeparator;
-
-                // frontend_lang_id
-                print $this->_escapeCsvValue($frontendLang).$csvSeparator;
-
-                // backend_lang_id
-                print $this->_escapeCsvValue($backendLang).$csvSeparator;
-
-                // username
-                print $this->_escapeCsvValue($objUser->getUsername()).$csvSeparator;
-
-                // email
-                print $this->_escapeCsvValue($objUser->getEmail()).$csvSeparator;
-
-                // regdate
-                print $this->_escapeCsvValue(date(ASCMS_DATE_FORMAT_DATE, $objUser->getRegistrationDate())).$csvSeparator;
-
-                // profile attributes
-                foreach ($arrProfileFields as $field) {
-                    $value = $objUser->getProfileAttribute($field);
-
-                    switch ($field) {
-                        case 'gender':
-                            switch ($value) {
-                                case 'gender_male':
-                                   $value = $_CORELANG['TXT_ACCESS_MALE'];
-                                break;
-
-                                case 'gender_female':
-                                   $value = $_CORELANG['TXT_ACCESS_FEMALE'];
-                                break;
-
-                                default:
-                                   $value = $_CORELANG['TXT_ACCESS_NOT_SPECIFIED'];
-                                break;
-                            }
-                            break;
-
-                        case 'title':
-                        case 'country':
-                            $title = '';
-                            $value = $objUser->objAttribute->getById($field . '_' . $value)->getName();
-                            break;
-
-                        default:
-                            $objAttribute = $objUser->objAttribute->getById($field);
-                            if (!empty($value) && $objAttribute->getType() == 'date') {
-                                $date = new \DateTime();
-                                $date ->setTimestamp($value);
-                                $value = $date->format(ASCMS_DATE_FORMAT_DATE);
-                            }
-                            break;
-                    }
-                    print $this->_escapeCsvValue($value).$csvSeparator;
-                }
-
-                // add line break at end of row
-                print "\n";
-
-                $objUser->next();
-            }
-        }
-        exit;
-    }
-
-
-    /**
-     * Escape a value that it could be inserted into a csv file.
-     *
-     * @param string $value
-     * @return string
-     */
-    function _escapeCsvValue($value)
-    {
-        $csvSeparator = ";";
-        $value = in_array(strtolower(CONTREXX_CHARSET), array('utf8', 'utf-8')) ? utf8_decode($value) : $value;
-        $value = preg_replace('/\r\n/', "\n", $value);
-        $valueModified = str_replace('"', '""', $value);
-
-        if ($valueModified != $value || preg_match('/['.$csvSeparator.'\n]+/', $value)) {
-            $value = '"'.$valueModified.'"';
-        }
-        return $value;
-    }
-
-
     /**
     * Get page
     * @global \Cx\Core\Html\Sigma
@@ -322,7 +156,7 @@ class AccessManager extends \Cx\Core_Modules\Access\Controller\AccessLib
         switch ($_REQUEST['act']) {
             case 'export':
                 $_GET['groupId'] = !empty($_GET['groupId']) ? intval($_GET['groupId']) : 0;
-                $this->_exportUsers($_GET['groupId'], $_GET['langId']);
+                $this->exportUsers($_GET['groupId'], $_GET['langId']);
             break;
             case 'user':
                 if (
@@ -1218,9 +1052,6 @@ class AccessManager extends \Cx\Core_Modules\Access\Controller\AccessLib
     private function userList()
     {
         global $_ARRAYLANG, $_CORELANG, $_CONFIG;
-
-        // add this to a new section maybe named like "maintenance"
-        $this->removeUselessImages();
 
         $arrSettings = \User_Setting::getSettings();
         $templateFile = 'module_access_user_list';

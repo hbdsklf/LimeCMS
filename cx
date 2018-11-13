@@ -16,6 +16,8 @@ if [[ $BASH_VERSION != 4.* ]]; then
     exit 0
 fi
 
+# URL to download this script from
+DOWNLOAD_URL="https://raw.githubusercontent.com/Cloudrexx/cloudrexx/master/cx"
 # current command, sub-command, sub-sub-command, etc.:
 COMMANDS=()
 # list of arguments, including default values
@@ -726,8 +728,15 @@ function cmd_env {
                 echo "Environment successfully initialized. It is available at http://${CONFIG["hostname"]}/"
                 if [[ ${CONFIG["is-vhost"]} == true ]]; then
                     echo "phpMyAdmin is available at http://phpma.${CONFIG["hostname"]}/"
+                    echo "MailHog is available at http://mail.${CONFIG["hostname"]}/"
                 else
                     echo "phpMyAdmin is available at http://${CONFIG["hostname"]}:8234/"
+                    echo "MailHog is available at http://${CONFIG["hostname"]}:8025/"
+                fi
+                if ! which cx > /dev/null; then
+                    echo ""
+                    echo "cx could not be found in your path. Run the following command to add it:"
+                    echo "sudo cp $(pwd -P)/cx /usr/local/bin"
                 fi
             fi
             exit 0
@@ -917,16 +926,17 @@ SET FOREIGN_KEY_CHECKS = 1;"
             done <<< $(ARGUMENTS["raw"]=true && cmd_env component list)
             ;;
         config)
+            get_config_array
             if [[ ${ARGUMENTS["show"]} = true ]]; then
-                echo -e "Key\t\tValue"
-                echo "========================"
-                get_config_array
+                OUTPUT="$(echo -e "KEY\tVALUE")"
+                OUTPUT+=$'\n'
                 for value in "${!CONFIG[@]}"; do
-                    echo -e "$value\t\t${CONFIG[$value]}"
+                    OUTPUT+="$(echo -e "$value\t${CONFIG[$value]}")"
+                    OUTPUT+=$'\n'
                 done
+                echo "$OUTPUT" | column -t -s $'\t'
                 return
             fi
-            get_config_array
             declare -A CONFIG_OVERRIDE
             if [ ${#CONFIG[@]} -eq 0 ] || [[ ${ARGUMENTS["force-default"]} == true ]] ; then
                 # load config, if its empty: load default config over it
@@ -1440,6 +1450,9 @@ UPDATE \`contrexx_settings\` SET \`setvalue\` = 'none' WHERE \`setname\` = 'forc
 # Wrapper functions #
 #####################
 function phpexec {
+    if read -r -t 0; then
+        INPUT="$(cat /dev/stdin)"
+    fi
     # TODO: Check if we should run async
     if type docker >/dev/null 2>&1; then
         if [ ! "$(dockerexec ps -q -f "name=<web-container>")" ]; then
@@ -1449,8 +1462,8 @@ function phpexec {
                 echo "Environment not running!"
             fi
         else
-            if [ -t 0 ] ; then
-                dockerexec exec -ti --user www-data "<web-container>" php index.php "$@"
+            if read -r -t 0; then
+                echo "$INPUT" | dockerexec exec -i --user www-data "<web-container>" php index.php "$@"
             else
                 dockerexec exec -i --user www-data "<web-container>" php index.php "$@"
             fi
@@ -1461,8 +1474,14 @@ function phpexec {
 }
 
 function dockerexec {
-    get_config_array
-    internal_dockerexec "$@"
+    if read -r -t 0; then
+        INPUT="$(cat /dev/stdin)"
+        get_config_array
+        echo "$INPUT" | internal_dockerexec "$@"
+    else
+        get_config_array
+        internal_dockerexec "$@"
+    fi
 }
 
 function internal_dockerexec {
@@ -1660,6 +1679,46 @@ function isPortFree {
 #####################
 # Decide what to do #
 #####################
+
+# this finds "cx" in currend pwd or above
+path="$(pwd)"
+result=""
+found=false
+while [[ $path != / ]];
+do
+    result=$(find "$path" -maxdepth 1 -mindepth 1 -name "cx" -execdir pwd \;)
+    if [[ "$result" != "" ]]; then
+        found=true
+        break;
+    fi
+    # Note: if you want to ignore symlinks, use "$(realpath -s "$path"/..)"
+    path="$(realpath -s "$path"/..)"
+done
+if ! $found; then
+    # command is init
+    if [[ "$1" == "env" ]] && [[ "$2" == "init" ]]; then
+        # download cx and call init
+        wget "$DOWNLOAD_URL" || curl -O "$DOWNLOAD_URL"
+        chmod +x cx
+        ./cx "$@"
+        exit
+
+    # command is envs
+    elif [[ "$1" == "envs" ]]; then
+        COMMANDS=("${COMMANDS[@]:1}")
+        cmd_envs "${COMMANDS[@]/#/}"
+        exit
+    fi
+    echo "cx not found, you may want to call \`cx env init\`";
+    exit
+fi
+if [[ "$(pwd -P)" != "$result" ]]; then
+    prevPwd="$(pwd -P)"
+    cd "$result" || exit
+    ./cx "$@"
+    cd "$prevPwd"
+    exit
+fi
 
 case "${COMMANDS[0]}" in
     envs)

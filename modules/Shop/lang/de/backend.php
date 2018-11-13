@@ -26,6 +26,16 @@
  */
 
 global $_ARRAYLANG;
+/*** NEW ***/
+$_ARRAYLANG['TXT_MODULE_SHOP_ACT_ORDERS'] = 'Bestellungen';
+$_ARRAYLANG['TXT_MODULE_SHOP_ACT_CATEGORIES'] = 'Rubriken';
+$_ARRAYLANG['TXT_MODULE_SHOP_ACT_PRODUCTS'] = 'Produkte';
+$_ARRAYLANG['TXT_MODULE_SHOP_ACT_MANUFACTURER'] = 'Hersteller';
+$_ARRAYLANG['TXT_MODULE_SHOP_ACT_CUSTOMERS'] = 'Kunden';
+$_ARRAYLANG['TXT_MODULE_SHOP_ACT_STATISTICS'] = 'Statistik';
+$_ARRAYLANG['TXT_MODULE_SHOP_ACT_IMPORT'] = 'Schnittstellen';
+$_ARRAYLANG['TXT_MODULE_SHOP_ACT_SETTINGS'] = 'Stammdaten';
+
 $_ARRAYLANG['SHOP_SHIPMENT_TOO_HEAVY'] = "Das Gesamtgewicht der Bestellung übersteigt die verfügbaren Versandmöglichkeiten.";
 $_ARRAYLANG['TXT_ACCEPT_CHANGES'] = "Änderungen übernehmen";
 $_ARRAYLANG['TXT_ACCOUNT_BANK'] = "Kreditinstitut";

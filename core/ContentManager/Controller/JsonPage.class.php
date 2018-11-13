@@ -512,9 +512,15 @@ class JsonPage implements JsonAdapter {
                     }
                     if (isset($dataPost['inheritSkin']) && $dataPost['inheritSkin'] == 'on'/*theme*/) {
                         $currentPage->setSkin($page->getSkin());
+                        if (!empty($pageArray['useSkinForAllChannels'])) {
+                            $currentPage->setUseSkinForAllChannels(1);
+                        }
                     }
                     if (isset($dataPost['inheritCustomContent']) && $dataPost['inheritCustomContent'] == 'on'/*customContent*/) {
                         $currentPage->setCustomContent($page->getCustomContent());
+                        if (!empty($pageArray['useCustomContentForAllChannels'])) {
+                            $currentPage->setUseCustomContentForAllChannels(1);
+                        }
                     }
                     if (isset($dataPost['inheritCssName']) && $dataPost['inheritCssName'] == 'on'/*cssName*/) {
                         $currentPage->setCssName($page->getCssName());

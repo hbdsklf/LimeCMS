@@ -136,3 +136,5 @@ $_ARRAYLANG['TXT_ACCESS_ADDITIONAL_DATA'] = 'Additional data';
 $_ARRAYLANG['TXT_ACCESS_ADDITIONAL_DATA_DESC'] = 'Additional data can be added after successful registration in your user profile';
 $_ARRAYLANG['TXT_ACCESS_NEWSLETTER_SUBSCRIPTION'] = 'Newsletter subscriptions';
 $_ARRAYLANG['TXT_ACCESS_TERMS'] = 'Terms';
+$_ARRAYLANG['TXT_ACCESS_REGISTERED_SINCE'] = "Registered since";
+$_ARRAYLANG['TXT_ACCESS_GROUPS'] = "Groups";
