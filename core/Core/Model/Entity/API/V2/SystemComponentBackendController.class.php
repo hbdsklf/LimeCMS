@@ -185,7 +185,11 @@ class SystemComponentBackendController extends \Cx\Core\Core\Model\Entity\System
                 }
                 $vgConfig = array();
                 if (is_array($cmds[current($cmd)]) && isset($cmds[current($cmd)]['vgConfig'])) {
-                    $vgConfig = $cmds[current($cmd)]['vgConfig'];
+                    $vgConfigIdentifier = $cmds[current($cmd)]['vgConfig'];
+                    $vgConfigs = $this->getData('', 'vgConfigs');
+                    if (isset($vgConfigs[$vgConfigIdentifier])) {
+                        $vgConfig = $vgConfigs[$vgConfigIdentifier];
+                    }
                 }
                 $this->parseEntityClassPage($template, $entityClassName, current($cmd), array(), $isSingle, $vgConfig);
                 break;
