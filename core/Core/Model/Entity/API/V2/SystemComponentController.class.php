@@ -217,9 +217,9 @@ class SystemComponentController extends \Cx\Core\Core\Model\Entity\SystemCompone
         if (!isset($this->data['events'])) {
             return;
         }
-        $events = $this->cx->getEvents();
+        $eventHandler = $this->cx->getEvents();
         foreach ($this->data['events'] as $event) {
-            $events->addEvent($event);
+            $eventHandler->addEvent($event);
         }
     }
 
@@ -233,5 +233,37 @@ class SystemComponentController extends \Cx\Core\Core\Model\Entity\SystemCompone
      * list statements like
      * $this->cx->getEvents()->addEventListener($eventName, $listener);
      */
-    public function registerEventListeners() {}
+    public function registerEventListeners() {
+        if (!isset($this->data['eventListeners'])) {
+            return;
+        }
+        $eventHandler = $this->cx->getEvents();
+        foreach ($this->data['eventListeners'] as $listenerName=>$config) {
+            if (!isset($config['type']) || !isset($config['events'])) {
+                continue;
+            }
+            if ($config['type'] == 'model' && !isset($config['entity'])) {
+                continue;
+            }
+            $className = $this->getNamespace() . '\\Model\\Events\\' . $listenerName;
+            $listener = new $className($this->cx);
+            foreach ($config['events'] as $event) {
+                switch ($config['type']) {
+                    case 'model':
+                        $eventHandler->addListener(
+                            $event,
+                            $config['entity'],
+                            $listener
+                        );
+                        break;
+                    default:
+                        $eventHandler->addModelListener(
+                            $event,
+                            $listener
+                        );
+                        break;
+                }
+            }
+        }
+    }
 }
