@@ -213,7 +213,15 @@ class SystemComponentController extends \Cx\Core\Core\Model\Entity\SystemCompone
      * Do not do anything else here than list statements like
      * $this->cx->getEvents()->addEvent($eventName);
      */
-    public function registerEvents() {}
+    public function registerEvents() {
+        if (!isset($this->data['events'])) {
+            return;
+        }
+        $events = $this->cx->getEvents();
+        foreach ($this->data['events'] as $event) {
+            $events->addEvent($event);
+        }
+    }
 
     /**
      * Register your event listeners here
