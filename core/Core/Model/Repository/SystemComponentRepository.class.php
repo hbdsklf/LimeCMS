@@ -72,6 +72,9 @@ class SystemComponentRepository extends \Doctrine\ORM\EntityRepository
     public function __construct(\Doctrine\ORM\EntityManager $em, \Doctrine\ORM\Mapping\ClassMetadata $class) {
         parent::__construct($em, $class);
         $this->cx = \Env::get('cx');
+        $this->apiVersions = array(
+            2 => '\Cx\Core\Core\Model\Entity\API\V2\SystemComponentController',
+        );
     }
 
     /**
@@ -217,11 +220,15 @@ class SystemComponentRepository extends \Doctrine\ORM\EntityRepository
      * @return string Full qualified class name
      */
     protected function getComponentControllerClassFor(\Cx\Core\Core\Model\Entity\SystemComponent $component) {
-        if (!$this->cx->getClassLoader()->getFilePath($component->getDirectory(false) . '/Controller/ComponentController.class.php')) {
-            return '\\Cx\\Core\\Core\\Model\\Entity\\SystemComponentController';
+        if ($this->cx->getClassLoader()->getFilePath($component->getDirectory(false) . '/Controller/ComponentController.class.php')) {
+            return $component->getNamespace() . '\\Controller\\ComponentController';
         }
-        $className = $component->getNamespace() . '\\Controller\\ComponentController';
-        return $className;
+        foreach ($this->apiVersions as $apiVersionControllerClass) {
+            if ($apiVersionControllerClass::isThisVersion($this->cx, $component)) {
+                return $apiVersionControllerClass;
+            }
+        }
+        return 'Cx\Core\Core\Model\Entity\SystemComponentController';
     }
 
     /**
