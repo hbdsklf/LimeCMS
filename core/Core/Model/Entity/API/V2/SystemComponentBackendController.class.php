@@ -180,10 +180,14 @@ class SystemComponentBackendController extends \Cx\Core\Core\Model\Entity\System
             case 'entity':
                 // Parse entity view generation pages
                 $entityClassName = $this->getNamespace() . '\\Model\\Entity\\' . current($cmd);
-                if (in_array($entityClassName, $this->getEntityClasses())) {
-                    $this->parseEntityClassPage($template, $entityClassName, current($cmd), array(), $isSingle);
-                    return;
+                if (is_array($cmds[current($cmd)]) && isset($cmds[current($cmd)]['entity'])) {
+                    $entityClassName = $cmds[current($cmd)]['entity'];
                 }
+                $vgConfig = array();
+                if (is_array($cmds[current($cmd)]) && isset($cmds[current($cmd)]['vgConfig'])) {
+                    $vgConfig = $cmds[current($cmd)]['vgConfig'];
+                }
+                $this->parseEntityClassPage($template, $entityClassName, current($cmd), array(), $isSingle, $vgConfig);
                 break;
             default:
                 if ($template->blockExists('overview')) {
