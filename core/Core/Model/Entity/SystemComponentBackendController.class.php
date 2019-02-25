@@ -425,7 +425,7 @@ class SystemComponentBackendController extends Controller {
         return null;
     }
 
-    protected function parseEntityClassPage($template, $entityClassName, $classIdentifier, $filter = array(), &$isSingle = false) {
+    protected function parseEntityClassPage($template, $entityClassName, $classIdentifier, $filter = array(), &$isSingle = false, $vgConfig = array()) {
         if (!$template->blockExists('entity_view')) {
             return;
         }
@@ -435,9 +435,12 @@ class SystemComponentBackendController extends Controller {
             $repo = $em->getRepository($entityClassName);
             $entityClassName = $repo->findBy($filter);
         }
+        if (!count($vgConfig)) {
+            $vgConfig = $this->getAllViewGeneratorOptions($entityClassName);
+        }
         $view = new \Cx\Core\Html\Controller\ViewGenerator(
             $this->getViewGeneratorParseObjectForEntityClass($entityClassName),
-            $this->getAllViewGeneratorOptions($entityClassName)
+            $vgConfig
         );
         $renderedContent = $view->render($isSingle);
         $template->setVariable('ENTITY_VIEW', $renderedContent);
