@@ -103,8 +103,17 @@ class SystemComponentController extends \Cx\Core\Core\Model\Entity\SystemCompone
         );
     }
 
-    public function getData() {
-        return $this->data;
+    public function getData($controller = '') {
+        if (empty($controller)) {
+            return $this->data;
+        }
+        if (
+            isset($this->data['controllers']) &&
+            isset($this->data['controllers'][$controller])
+        ) {
+            return $this->data['controllers'][$controller];
+        }
+        return array();
     }
 
     /**
@@ -117,7 +126,7 @@ class SystemComponentController extends \Cx\Core\Core\Model\Entity\SystemCompone
         if (!isset($this->data['controllers'])) {
             return array('Frontend', 'Backend');
         }
-        return $this->data['controllers'];
+        return array_keys($this->data['controllers']);
     }
 
     /**
