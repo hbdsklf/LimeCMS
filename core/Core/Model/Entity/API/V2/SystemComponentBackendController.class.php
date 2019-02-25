@@ -64,11 +64,13 @@ class SystemComponentBackendController extends \Cx\Core\Core\Model\Entity\System
      * @return array List of acts
      */
     public function getCommands() {
-        if (isset($this->getData()['backendTabs'])) {
-            $cmds = $this->getData()['backendTabs'];
+        if (isset($this->getData('Backend')['backendTabs'])) {
+            $cmds = $this->getData('Backend')['backendTabs'];
             foreach ($cmds as &$cmd) {
                 if (is_array($cmd) && isset($cmd['context'])) {
                     unset($cmd['context']);
+                    unset($cmd['entity']);
+                    unset($cmd['vgconfig']);
                 }
             }
             return $cmds;
@@ -107,8 +109,8 @@ class SystemComponentBackendController extends \Cx\Core\Core\Model\Entity\System
         global $_ARRAYLANG;
 
         $cmds = array();
-        if (isset($this->getData()['backendTabs'])) {
-            $cmds = $this->getData()['backendTabs'];
+        if (isset($this->getData('Backend')['backendTabs'])) {
+            $cmds = $this->getData('Backend')['backendTabs'];
         } else {
             $cmds = $this->getCommands();
         }
@@ -182,8 +184,7 @@ class SystemComponentBackendController extends \Cx\Core\Core\Model\Entity\System
                     $this->parseEntityClassPage($template, $entityClassName, current($cmd), array(), $isSingle);
                     return;
                 }
-                // intentionally no
-                // break;
+                break;
             default:
                 if ($template->blockExists('overview')) {
                     $template->touchBlock('overview');
