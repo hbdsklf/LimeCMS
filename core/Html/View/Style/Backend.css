@@ -39,6 +39,16 @@ a.copy {
     cursor: pointer;
 }
 
+a.show {
+    background-image: url(/core/Core/View/Media/icons/details.gif);
+    display: inline-block;
+    height: 16px;
+    width: 16px;
+    margin-top: 4px;
+    margin-left: 4px;
+    cursor: pointer;
+}
+
 form.cx-ui {
     float: none;
     clear: both;
@@ -206,6 +216,33 @@ table.sortable .sorter-loading {
 
 #form-0-overview {
     display: block;
+}
+
+ul.vg-alphabeticalSearch {
+    display: flex;
+    flex-direction: row;
+    list-style-type: none;
+    padding: 0;
+}
+
+ul.vg-alphabeticalSearch li a:before {
+    content: "[";
+    font-weight: normal;
+    padding-right: 0.3em;
+}
+
+ul.vg-alphabeticalSearch li {
+    padding-left: 5px;
+}
+
+ul.vg-alphabeticalSearch li.selected {
+    font-weight: bold;
+}
+
+ul.vg-alphabeticalSearch li a:after {
+    content: "]";
+    font-weight: normal;
+    padding-left: 0.3em;
 }
 
 table.adminlist .vg-function-status {

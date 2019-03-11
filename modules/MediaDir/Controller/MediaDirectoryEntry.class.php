@@ -141,13 +141,18 @@ class MediaDirectoryEntry extends MediaDirectoryInputfield
      * @param   boolean         $associated         If true, load all Entries
      *                                              associated with Entry ID
      *                                              $intEntryId
+     * @param   boolean         $searchByZip        If true, a lookup will be
+     *                                              performed by matching
+     *                                              $strSearchTerm against
+     *                                              the inputfield that has
+     *                                              the context 'zip' set.
      */
     function getEntries($intEntryId = null, $intLevelId = null,
         $intCatId = null, $strSearchTerm = null, $bolLatest = null,
         $bolUnconfirmed = null, $bolActive = null, $intLimitStart = null,
         $intLimitEnd = 'n', $intUserId = null, $bolPopular = null,
         $intCmdFormId = null, $bolReadyToConfirm = null, $intLimit = 0,
-        $intOffset = 0, $associated = false)
+        $intOffset = 0, $associated = false, $searchByZip = false)
     {
         global $_ARRAYLANG, $_CORELANG, $objDatabase, $objInit;
 
@@ -277,7 +282,14 @@ class MediaDirectoryEntry extends MediaDirectoryInputfield
         if(empty($this->strSearchTerm)) {
             $strWhereFirstInputfield = "AND (rel_inputfield.`form_id` = entry.`form_id`) AND (rel_inputfield.`field_id` = (".$this->getQueryToFindPrimaryInputFieldId().")) AND (rel_inputfield.`lang_id` = '".$langId."')";
         } else {
-            $strWhereTerm = "AND ((rel_inputfield.`value` LIKE '%".$this->strSearchTerm."%') OR (entry.`id` = '".$this->strSearchTerm."')) ";
+            if ($searchByZip) {
+                $strWhereTerm = "AND (rel_inputfield.`form_id` = entry.`form_id`) ";
+                $strWhereTerm .="AND (rel_inputfield.`field_id` = (".$this->getQueryToFindInputFieldIdByContextType('zip').")) ";
+                $strWhereTerm .="AND (rel_inputfield.`lang_id` = '".$langId."') ";
+                $strWhereTerm .="AND (rel_inputfield.`value` REGEXP '(^|[^a-z0-9])".$this->strSearchTerm."([^a-z0-9]|$)')";
+            } else {
+                $strWhereTerm = "AND ((rel_inputfield.`value` LIKE '%".$this->strSearchTerm."%') OR (entry.`id` = '".$this->strSearchTerm."')) ";
+            }
             $strWhereFirstInputfield = '';
             $this->strBlockName = "";
         }
@@ -2077,11 +2089,11 @@ JSCODE;
     /**
      * Searches the content and returns an array that is built as needed by the search module.
      *
-     * @param string $searchTerm
+     * @param \Cx\Core_Modules\Search\Controller\Search $search
      *
      * @return array
      */
-    public function searchResultsForSearchModule($searchTerm)
+    public function searchResultsForSearchModule(\Cx\Core_Modules\Search\Controller\Search $search)
     {
         //get the config site values
         \Cx\Core\Setting\Controller\Setting::init('Config', 'site','Yaml');
@@ -2145,8 +2157,15 @@ JSCODE;
             return array();
         }
 
+        // check any set search options
+        $searchByZip = false;
+        $searchOptions = $search->getOptions();
+        if (!empty($searchOptions['zipLookup'])) {
+            $searchByZip = true;
+        }
+
         //get the media directory entry by the search term
-        $this->getEntries(null, null, null, $searchTerm, null, null, true);
+        $this->getEntries(null, null, null, $search->getTerm(), null, null, true, null, 'n', null, null, null, null, 0, 0, false, $searchByZip);
 
         //if no entries found then return empty result
         if (empty($this->arrEntries)) {

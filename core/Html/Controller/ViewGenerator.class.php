@@ -774,15 +774,33 @@ class ViewGenerator {
      * @return int 0 if no entry was found
      */
     protected function getEntryId() {
-        if (!isset($_GET['editid']) && !isset($_POST['editid'])) {
+        if (
+            !isset($_GET['editid']) &&
+            !isset($_POST['editid']) &&
+            !isset($_GET['showid']) &&
+            !isset($_POST['showid'])
+        ) {
             return 0;
         }
+        $editId = 0;
         if (isset($_GET['editid'])) {
-            return $this->getVgParam($_GET['editid']);
+            $editId = $this->getVgParam($_GET['editid']);
         }
         if (isset($_POST['editid'])) {
-            return $this->getVgParam($_POST['editid']);
+            $editId = $this->getVgParam($_POST['editid']);
         }
+        if (isset($_GET['showid'])) {
+            $editId = $this->getVgParam($_GET['showid']);
+        }
+        if (isset($_POST['showid'])) {
+            $editId = $this->getVgParam($_POST['showid']);
+        }
+
+        // Self-heal if the same param is specified multiple times:
+        if (is_array($editId)) {
+            return end($editId);
+        }
+        return $editId;
     }
 
     /**
@@ -837,7 +855,7 @@ class ViewGenerator {
      * @return string rendered view
      */
     public function render(&$isSingle = false) {
-        global $_ARRAYLANG;
+        global $_ARRAYLANG, $_CORELANG;
 
         \JS::registerJS(substr($this->cx->getCoreFolderName() . '/Html/View/Script/Backend.js', 1));
 
@@ -847,6 +865,11 @@ class ViewGenerator {
             $isSingle = true;
             return $this->renderFormForEntry(null);
         }
+
+        $entityId = $this->getEntryId();
+	    if (!empty($_GET['showid'])) {
+	        return $this->renderFormForEntry($entityId, true);
+	    }
 
         // this case is used to copy the entry
         if (
@@ -915,6 +938,10 @@ class ViewGenerator {
                 isset($this->options['functions']['filtering']) &&
                 $this->options['functions']['filtering']
             );
+            $alphabetical = (
+                isset($this->options['functions']['alphabetical']) &&
+                $this->options['functions']['alphabetical']
+            );
             if ($searching) {
                 // If filter is used for extended search,
                 // hide filter and add a toggle link
@@ -941,9 +968,22 @@ class ViewGenerator {
             }
             if ($filtering) {
                 // find all filter-able fields
-                if ($renderObject instanceof \Cx\Core_Modules\Listing\Model\Entity\DataSet) {
+                if (
+                    $renderObject instanceof \Cx\Core_Modules\Listing\Model\Entity\DataSet &&
+                    (
+                        $renderObject->size() ||
+                        $renderObject->getDataType() == 'array'
+                    )
+                ) {
                     $filterableFields = array_keys($renderObject->rewind());
                 } else {
+                    $filterFieldObject = $renderObject;
+                    if (
+                        $renderObject instanceof \Cx\Core_Modules\Listing\Model\Entity\DataSet
+                    ) {
+                        $entityClass = $renderObject->getDataType();
+                        $filterFieldObject = new $entityClass();
+                    }
                     $filterableFields = array_map(
                         function($element) {
                             // some php versions prepent \NUL*\NUL to protected
@@ -952,7 +992,7 @@ class ViewGenerator {
                             // are forbidden by guidelines.
                             return preg_replace('/^\x0\*\x0/', '', $element);
                         },
-                        array_keys((array) $renderObject)
+                        array_keys((array) $filterFieldObject)
                     );
                 }
                 foreach ($filterableFields as $field) {
@@ -1007,6 +1047,70 @@ class ViewGenerator {
                 }
                 $template->touchBlock('filter');
                 $template->parse('filter');
+            }
+            if ($alphabetical) {
+                // #, A-Z, ''
+                $arrLetters = array_merge(array(48), range(65, 90), array(''));
+
+                foreach ($arrLetters as $letter) {
+                    switch ($letter) {
+                        case 48:
+                            $parsedLetter = '#';
+                            $displayLetter = $parsedLetter;
+                            break;
+                        case '':
+                            $parsedLetter = $letter;
+                            $displayLetter = $_CORELANG['TXT_ACCESS_ALL'];
+                            break;
+                        default:
+                            $parsedLetter = chr($letter);
+                            $displayLetter = $parsedLetter;
+                            break;
+                    }
+
+                    $selectedLetter = '';
+                    $url = static::getBaseUrl();
+                    // TODO: Should keep params of other VG instances
+                    $oldSearch = '';
+                    if (isset($url->getParamArray()['search'])) {
+                        $oldSearch = $this->getVgParam(
+                            $url->getParamArray()['search']
+                        );
+                        if (
+                            isset(
+                                $oldSearch[
+                                    $this->options['functions']['alphabetical']
+                                ]
+                            )
+                        ) {
+                            $selectedLetter = substr(
+                                $oldSearch[
+                                    $this->options['functions']['alphabetical']
+                                ],
+                                0,
+                                1
+                            );
+                        }
+                    }
+
+                    if ($parsedLetter == $selectedLetter) {
+                        $template->touchBlock('selected');
+                    }
+
+                    $url->setParam('search', null);
+                    if (!empty($parsedLetter)) {
+                        $url = $this->getExtendedSearchUrl(array(
+                            $this->options['functions']['alphabetical'] =>
+                                $parsedLetter . '%',
+                        ));
+                    }
+
+                    $template->setVariable(array(
+                        'LETTER' => $displayLetter,
+                        'ALPHABETICAL_URL' => (string) $url,
+                    ));
+                    $template->parse('letter');
+                }
             }
             if (!count($renderObject) || !count(current($renderObject))) {
                 // make this configurable
@@ -1066,10 +1170,11 @@ class ViewGenerator {
      * This function will render the form for a given entry by id. If id is null, an empty form will be loaded
      *
      * @access protected
-     * @param int $entityId id of the entity
+     * @param int  $entityId id of the entity
+     * @param bool $readOnly if entity is only readable
      * @return string rendered view
      */
-    protected function renderFormForEntry($entityId) {
+    protected function renderFormForEntry($entityId, $readOnly = false) {
         global $_CORELANG;
 
         if (!isset($this->options['fields'])) {
@@ -1121,7 +1226,12 @@ class ViewGenerator {
             }
             $renderArray = array_merge($sortedData,$renderArray);
         }
-        $this->formGenerator = new FormGenerator($renderArray, $actionUrl, $entityClassWithNS, $title, $this->options, $entityId, $this->componentOptions, $this);
+        if ($readOnly) {
+            unset($renderArray['vg_increment_number']);
+            $this->formGenerator = new \Cx\Core\Html\Controller\TableGenerator($renderArray, $this->options);
+        } else {
+            $this->formGenerator = new FormGenerator($renderArray, $actionUrl, $entityClassWithNS, $title, $this->options, $entityId, $this->componentOptions, $this);
+        }
         // This should be moved to FormGenerator as soon as FormGenerator
         // gets the real entity instead of $renderArray
         $additionalContent = '';
@@ -1833,6 +1943,16 @@ class ViewGenerator {
     }
 
     /**
+     * Get the Url to show an entry of this VG instance
+     * @param int|string|array|object $entryOrId Entity or entity key
+     * @param \Cx\Core\Routing\Url $url (optional) If supplied necessary params are applied
+     * @return \Cx\Core\Routing\Url URL with edit arguments
+     */
+    public function getShowUrl($entryOrId, $url = null) {
+        return static::getVgShowUrl($this->viewId, $entryOrId, $url);
+    }
+
+    /**
      * Get the Url to copy an entry in this VG instance
      * @param int|string|array|object $entryOrId Entity or entity key
      * @param \Cx\Core\Routing\Url $url (optional) If supplied necessary params are applied
@@ -1949,6 +2069,41 @@ class ViewGenerator {
             static::getId($entryOrId)
         );
         return $url;
+    }
+
+    /**
+     * Get the Url to show an entry of a VG instance
+     * @param int $vgId ViewGenerator id
+     * @param int|string|array|object $entryOrId Entity or entity key
+     * @param \Cx\Core\Routing\Url $url (optional) If supplied necessary params are applied
+     * @return \Cx\Core\Routing\Url URL with edit arguments
+     */
+    public static function getVgShowUrl($vgId, $entryOrId, $url = null) {
+        if (!$url) {
+            $url = static::getBaseUrl();
+        }
+        static::appendVgParam(
+            $url,
+            $vgId,
+            'showid',
+            static::getShowId($entryOrId)
+        );
+        return $url;
+    }
+
+    /**
+     * Parses the mixed type $entryOrId param for all the get...Url methods
+     * @param int|string|array|object $entryOrId Entity or entity key
+     * @return string Entity identifier
+     */
+    protected static function getShowId($entryOrId) {
+        if (is_array($entryOrId)) {
+            return implode('/', $entryOrId);
+        }
+        if (is_object($entryOrId)) {
+            // find id using doctrine or dataset
+        }
+        return $entryOrId;
     }
 
     /**

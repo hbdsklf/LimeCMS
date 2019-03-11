@@ -1821,8 +1821,9 @@ class DownloadsManager extends DownloadsLibrary
         $mediaBrowser = new \Cx\Core_Modules\MediaBrowser\Model\Entity\MediaBrowser();
         $mediaBrowser->setCallback('mbCallback');
         $options = array(
-            'type'             => 'button',
-            'data-cx-mb-views' => $type,
+            'type'      => 'button',
+            'views'     => $type,
+            'startview' => $type,
         );
 
         if (!empty($id)) {

@@ -316,7 +316,8 @@ Synopsis
 
 Available options are:
     --root          Execute Bash as root
-    --sql           Execute SQL on database container instead of Bash on web container."
+    --sql           Execute SQL on database container instead of Bash on web container.
+    --sql-file      Execute SQL from a file on database container instead of Bash on web container."
                     ;;
                 component)
                     case "$3" in
@@ -1043,6 +1044,15 @@ SET FOREIGN_KEY_CHECKS = 1;"
                     mysql_exec "$input"
                 else
                     mysql_exec "$@"
+                fi
+                mysql_drop_tempfile
+            elif [[ ${ARGUMENTS["sql-file"]} ]]; then
+                get_config_array
+                mysql_create_tempfile
+                if read -r -t 0; then
+                    mysql_load "$input"
+                else
+                    mysql_load "$@"
                 fi
                 mysql_drop_tempfile
             else

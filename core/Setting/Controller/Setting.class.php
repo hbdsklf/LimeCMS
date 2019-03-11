@@ -767,7 +767,7 @@ class Setting{
                     $element .= \Html::getHidden($name, $arrSetting['value'], $name);
                     $mediaBrowser = new \Cx\Core_Modules\MediaBrowser\Model\Entity\MediaBrowser();
                     $mediaBrowser->setCallback($name.'Callback');
-                    $mediaBrowser->setOptions(array('type' => 'button','data-cx-mb-views' => 'filebrowser'));
+                    $mediaBrowser->setOptions(array('type' => 'button','views' => 'filebrowser'));
                     $element .= $mediaBrowser->getXHtml($_ARRAYLANG['TXT_BROWSE']);
                     \JS::registerCode('
                         function ' . $name . 'Callback(data) {

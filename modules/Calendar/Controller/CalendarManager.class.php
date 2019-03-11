@@ -341,8 +341,8 @@ class CalendarManager extends CalendarLibrary
 
         $mediaBrowser = new \Cx\Core_Modules\MediaBrowser\Model\Entity\MediaBrowser();
         $mediaBrowser->setOptions(array(
-                    'type'             => 'button',
-                    'data-cx-mb-views' => $type
+                    'type'  => 'button',
+                    'views' => $type
         ));
         $mediaBrowser->setCallback('setSelected' . ucfirst($name));
 

@@ -465,6 +465,7 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
             ),
             'dependencies' => array(
                 'cx',
+                'js-cookie',
                 // Note: loading jQuery as a dependency does not work as it would
                 //       interfere with jQuery plugins
                 //'jquery'    => '^([^1]\..*|1\.[^0-8]*\..*)$', // jquery needs to be version 1.9.0 or higher

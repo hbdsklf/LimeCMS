@@ -383,7 +383,7 @@ class BackendController extends \Cx\Core\Core\Model\Entity\SystemComponentBacken
                     'header' => $_ARRAYLANG['TXT_' . strtoupper($this->getType() . '_' . $this->getName() . '_ACT_' . $classIdentifier) . '_IMAGE_PATH'],
                     'type' => 'image',
                     'showOverview' => false,
-                    'options' => array('data-cx-mb-startmediatype' => 'wysiwyg'),
+                    'options' => array('startmediatype' => 'wysiwyg'),
                 ),
                 'htmlContent' => array(
                     'header' => $_ARRAYLANG['TXT_' . strtoupper($this->getType() . '_' . $this->getName() . '_ACT_' . $classIdentifier) . '_HTML_CONTENT'],

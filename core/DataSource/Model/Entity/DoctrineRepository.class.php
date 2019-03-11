@@ -217,7 +217,7 @@ class DoctrineRepository extends DataSource {
             $result,
             null,
             array(
-                'recursiveParsing' => true,
+                'recursions' => $configuredRecursions,
                 'skipVirtual' => true,
             )
         );

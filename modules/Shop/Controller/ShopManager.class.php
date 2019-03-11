@@ -1752,8 +1752,8 @@ if ($test === NULL) {
         // mediabrowser
         $mediaBrowserOptions = array(
             'type'                      => 'button',
-            'data-cx-mb-startmediatype' => 'shop',
-            'data-cx-mb-views'          => 'filebrowser',
+            'startmediatype'            => 'shop',
+            'views'                     => 'filebrowser',
             'id'                        => 'media_browser_shop',
             'style'                     => 'display:none'
         );
@@ -2150,8 +2150,8 @@ if ($test === NULL) {
         // media browser
         $mediaBrowserOptions = array(
             'type'                      => 'button',
-            'data-cx-mb-startmediatype' => 'shop',
-            'data-cx-mb-views'          => 'filebrowser',
+            'startmediatype'            => 'shop',
+            'views'                     => 'filebrowser',
             'id'                        => 'media_browser_shop',
             'style'                     => 'display:none'
         );

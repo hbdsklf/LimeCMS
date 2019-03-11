@@ -175,12 +175,15 @@ class DataSet extends \Cx\Model\Base\EntityBase implements \Iterator {
      * @param Object $object Object to convert
      * @param string $key (Reference) Object key, might get replaced by object's ID
      * @param array $forbiddenClasses (Optional) List of classes to skip recursion of
+     * @param string $prefix (Optional) Path to current object (see
+     *                          \Cx\Core\DataSource\Model\Entity\DoctrineRepository)
      * @return array Converted data
      */
     protected function convertObject(
         $object,
         &$key,
-        $forbiddenClasses = array('Doctrine\ORM\PersistentCollection')
+        $forbiddenClasses = array('Doctrine\ORM\PersistentCollection'),
+        $prefix = 'x.'
     ) {
         $data = array();
         if ($object instanceof \Cx\Model\Base\EntityBase) {
@@ -201,35 +204,55 @@ class DataSet extends \Cx\Model\Base\EntityBase implements \Iterator {
                 $data[$field] = $value;
             }
             $associationMappings = $em->getClassMetadata(get_class($object))->getAssociationMappings();
+            // loop over all relations of this entity
             foreach ($associationMappings as $field => $associationMapping) {
                 $classMethods = get_class_methods($object);
-                $methodNameToFetchAssociation = 'get'.ucfirst($field);
-                if (in_array($methodNameToFetchAssociation, $classMethods)) {
-                    $data[$field] = $object->$methodNameToFetchAssociation();
-                    if (
-                        isset($this->options['recursiveParsing']) &&
-                        $this->options['recursiveParsing'] &&
-                        is_object($data[$field])
-                    ) {
-                        if (
-                            in_array(
-                                get_class($data[$field]),
-                                $forbiddenClasses
-                            )
-                        ) {
-                            unset($data[$field]);
-                            continue;
-                        }
-                        $foo = '';
-                        $data[$field] = $this->convertObject(
-                            $data[$field],
-                            $foo,
-                            array_merge(
-                                $forbiddenClasses,
-                                array(get_class($data[$field]))
-                            )
-                        );
+                $methodBaseName = \Doctrine\Common\Inflector\Inflector::classify(
+                    $field
+                );
+                $methodNameToFetchAssociation = 'get' . $methodBaseName;
+                // stop if getter does not exist
+                if (!in_array($methodNameToFetchAssociation, $classMethods)) {
+                    continue;
+                }
+                $data[$field] = $object->$methodNameToFetchAssociation();
+                // stop if recursion is not configured or target is not an object
+                if (
+                    !isset($this->options['recursions'][$prefix.$field]) ||
+                    !is_object($data[$field])
+                ) {
+                    // If we don't recurse, we want to know about this field.
+                    // If we recurse, it's misleading to show this field as
+                    // an empty array even if it might have content.
+                    if (count($this->options['recursions'])) {
+                        unset($data[$field]);
                     }
+                    continue;
+                }
+                $className = $associationMapping['targetEntity'];
+                // stop if entity is already parsed
+                if (
+                    in_array(
+                        $className,
+                        $forbiddenClasses
+                    )
+                ) {
+                    unset($data[$field]);
+                    continue;
+                }
+                $foo = '';
+                $data[$field] = $this->convertObject(
+                    $data[$field],
+                    $foo,
+                    array_merge(
+                        $forbiddenClasses,
+                        array($className)
+                    ),
+                    $prefix . $field . '.'
+                );
+                // if a relation is empty, it's to be an empty object!
+                if (!count($data[$field])) {
+                    $data[$field] = new \stdClass();
                 }
             }
             if (
@@ -242,7 +265,22 @@ class DataSet extends \Cx\Model\Base\EntityBase implements \Iterator {
         }
         foreach ($object as $attribute => $property) {
             if (is_object($property)) {
-                $data[$attribute] = $this->convertObject($property, $key);
+                // if $object is an array collection, $attribute will be numeric
+                if ($object instanceof \Doctrine\Common\Collections\Collection) {
+                    // index collection entries by their "identifying field"
+                    $attribute = $property->getKeyAsString();
+                } else {
+                    $prefix .= $attribute . '.';
+                }
+                $data[$attribute] = $this->convertObject(
+                    $property,
+                    $key,
+                    array_merge(
+                        $forbiddenClasses,
+                        array(get_class($property))
+                    ),
+                    $prefix
+                );
             } else {
                 $data[$attribute] = $property;
             }

@@ -659,6 +659,7 @@ class CalendarMailManager extends CalendarLibrary {
         global $_CONFIG, $_LANGID;
 
         $recipients = array();
+        $db = \Cx\Core\Core\Controller\Cx::instanciate()->getDb()->getAdoDb();
 
         switch ($actionId) {
             case static::MAIL_INVITATION:
@@ -677,7 +678,6 @@ class CalendarMailManager extends CalendarLibrary {
                 }
 
                 // fetch users from Crm groups
-                $db = \Cx\Core\Core\Controller\Cx::instanciate()->getDb()->getAdoDb();
                 $excludeQuery = '';
 
                 if ($objEvent->excludedCrmGroups) {
@@ -811,7 +811,22 @@ class CalendarMailManager extends CalendarLibrary {
                 ) {
                     $participant = end($recipients);
                     $objRegistration->getInvite()->setEmail($participant->getAddress());
-                    $this->em->flush();
+                    // TODO: this is a workaround
+                    // Due to the existance of both, the legacy and doctrine
+                    // model, we have to make the following change through
+                    // legacy SQL. As otherwise ($this->em->flush()) would throw
+                    // an exception, as the associated Event entity has been
+                    // detachted by the legacy event system in Calendar.
+                    // As soon as the legacy model has been dropped, the
+                    // following code can be removed as well: 
+                    $inviteId = $objRegistration->getInvite()->getId();
+                    if ($inviteId) {
+                        $db->Execute('UPDATE '.DBPREFIX.'module_calendar_invite SET `email` = \'' . contrexx_raw2db($participant->getAddress()) . '\' WHERE id = '. $inviteId);
+                        $this->em->getConfiguration()->getResultCacheImpl()->deleteAll();
+                    }
+                    // This would be the proper statement, once the legacy
+                    // model has been removed:
+                    // $this->em->flush();
                 }
                 break;
 

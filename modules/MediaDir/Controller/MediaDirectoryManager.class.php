@@ -844,7 +844,7 @@ class MediaDirectoryManager extends MediaDirectoryLibrary
             $this->moduleLangVar.'_CATEGORY_IMAGE_BROWSE' => $this->getMediaBrowserButton(
                 $_ARRAYLANG['TXT_BROWSE'],
                 array(
-                    'data-cx-mb-views' => 'filebrowser',
+                    'views' => 'filebrowser',
                     'type' => 'button',
                     'data-input-id' => 'categoryImage2'
                 ),
@@ -1079,7 +1079,7 @@ class MediaDirectoryManager extends MediaDirectoryLibrary
             $this->moduleLangVar.'_LEVEL_IMAGE_BROWSE' => $this->getMediaBrowserButton(
                 $_ARRAYLANG['TXT_BROWSE'],
                 array(
-                    'data-cx-mb-views' => 'filebrowser',
+                    'views' => 'filebrowser',
                     'type' => 'button',
                     'data-input-id' => 'levelImage2'
                 ),

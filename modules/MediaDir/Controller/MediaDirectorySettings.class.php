@@ -1536,8 +1536,8 @@ EOF;
             $this->moduleLangVar.'_FORM_IMAGE_BROWSE' => $this->getMediaBrowserButton(
                 $_ARRAYLANG['TXT_BROWSE'],
                 array(
-                    'data-cx-mb-views' => 'filebrowser',
-                    'data-cx-mb-startmediatype' => $this->moduleNameLC,
+                    'views' => 'filebrowser',
+                    'startmediatype' => $this->moduleNameLC,
                     'type' => 'button',
                     'data-input-id' => 'formImage2'
                 ),

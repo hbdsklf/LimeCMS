@@ -160,22 +160,6 @@ class BackendTable extends HTML_Table {
                         continue;
                     }
 
-                    if (
-                        isset($options['fields'][$header]['editable']) &&
-                        $this->editable && !in_array($header, $status)
-                    ) {
-                        $data = $formGenerator->getDataElementWithoutType(
-                            $header,
-                            $header .'-'. $rowname,
-                            0,
-                            $data,
-                            $options,
-                            0
-                        );
-
-                        $encode = false;
-                    }
-
                     if (!empty($sortField) && $header === $sortField) {
                         //Add the additional attribute class, to display the updated sort order after the row sorting
                         $this->updateColAttributes($col, array('class' => 'sortBy' . $sortField));
@@ -243,6 +227,24 @@ class BackendTable extends HTML_Table {
                             $options['fields'][$origHeader]
                         );
                     }
+
+                    if (
+                        isset($options['fields'][$origHeader]['editable']) &&
+                        $this->editable &&
+                        !in_array($origHeader, $status)
+                    ) {
+                        $data = $formGenerator->getDataElementWithoutType(
+                            $origHeader,
+                            $origHeader .'-'. $rowname,
+                            0,
+                            $data,
+                            $options,
+                            0
+                        );
+
+                        $encode = false;
+                    }
+
                     /* We use json to do parse the field function. The 'else if' is for backwards compatibility so you can declare
                     * the function directly without using json. This is not recommended and not working over session */
                     if (
@@ -356,12 +358,29 @@ class BackendTable extends HTML_Table {
             // adjust colspan of master-table-header-row
             $this->altRowAttributes(1 + $this->hasMasterTableHeader, array('class' => 'row1'), array('class' => 'row2'), true);
             if ($this->hasMasterTableHeader) {
-                for ($i = 1; $i < $col; $i++) {
-                    $this->setHeaderContents(0, $i, '');
-                }
+                // now that the number of displayed columns is known:
+                $headerColspan = $col;
+                // we need to substract one if we have "overall functions"
+                $headerColspan -= (int) (
+                    isset($options['functions']) &&
+                    isset($options['functions']['export']) &&
+                    is_array($options['functions']['export'])
+                );
+                // we need to add one if there's an additional functions row
+                $headerColspan += (int) $this->hasRowFunctions(
+                    $options['functions']
+                );
+                $this->updateCellAttributes(
+                    0, 
+                    0, 
+                    array(
+                        'colspan' => $headerColspan
+                    )
+                );
+
                 // prepare overall functions code
                 $overallFunctionsCode = $this->getOverallFunctionsCode($options['functions'], $attrs);
-                $this->setHeaderContents(0, $i, $overallFunctionsCode);
+                $this->setHeaderContents(0, $col, $overallFunctionsCode);
                 $this->updateCellAttributes(0, $col, array('style' => 'text-align:right;'));
                 $this->updateRowAttributes(1, array('class' => 'row3'), true);
             }
@@ -570,6 +589,9 @@ class BackendTable extends HTML_Table {
         if (!$virtual && isset($functions['edit']) && $functions['edit']) {
             return true;
         }
+        if (!$virtual && isset($functions['show']) && $functions['show']) {
+            return true;
+        }
         if (!$virtual && isset($functions['delete']) && $functions['delete']) {
             return true;
         }
@@ -589,6 +611,7 @@ class BackendTable extends HTML_Table {
             $rowname,
             clone $baseUrl
         );
+        $showUrl = clone $baseUrl;
         $params = $editUrl->getParamArray();
         if (isset($functions['sortBy']) && isset($functions['sortBy']['field'])) {
             $editUrl->setParam($functions['sortBy']['field'] . 'Pos', null);
@@ -596,6 +619,7 @@ class BackendTable extends HTML_Table {
         $editId = '';
         if (!empty($params['editid'])) {
             $editId = $params['editid'] . ',';
+            $showId = $params['editid'];
         }
         $editId .= '{' . $functions['vg_increment_number'] . ',' . $rowname . '}';
 
@@ -625,6 +649,15 @@ class BackendTable extends HTML_Table {
         }
 
         if(!$virtual){
+            if (isset($functions['show']) && $functions['show']) {
+                $showUrl->setParam('showid', $showId);
+                //remove the parameter 'vg_increment_number' from editUrl
+                //if the baseUrl contains the parameter 'vg_increment_number
+                if (isset($params['vg_increment_number'])) {
+                    \Html::stripUriParam($showUrl, 'vg_increment_number');
+                }
+                $code .= '<a href="' . $showUrl . '" class="show" title="'.$_ARRAYLANG['TXT_CORE_RECORD_SHOW_TITLE'].'"></a>';
+            }
             if (isset($functions['copy']) && $functions['copy']) {
                 $actionUrl = clone $editUrl;
                 $actionUrl->setParam('copy', $editId);
@@ -651,7 +684,12 @@ class BackendTable extends HTML_Table {
                 $deleteUrl->setParam('vg_increment_number', $functions['vg_increment_number']);
                 $deleteUrl.='&csrf='.\Cx\Core\Csrf\Controller\Csrf::code();
                 $onclick ='if (confirm(\''.$_ARRAYLANG['TXT_CORE_RECORD_DELETE_CONFIRM'].'\'))'.
-                        'window.location.replace(\''.$deleteUrl.'\');';
+                    'window.location.replace(\''.$deleteUrl.'\');';
+                if (!empty($functions['onclick']) &&
+                    !empty($functions['onclick']['delete'])
+                ) {
+                    $onclick = $functions['onclick']['delete'].'(\''. $deleteUrl .'\')';
+                }
                 $_uri = 'javascript:void(0);';
                 $code .= '<a onclick="'.$onclick.'" href="'.$_uri.'" class="delete" title="'.$_ARRAYLANG['TXT_CORE_RECORD_DELETE_TITLE'].'"></a>';
             }

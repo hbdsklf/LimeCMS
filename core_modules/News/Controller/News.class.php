@@ -286,24 +286,12 @@ class News extends \Cx\Core_Modules\News\Controller\NewsLibrary {
         $source             = contrexx_raw2xhtml($objResult->fields['source']);
         $url1               = $objResult->fields['url1'];
         $url2               = $objResult->fields['url2'];
-        $newsUrl            = '';
-        $newsSource         = '';
         $newsLastUpdate     = !empty($lastUpdate)
                                ? $_ARRAYLANG['TXT_LAST_UPDATE'].'<br />'.date(ASCMS_DATE_FORMAT, $lastUpdate)
                                : '';
 
         if ($objResult->fields['enddate'] != '0000-00-00 00:00:00') {
             $expirationDate = new \DateTime($objResult->fields['enddate']);
-        }
-
-        if (!empty($url1)) {
-            $newsUrl = $_ARRAYLANG['TXT_IMPORTANT_HYPERLINKS'] . '<br />' . $this->getNewsLink($url1) . '<br />';
-        }
-        if (!empty($url2)) {
-            $newsUrl .= $this->getNewsLink($url2).'<br />';
-        }
-        if (!empty($source)) {
-            $newsSource = $_ARRAYLANG['TXT_NEWS_SOURCE'] . '<br />'. $this->getNewsLink($source) . '<br />';
         }
 
         $this->newsTitle = $objResult->fields['title'];
@@ -334,16 +322,80 @@ class News extends \Cx\Core_Modules\News\Controller\NewsLibrary {
            'NEWS_TITLE'          => $newstitle,
            'NEWS_TEASER_TEXT'    => $newsTeaser,
            'NEWS_LASTUPDATE'     => $newsLastUpdate,
-           'NEWS_SOURCE'         => $newsSource,
-           'NEWS_URL'            => $newsUrl,
-           'NEWS_LINK1_SRC'      => contrexx_raw2encodedUrl($url1),
-           'NEWS_LINK2_SRC'      => contrexx_raw2encodedUrl($url2),
            'NEWS_CATEGORY_NAME'  => implode(', ', contrexx_raw2xhtml($newsCategories)),
            'NEWS_TYPE_ID'        => $objResult->fields['typeid'],
            'NEWS_TYPE_NAME'      => contrexx_raw2xhtml($this->getTypeNameById($objResult->fields['typeid'])),
         ));
 
-        if ($this->arrSettings['news_use_teaser_text'] != '1' && $this->_objTpl->blockExists('news_use_teaser_text')) {
+        // parse 'combined' external link
+        $newsUrl = '';
+        if (!empty($url1)) {
+            $newsUrl = $_ARRAYLANG['TXT_IMPORTANT_HYPERLINKS'] . '<br />' . $this->getNewsLink($url1) . '<br />';
+        }
+        if (!empty($url2)) {
+            $newsUrl .= $this->getNewsLink($url2).'<br />';
+        }
+        $objTpl->setVariable(
+            'NEWS_URL',
+            $newsUrl
+        );
+
+        // parse external source
+        $newsSourceLink = '';
+        $newsSource = '';
+        if (!empty($source)) {
+            $newsSourceLink = $this->getNewsLink($source);
+            $newsSource = $_ARRAYLANG['TXT_NEWS_SOURCE'] . '<br />'. $newsSourceLink . '<br />';
+        }
+        $objTpl->setVariable(array(
+            'TXT_NEWS_SOURCE' => $_ARRAYLANG['TXT_NEWS_SOURCE'],
+            'NEWS_SOURCE'     => $newsSource,
+            'NEWS_SOURCE_LINK'=> $newsSourceLink,
+            'NEWS_SOURCE_SRC' => $source,
+        ));
+        if ($objTpl->blockExists('news_source')) {
+            if (empty($source)) {
+                $objTpl->hideBlock('news_source');
+            } else {
+                $objTpl->touchBlock('news_source');
+            }
+        }
+
+        // parse external link 1
+        $objTpl->setVariable(array(
+            'TXT_NEWS_LINK1' =>
+                $_ARRAYLANG['TXT_NEWS_LINK1'],
+            'NEWS_LINK1_SRC' =>
+                contrexx_raw2encodedUrl($url1),
+        ));
+        if ($objTpl->blockExists('news_link1')) {
+            if (empty($url1)) {
+                $objTpl->hideBlock('news_link1');
+            } else {
+                $objTpl->touchBlock('news_link1');
+            }
+        }
+
+        // parse external link 2
+        $objTpl->setVariable(array(
+            'TXT_NEWS_LINK2' =>
+                $_ARRAYLANG['TXT_NEWS_LINK2'],
+            'NEWS_LINK2_SRC' =>
+                contrexx_raw2encodedUrl($url2)
+        ));
+        if ($objTpl->blockExists('news_link2')) {
+            if (empty($url2)) {
+                $objTpl->hideBlock('news_link2');
+            } else {
+                $objTpl->touchBlock('news_link2');
+            }
+        }
+
+        // hide teaser container if the use of teasers has been deactivated
+        if (
+            $this->arrSettings['news_use_teaser_text'] != '1' &&
+            $this->_objTpl->blockExists('news_use_teaser_text')
+        ) {
             $this->_objTpl->hideBlock('news_use_teaser_text');
         }
 
@@ -408,8 +460,8 @@ class News extends \Cx\Core_Modules\News\Controller\NewsLibrary {
             }
         }
 
-        self::parseImageBlock($this->_objTpl, $objResult->fields['newsThumbImg'], $newstitle, $newsUrl, 'image_thumbnail');
-        self::parseImageBlock($this->_objTpl, $objResult->fields['newsimage'], $newstitle, $newsUrl, 'image_detail');
+        self::parseImageBlock($this->_objTpl, $objResult->fields['newsThumbImg'], $newstitle, '', 'image_thumbnail');
+        self::parseImageBlock($this->_objTpl, $objResult->fields['newsimage'], $newstitle, '', 'image_detail');
         //previous next newslink
         if (    !empty($this->arrSettings['use_previous_next_news_link']) 
             &&  $this->_objTpl->blockExists('news_details_previous_next_links')

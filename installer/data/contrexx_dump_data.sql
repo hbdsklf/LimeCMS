@@ -565,7 +565,6 @@ INSERT INTO `contrexx_backend_areas` (`area_id`, `parent_area_id`, `type`, `scop
 INSERT INTO `contrexx_backend_areas` (`area_id`, `parent_area_id`, `type`, `scope`, `area_name`, `is_active`, `uri`, `target`, `module_id`, `order_id`, `access_id`) VALUES (175,29,'navigation','backend','TXT_CORE_NEWS',1,'index.php?cmd=Newsletter&act=news','_self',4,5,175);
 INSERT INTO `contrexx_backend_areas` (`area_id`, `parent_area_id`, `type`, `scope`, `area_name`, `is_active`, `uri`, `target`, `module_id`, `order_id`, `access_id`) VALUES (176,29,'navigation','backend','TXT_NEWSLETTER_SETTINGS',1,'index.php?cmd=Newsletter&act=Settings','_self',4,6,176);
 INSERT INTO `contrexx_backend_areas` (`area_id`, `parent_area_id`, `type`, `scope`, `area_name`, `is_active`, `uri`, `target`, `module_id`, `order_id`, `access_id`) VALUES (177,0,'function','global','Json Adapter',1,'index.php?cmd=JsonData','_self',63,0,0);
-INSERT INTO `contrexx_backend_areas` (`area_id`, `parent_area_id`, `type`, `scope`, `area_name`, `is_active`, `uri`, `target`, `module_id`, `order_id`, `access_id`) VALUES (178,0,'function','global','File Browser',1,'index.php?cmd=FileBrowser','_self',26,0,0);
 INSERT INTO `contrexx_backend_areas` (`area_id`, `parent_area_id`, `type`, `scope`, `area_name`, `is_active`, `uri`, `target`, `module_id`, `order_id`, `access_id`) VALUES (189,0,'group','backend','TXT_CRM_MODULE_DESCRIPTION',1,'','_self',0,6,194);
 INSERT INTO `contrexx_backend_areas` (`area_id`, `parent_area_id`, `type`, `scope`, `area_name`, `is_active`, `uri`, `target`, `module_id`, `order_id`, `access_id`) VALUES (180,0,'function','global','TXT_SEARCH',1,'index.php?cmd=Search','_self',5,0,0);
 INSERT INTO `contrexx_backend_areas` (`area_id`, `parent_area_id`, `type`, `scope`, `area_name`, `is_active`, `uri`, `target`, `module_id`, `order_id`, `access_id`) VALUES (181,0,'function','global','TXT_UPLOAD',1,'index.php?cmd=Upload','_self',52,0,0);
@@ -636,7 +635,6 @@ INSERT INTO `contrexx_component` (`id`, `name`, `type`) VALUES (22,'Feed','modul
 INSERT INTO `contrexx_component` (`id`, `name`, `type`) VALUES (23,'Access','core_module');
 INSERT INTO `contrexx_component` (`id`, `name`, `type`) VALUES (24,'Media2','core_module');
 INSERT INTO `contrexx_component` (`id`, `name`, `type`) VALUES (25,'Media3','core_module');
-INSERT INTO `contrexx_component` (`id`, `name`, `type`) VALUES (26,'FileBrowser','core_module');
 INSERT INTO `contrexx_component` (`id`, `name`, `type`) VALUES (27,'Recommend','module');
 INSERT INTO `contrexx_component` (`id`, `name`, `type`) VALUES (30,'Livecam','module');
 INSERT INTO `contrexx_component` (`id`, `name`, `type`) VALUES (31,'MemberDir','module');
@@ -4580,7 +4578,6 @@ INSERT INTO `contrexx_modules` (`id`, `name`, `distributor`, `description_variab
 INSERT INTO `contrexx_modules` (`id`, `name`, `distributor`, `description_variable`, `status`, `is_required`, `is_core`, `is_active`, `is_licensed`, `additional_data`) VALUES (23,'Access','Cloudrexx AG','TXT_COMMUNITY_MODULE_DESCRIPTION','y',0,1,1,1,NULL);
 INSERT INTO `contrexx_modules` (`id`, `name`, `distributor`, `description_variable`, `status`, `is_required`, `is_core`, `is_active`, `is_licensed`, `additional_data`) VALUES (24,'Media2','Cloudrexx AG','TXT_MEDIA_MODULE_DESCRIPTION','y',0,1,1,1,NULL);
 INSERT INTO `contrexx_modules` (`id`, `name`, `distributor`, `description_variable`, `status`, `is_required`, `is_core`, `is_active`, `is_licensed`, `additional_data`) VALUES (25,'Media3','Cloudrexx AG','TXT_MEDIA_MODULE_DESCRIPTION','y',0,1,1,1,NULL);
-INSERT INTO `contrexx_modules` (`id`, `name`, `distributor`, `description_variable`, `status`, `is_required`, `is_core`, `is_active`, `is_licensed`, `additional_data`) VALUES (26,'FileBrowser','Cloudrexx AG','TXT_FILEBROWSER_DESCRIPTION','n',1,1,1,1,NULL);
 INSERT INTO `contrexx_modules` (`id`, `name`, `distributor`, `description_variable`, `status`, `is_required`, `is_core`, `is_active`, `is_licensed`, `additional_data`) VALUES (27,'Recommend','Cloudrexx AG','TXT_RECOMMEND_MODULE_DESCRIPTION','y',0,0,1,1,NULL);
 INSERT INTO `contrexx_modules` (`id`, `name`, `distributor`, `description_variable`, `status`, `is_required`, `is_core`, `is_active`, `is_licensed`, `additional_data`) VALUES (30,'Livecam','Cloudrexx AG','TXT_LIVECAM_MODULE_DESCRIPTION','y',0,0,1,1,NULL);
 INSERT INTO `contrexx_modules` (`id`, `name`, `distributor`, `description_variable`, `status`, `is_required`, `is_core`, `is_active`, `is_licensed`, `additional_data`) VALUES (31,'MemberDir','Cloudrexx AG','TXT_MEMBERDIR_MODULE_DESCRIPTION','y',0,0,1,1,NULL);

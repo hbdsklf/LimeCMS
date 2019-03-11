@@ -1247,7 +1247,9 @@ class NewsManager extends \Cx\Core_Modules\News\Controller\NewsLibrary {
             'NEWS_FORM_CAT_ROW'             => $catrow,
             'NEWS_TYPE_MENU'                => $news_type_menu,
             'TXT_EXTERNAL_SOURCE'           => $_ARRAYLANG['TXT_EXTERNAL_SOURCE'],
-            'TXT_LINK'                      => $_ARRAYLANG['TXT_LINK'],
+            'TXT_NEWS_SOURCE'               => $_ARRAYLANG['TXT_NEWS_SOURCE'],
+            'TXT_NEWS_LINK1'                => $_ARRAYLANG['TXT_NEWS_LINK1'],
+            'TXT_NEWS_LINK2'                => $_ARRAYLANG['TXT_NEWS_LINK2'],
             'TXT_NEWS_NEWS_CONTENT'         => $_ARRAYLANG['TXT_NEWS_NEWS_CONTENT'],
             'TXT_DATE'                      => $_ARRAYLANG['TXT_DATE'],
             'TXT_PUBLISHING'                => $_ARRAYLANG['TXT_PUBLISHING'],
@@ -1614,7 +1616,9 @@ class NewsManager extends \Cx\Core_Modules\News\Controller\NewsLibrary {
             'NEWS_FORM_CAT_ROW'             => $catrow,
             'TXT_NEWS_TYPE'                 => $_ARRAYLANG['TXT_NEWS_TYPE'],
             'TXT_EXTERNAL_SOURCE'           => $_ARRAYLANG['TXT_EXTERNAL_SOURCE'],
-            'TXT_LINK'                      => $_ARRAYLANG['TXT_LINK'],
+            'TXT_NEWS_SOURCE'               => $_ARRAYLANG['TXT_NEWS_SOURCE'],
+            'TXT_NEWS_LINK1'                => $_ARRAYLANG['TXT_NEWS_LINK1'],
+            'TXT_NEWS_LINK2'                => $_ARRAYLANG['TXT_NEWS_LINK2'],
             'TXT_NEWS_REDIRECT_NEW_WINDOW'      => $_ARRAYLANG['TXT_NEWS_REDIRECT_NEW_WINDOW'],
             'TXT_NEWS_REDIRECT_NEW_WINDOW_HELP' => $_ARRAYLANG['TXT_NEWS_REDIRECT_NEW_WINDOW_HELP'],
             'TXT_NEWS_NEWS_CONTENT'         => $_ARRAYLANG['TXT_NEWS_NEWS_CONTENT'],
@@ -3859,7 +3863,7 @@ class NewsManager extends \Cx\Core_Modules\News\Controller\NewsLibrary {
             'NEWS_MEDIA_BROWSER_BROWSE_BUTTON'      => self::getMediaBrowserButton(array(
                                                                                     'type'             => 'button',
                                                                                     'id'               => 'newsFeedImage',
-                                                                                    'data-cx-mb-views' => 'filebrowser',
+                                                                                    'views'            => 'filebrowser',
                                                                                     'style'            => 'width:110px;'
                                                                                    ),'SetUrl')
         ));

@@ -851,9 +851,9 @@ class FormGenerator {
                 $mediaBrowser->setCallback('javascript_callback_function');
                 $mediaBrowser->setOptions(
                     array(
-                        'data-cx-mb-views' => 'filebrowser,uploader',
+                        'views' => 'filebrowser,uploader',
                         'id' => 'page_target_browse',
-                        'cxMbStartview' => 'MediaBrowserList'
+                        'startview' => 'filebrowser'
                     )
                 );
 
@@ -897,9 +897,9 @@ class FormGenerator {
                 $mediaBrowser->setOptions(array('type' => 'button'));
                 $mediaBrowser->setCallback('javascript_callback_function');
                 $defaultOptions = array(
-                    'data-cx-mb-views' => 'filebrowser,uploader',
+                    'views' => 'filebrowser,uploader',
                     'id' => 'page_target_browse',
-                    'cxMbStartview' => 'MediaBrowserList'
+                    'startview' => 'filebrowser'
                 );
 
                 $mediaBrowser->setOptions(

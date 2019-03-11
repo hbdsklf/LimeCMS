@@ -1693,11 +1693,6 @@ CODE;
             return false;
         }
 
-        $pageContent = contrexx_input2raw($_POST['content']);
-
-        // Change the replacement variables from [[TITLE]] into {TITLE}
-        $pageContent = preg_replace('/\[\[([A-Z0-9_]*?)\]\]/', '{\\1}' ,$pageContent);
-
         try {
             if (self::isFileTypeComponent($themesPage)) {
                 $themesPage = self::getComponentFilePath($themesPage, false);
@@ -1706,11 +1701,16 @@ CODE;
                 $dir = str_replace(basename($themesPage),"", $themesPage);
                 \Cx\Lib\FileSystem\FileSystem::make_folder($this->websiteThemesPath.$themes.'/'.$dir, true);
             }
-            $filePath = $this->websiteThemesPath.$themes.$themesPage;
+            $filePath    = $this->websiteThemesPath . $themes . $themesPage;
+            $pathInfo    = pathinfo($filePath);
+            $pageContent = contrexx_input2raw($_POST['content']);
+            if ($pathInfo['extension'] === 'html') {
+                // Change the replacement variables from [[TITLE]] into {TITLE}
+                $pageContent = preg_replace('/\[\[([A-Z0-9_]*?)\]\]/', '{\\1}' , $pageContent);
+            }
 
             if ($isComponentFile && file_exists($filePath)) {
                 // override from application template, rename the file if its already exists
-                $pathInfo = pathinfo($filePath);
                 $idx = 1;
                 while (file_exists($filePath)) {
                   $filePath = $pathInfo['dirname'].'/'.$pathInfo['filename'].'_custom_'.$idx++.'.'.$pathInfo['extension'];
@@ -2246,8 +2246,14 @@ CODE;
             // fetch content from file
             $content = $this->fileSystem->readFile($file);
 
-            // replace placeholder format
-            $content = preg_replace('/\{([A-Z0-9_]*?)\}/', '[[\\1]]', $content);
+            $pathInfo = pathinfo(
+                $this->fileSystem->getFullPath($file) . $file->getFullName(),
+                PATHINFO_EXTENSION
+            );
+            if ($pathInfo === 'html') {
+                // replace placeholder format
+                $content = preg_replace('/\{([A-Z0-9_]*?)\}/', '[[\\1]]', $content);
+            }
 
             // escape special characters
             $contenthtml = htmlspecialchars($content);
@@ -2286,10 +2292,7 @@ CODE;
             }
 
             $objTemplate->setVariable('CONTENT_HTML', $contenthtml);
-            $pathInfo = pathinfo(
-                $this->fileSystem->getFullPath($file) . $file->getFullName(),
-                PATHINFO_EXTENSION
-            );
+
             $mode = 'html';
 
             switch($pathInfo) {

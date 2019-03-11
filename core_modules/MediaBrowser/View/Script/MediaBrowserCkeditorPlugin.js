@@ -51,7 +51,7 @@ CKEDITOR.on('dialogDefinition', function (event) {
                     cx.variables.get('jquery', 'mediabrowser')('#ckeditor_image_button').trigger("click", {
                         callback: filelistCallback,
                         cxMbViews: 'filebrowser,uploader',
-                        cxMbStartview: 'MediaBrowserList'
+                        cxMbStartview: 'filebrowser'
                     });
                 };
                 dialogDefinition.dialog.on('show', function (event) {
@@ -62,7 +62,7 @@ CKEDITOR.on('dialogDefinition', function (event) {
                             cx.variables.get('jquery', 'mediabrowser')('#ckeditor_image_button').trigger("click", {
                                 callback: filelistCallback,
                                 cxMbViews: 'filebrowser,uploader',
-                                cxMbStartview: 'MediaBrowserList'
+                                cxMbStartview: 'filebrowser'
                             });
                         }
                     }, 2);

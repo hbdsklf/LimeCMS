@@ -394,8 +394,42 @@ class MediaDirectory extends MediaDirectoryLibrary
         // fetch entries
         if ($showEntries) {
             $objEntries = new MediaDirectoryEntry($this->moduleName);
-// TODO: Show all entries regardless of set pagging
-            $objEntries->getEntries(null,$intLevelId,$intCategoryId,null,$bolLatest,null,1,$intLimitStart, $intLimitEnd, null, null, $intCmdFormId);
+
+            // custom sort order
+            $forceAlphabeticalOrder = false;
+            $popular = null;
+
+            // check for custom sort order
+            // but only if option 'legacy behavior' is not set
+            if (
+                !$this->arrSettings['legacyBehavior'] &&
+                $this->_objTpl->blockExists($this->moduleNameLC . 'EntryList')
+            ) {
+                $config = static::fetchMediaDirListConfigFromTemplate($this->moduleNameLC . 'EntryList', $this->_objTpl);
+                if (
+                    !empty($config['sort']['alphabetical']) &&
+                    $objEntries->arrSettings['settingsIndividualEntryOrder']
+                ) {
+                    $forceAlphabeticalOrder = true;
+                    $objEntries->arrSettings['settingsIndividualEntryOrder'] = false;
+                }
+                if (isset($config['sort']['popular'])) {
+                    $popular = $config['sort']['popular'];
+                }
+                if (isset($config['list']['limit'])) {
+                    $intLimitEnd = $config['list']['limit'];
+                }
+                if (isset($config['list']['offset'])) {
+                    $intLimitStart = $config['list']['offset'];
+                }
+            }
+
+            $objEntries->getEntries(null,$intLevelId,$intCategoryId,null,$bolLatest,null,1,$intLimitStart, $intLimitEnd, null, $popular, $intCmdFormId);
+
+            // reset default order behaviour
+            if ($forceAlphabeticalOrder) {
+                $objEntries->arrSettings['settingsIndividualEntryOrder'] = true;
+            }
         }
 
         // parse the level details
@@ -451,7 +485,7 @@ class MediaDirectory extends MediaDirectoryLibrary
             if($this->arrSettings['settingsShowLevels'] == 1 && $intCategoryId == 0 && $bolFormUseLevel) {
                 $objLevels = new MediaDirectoryLevel(null, $intLevelId, 1, $this->moduleName);
                 $objCategories = new MediaDirectoryCategory(null, $intCategoryId, 1, $this->moduleName);
-                $objLevels->listLevels($this->_objTpl, 2, null, null, null, $arrExistingBlocks);
+                $objLevels->listLevels($this->_objTpl, 2, null, null, null, $arrExistingBlocks, null, $intCmdFormId);
                 $this->_objTpl->clearVariables();
                 $this->_objTpl->setVariable($this->moduleLangVar.'_CATEGORY_LEVEL_TYPE', 'level');
                 $this->_objTpl->parse($this->moduleNameLC.'CategoriesLevelsList');
@@ -464,7 +498,7 @@ class MediaDirectory extends MediaDirectoryLibrary
             // or selected form hat option 'Use categories' activ and option 'Use levels' inactive
             if((((isset($objLevel) && $objLevel->arrLevels[$intLevelId]['levelShowCategories'] == 1) || $intLevelId === 0) || $this->arrSettings['settingsShowLevels'] == 0 || $intCategoryId != 0) || ($bolFormUseCategory && !$bolFormUseLevel)) {
                 $objCategories = new MediaDirectoryCategory(null, $intCategoryId, 1, $this->moduleName);
-                $objCategories->listCategories($this->_objTpl, 2, null, null, null, $arrExistingBlocks);
+                $objCategories->listCategories($this->_objTpl, 2, null, null, null, $arrExistingBlocks, 1, $intCmdFormId);
                 $this->_objTpl->clearVariables();
                 $this->_objTpl->setVariable($this->moduleLangVar.'_CATEGORY_LEVEL_TYPE', 'category');
                 $this->_objTpl->parse($this->moduleNameLC.'CategoriesLevelsList');
@@ -1369,6 +1403,8 @@ class MediaDirectory extends MediaDirectoryLibrary
         $formId = null;
         $categoryId = null;
         $levelId = null;
+        $forceAlphabeticalOrder = false;
+        $popular = null;
 
         if (isset($config['list']['latest'])) {
             $latest = $config['list']['latest'];
@@ -1388,14 +1424,29 @@ class MediaDirectory extends MediaDirectoryLibrary
         if (isset($config['filter']['level'])) {
             $levelId = $config['filter']['level'];
         }
+        if (
+            !empty($config['sort']['alphabetical']) &&
+            $objEntry->arrSettings['settingsIndividualEntryOrder']
+        ) {
+            $forceAlphabeticalOrder = true;
+            $objEntry->arrSettings['settingsIndividualEntryOrder'] = false;
+        }
+        if (isset($config['sort']['popular'])) {
+            $popular = $config['sort']['popular'];
+        }
 
         if (empty($block)) {
             $block = $this->moduleNameLC.'List';
         }
 
-        $objEntry->getEntries(null, $levelId, $categoryId, null, $latest, null, true, $offset, $limit, null, null, $formId);
+        $objEntry->getEntries(null, $levelId, $categoryId, null, $latest, null, true, $offset, $limit, null, $popular, $formId);
         $objEntry->setStrBlockName($block);
         $objEntry->listEntries($template, 2);
+
+        // reset default order behaviour
+        if ($forceAlphabeticalOrder) {
+            $objEntry->arrSettings['settingsIndividualEntryOrder'] = true;
+        }
     }
 
     function showPopular()

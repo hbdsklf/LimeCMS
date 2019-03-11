@@ -178,10 +178,28 @@ class EntityBase {
         return call_user_func_array(array($this->getComponentController(), $methodName), $arguments);
     }
 
-    public function __toString() {
+    /**
+     * Returns this entity's key
+     *
+     * If this entity has a composite key, the fields are separated by $separator.
+     * @param string $separator (optional) Separator for composite key fields, default "/"
+     * @return string Entity key as string
+     */
+    public final function getKeyAsString($separator = '/') {
         $em = $this->cx->getDb()->getEntityManager();
         $cmf = $em->getMetadataFactory();
         $meta = $cmf->getMetadataFor(get_class($this));
-        return (string) implode('/', $meta->getIdentifierValues($this));
+        return (string) implode($separator, $meta->getIdentifierValues($this));
+    }
+
+    /**
+     * Returns this entity's identifying value
+     *
+     * By default this returns the same as getKeyAsString(), but this method
+     * might get overridden by subclasses.
+     * @return string Identifying value for this entity
+     */
+    public function __toString() {
+        $this->getKeyAsString();
     }
 }

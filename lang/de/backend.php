@@ -1428,6 +1428,7 @@ $_ARRAYLANG['TXT_SURVEY_MODULE'] = "Umfragen";
 $_ARRAYLANG[' TXT_CSRF_MODULE_DESCRIPTION'] = "Csrf";
 $_ARRAYLANG['TXT_CORE_ADD_ENTITY'] = "%s hinzuf&uuml;gen";
 $_ARRAYLANG['TXT_CORE_EDIT_ENTITY'] = "%s bearbeiten";
+$_ARRAYLANG['TXT_CORE_SHOW_ENTITY'] = "%s anzeigen";
 $_ARRAYLANG['TXT_CORE_ENTITY'] = "Eintrag";
 $_ARRAYLANG['TXT_CORE_OVERVIEW'] = "Allgemein";
 $_ARRAYLANG['TXT_MODULE_ORDER'] = "Bestellung";

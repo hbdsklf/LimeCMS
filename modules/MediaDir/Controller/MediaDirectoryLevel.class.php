@@ -252,7 +252,7 @@ class MediaDirectoryLevel extends MediaDirectoryLibrary
         }
     }
 
-    function listLevels($objTpl, $intView, $intLevelId=null, $arrParentIds=null, $intEntryId=null, $arrExistingBlocks=null, $strClass=null)
+    function listLevels($objTpl, $intView, $intLevelId=null, $arrParentIds=null, $intEntryId=null, $arrExistingBlocks=null, $strClass=null, $cmd = null)
     {
         global $_ARRAYLANG, $_CORELANG, $objDatabase;
 
@@ -376,7 +376,7 @@ class MediaDirectoryLevel extends MediaDirectoryLibrary
                         $objTpl->blockExists($this->moduleNameLC.'CategoriesLevels_row_' . $intBlockId . '_entry')
                     ) {
                         $objEntry = new MediaDirectoryEntry($this->moduleName);
-                        $objEntry->getEntries(null, $arrLevel['levelId'], $categoryId, null, false, null, true);
+                        $objEntry->getEntries(null, $arrLevel['levelId'], $categoryId, null, false, null, true, null, 'n', null, null, $cmd);
                         if ($objEntry->countEntries()) {
                             // set mediadirCategoriesLevels_row_N_entry tempalte block to be parsed
                             $objEntry->setStrBlockName($this->moduleNameLC.'CategoriesLevels_row_'. $intBlockId . '_entry');
