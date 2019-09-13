@@ -60,7 +60,7 @@ class YamlSettingEventListenerException extends \Exception {}
 class YamlSettingEventListener extends \Cx\Core\Event\Model\Entity\DefaultEventListener {
     public function preUpdate($eventArgs) {
         global $_CONFIG,$_ARRAYLANG;
-        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $cx = $this->cx;
         $isCliCall = $cx->isCliCall();
         try {
             $objSetting = $eventArgs->getEntity();

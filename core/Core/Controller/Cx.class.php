@@ -1067,7 +1067,7 @@ namespace Cx\Core\Core\Controller {
          *
          * @return bool the result whether it is a cli call
          */
-        public function isCliCall(){
+        public function isCliCall() {
 
             if (defined('STDIN')) {
                 return true;
@@ -1099,9 +1099,7 @@ namespace Cx\Core\Core\Controller {
         protected function setMode($mode) {
             global $_CONFIG;
 
-            $isCliCall = $this->isCliCall();
-
-            if ((!$mode || $mode == 'command') && $isCliCall) {
+            if ((!$mode || $mode == 'command') && $this->isCliCall()) {
                 $this->mode = self::MODE_COMMAND;
                 return;
             }
@@ -1554,6 +1552,9 @@ namespace Cx\Core\Core\Controller {
                     define('MODULE_INDEX', '');
                 }
 
+                //checks if is in cli-mode
+                $isCliCall = $this->isCliCall();
+
                 try {
                     // cleanup params
                     $params = array();
@@ -1609,7 +1610,6 @@ namespace Cx\Core\Core\Controller {
                     // parse body arguments:
                     // todo: this does not work for form-data encoded body (boundary...)
                     $input = '';
-                    $isCliCall = $this->isCliCall();
 
                     if ($isCliCall) {
                         $read = array(fopen('php://stdin', 'r'));
