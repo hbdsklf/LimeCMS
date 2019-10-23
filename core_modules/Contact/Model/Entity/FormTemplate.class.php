@@ -387,7 +387,6 @@ class FormTemplate extends \Cx\Model\Base\EntityBase {
         $formId      = $this->form->getId();
         $formFields  = $this->contactLib->getFormFields($formId);
         $profileData = $this->getProfileData();
-        $this->handleUniqueId();
 
         // Check if the loaded form has form fields and
         // the template block 'contact_form' is exists otherwise return empty.
@@ -463,6 +462,9 @@ class FormTemplate extends \Cx\Model\Base\EntityBase {
                 $this->template->parse($this->blockPrefix . 'list');
             }
         }
+        // This is done after parsing the fields in order to make use of the
+        // session if an uploader field initialized it.
+        $this->handleUniqueId();
 
         // Use stylesheet 'form.css' if the form is loaded for the preview in backend
         if (
