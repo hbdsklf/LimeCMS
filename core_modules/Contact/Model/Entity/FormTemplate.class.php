@@ -1189,7 +1189,9 @@ class FormTemplate extends \Cx\Model\Base\EntityBase {
      */
     protected function handleUniqueId()
     {
-        $this->cx->getComponent('Session')->getSession();
+        // Only use session if it's already present. If there's no session
+        // we skip identifying the user (uploader initializes session)
+        $this->cx->getComponent('Session')->getSession(false);
 
         $id = 0;
         if (isset($_REQUEST['unique_id'])) {
