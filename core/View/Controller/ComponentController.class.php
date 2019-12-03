@@ -49,6 +49,12 @@ namespace Cx\Core\View\Controller;
 class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentController {
 
     /**
+     * List of items for the metanavigation
+     * @var array List of \Cx\Core\View\Model\Entity\MetanavigationItem
+     */
+    protected $metanavigationItems = array();
+
+    /**
      * Returns all Controller class names for this component (except this)
      *
      * Be sure to return all your controller classes if you add your own
@@ -314,5 +320,27 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
             $template->hideBlock('without-tooltip');
         }
         return $template->get();
+    }
+
+    /**
+     * Allows other components to register backend metanavigation items
+     * @param \Cx\Core\View\Model\Entity\MetanavigationItem $item Item to register
+     * @throws \Exception If current mode is not backend
+     */
+    public function registerMetanavigationItem(\Cx\Core\View\Model\Entity\MetanavigationItem $item) {
+        if ($this->cx->getMode() != \Cx\Core\Core\Controller\Cx::MODE_BACKEND) {
+            throw new \Exception('Metanavigation items can only be registered in backend');
+        }
+        $this->metanavigationItems[] = $item;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function preFinalize($template) {
+        foreach ($this->metanavigationItems as $item) {
+            $item->parse($template);
+            $template->parse('metanavigation_entry');
+        }
     }
 }
