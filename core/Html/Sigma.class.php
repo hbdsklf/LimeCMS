@@ -156,6 +156,94 @@ class Sigma extends \HTML_Template_Sigma {
         return $return;
     }
 
+    /**
+     * Triggers an event on setTemplate() and setTemplateFile()
+     * @inheritDoc
+     */
+    function _buildBlocks($string) {
+        $evm = \Cx\Core\Core\Controller\Cx::instanciate()->getEvents();
+        if (!$evm) {
+            return parent::_buildBlocks($string);
+        }
+        try {
+            $isGlobal = strpos($string, '<!-- BEGIN __global__ -->') !== false;
+            if ($isGlobal) {
+                $string = str_replace(
+                    array('<!-- BEGIN __global__ -->', '<!-- END __global__ -->'),
+                    '',
+                    $string
+                );
+            }
+            $evm->triggerEvent(
+                'View.Sigma:loadContent',
+                array(
+                    'content' => &$string,
+                    'template' => $this,
+                )
+            );
+            if ($isGlobal) {
+                $string = '<!-- BEGIN __global__ -->' . $string .
+                    '<!-- END __global__ -->';
+            }
+        } catch (\Exception $e) {
+            throw $e;
+        }
+        return parent::_buildBlocks($string);
+    }
+
+    /**
+     * Triggers an event on setGlobalVariable()
+     * @inheritDoc
+     */
+    function setGlobalVariable($variable, $value = '') {
+        $this->internalSetVariables($variable, $value);
+        parent::setGlobalVariable($variable, $value);
+    }
+
+    /**
+     * Triggers an event on setVariable()
+     * @inheritDoc
+     */
+    function setVariable($variable, $value = '') {
+        $this->internalSetVariables($variable, $value);
+        parent::setVariable($variable, $value);
+    }
+
+    /**
+     * Triggers events on setVariable() and setGlobalVariable()
+     * @param string|array $variable Variable name or key/value array
+     * @param string|array $value Value or key/value array for sub-keys
+     */
+    protected function internalSetVariables(&$variable, &$value = '') {
+        $evm = \Cx\Core\Core\Controller\Cx::instanciate()->getEvents();
+        if (!$evm) {
+            return;
+        }
+        $variables = array();
+        if (is_array($variable)) {
+            $variables = $variable;
+        } else if (is_array($value)) {
+            $variables = $this->_flattenVariables($variable, $value);
+        } else {
+            $variables = array($variable => $value);
+        }
+        try {
+            foreach ($variables as $key=>&$val) {
+                $evm->triggerEvent(
+                    'View.Sigma:setVariable',
+                    array(
+                        'content' => &$val,
+                        'template' => $this,
+                    )
+                );
+            }
+        } catch (\Exception $e) {
+            throw $e;
+        }
+        $variable = $variables;
+        $value = '';
+    }
+
     function replaceBlock($block, $template, $keepContent = false, $outer = false) {
         if (!$outer) {
             return parent::replaceBlock($block, $template, $keepContent);
@@ -318,12 +406,16 @@ class Sigma extends \HTML_Template_Sigma {
      */
     function getUnparsedBlock($blockName) {
         if (!isset($this->_blocks[$blockName])) {
-            throw new \Exception('Reverse parsing of block failed');
+            throw new \Exception('Reverse parsing of block "' . $blockName . '" failed');
         }
         return '<!-- BEGIN ' . $blockName . ' -->' .
             preg_replace_callback(
                 '/\{__(' . $this->blocknameRegExp . ')__\}/',
-                function(array $matches) {
+                function(array $matches) use ($blockName) {
+                    if (substr($matches[1], 0, 9) == 'function_') {
+                        $info = $this->_functions[$blockName][substr($matches[1], 9)];
+                        return 'func_' . $info['name'] . '(' . implode(',', $info['args']) . ')';
+                    }
                     return $this->getUnparsedBlock($matches[1]);
                 },
                 $this->_blocks[$blockName]
