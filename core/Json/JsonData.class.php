@@ -387,6 +387,7 @@ class JsonData {
             $userAgent = $headers['user-agent'] . ' ' . \DBG::getLogHash();
             $request->setHeader('user-agent', $userAgent);
         }
+        $request->setConfig('timeout', 20);
 
         if (!empty($httpAuth)) {
             switch($httpAuth['httpAuthMethod']) {
