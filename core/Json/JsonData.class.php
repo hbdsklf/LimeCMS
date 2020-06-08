@@ -377,7 +377,11 @@ class JsonData {
         $files = array(),
         $sendJson = false
     ) {
-        $request = new \HTTP_Request2($url, \HTTP_Request2::METHOD_POST);
+        if (count($data)) {
+            $request = new \HTTP_Request2($url, \HTTP_Request2::METHOD_POST);
+        } else{
+            $request = new \HTTP_Request2($url, \HTTP_Request2::METHOD_GET);
+        }
         $headers = $request->getHeaders();
         if (isset($headers['user-agent'])) {
             $userAgent = $headers['user-agent'] . ' ' . \DBG::getLogHash();
