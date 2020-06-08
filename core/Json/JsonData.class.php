@@ -411,7 +411,9 @@ class JsonData {
                 'Content-Type',
                 'application/json'
             );
-            $request->setBody(json_encode($data));
+            if (count($data)) {
+                $request->setBody(json_encode($data));
+            }
         } else {
             foreach ($data as $name=>$value) {
                 $request->addPostParameter($name, $value);
