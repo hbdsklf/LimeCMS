@@ -897,16 +897,31 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
             $dataSource = $this->getDataSource($arguments[1]);
             $elementId = array();
             if (isset($arguments[2])) {
-                $argumentKeys = array_keys($arguments);
-                $primaryKeyNames = $dataSource->getIdentifierFieldNames();
-                for ($i = 0; $i < count($arguments) - 2; $i++) {
-                    if (!is_numeric($argumentKeys[$i + 2])) {
-                        break;
+                // Positional keys are integers; skip the first two (see above)
+                $positionalArgumentKeys = array_filter(
+                    array_keys($arguments),
+                    function($key) {
+                        return is_int($key) && $key > 1;
                     }
-                    $elementId[$primaryKeyNames[$i]] = $arguments[$i + 2];
+                );
+                $primaryKeyNames = $dataSource->getIdentifierFieldNames();
+                $keyName = 0;
+                foreach ($positionalArgumentKeys as $index) {
+                    if ($primaryKeyNames) {
+                        $keyName = array_shift($primaryKeyNames);
+                    }
+                    // Presume surplus values to be path components, and append
+                    // them to the last primary key value, separated by DS.
+                    // $keyName is supposedly "filename" in this case.
+                    $elementId[$keyName] =
+                        (empty($elementId[$keyName])
+                            ? ''
+                            : $elementId[$keyName] . DIRECTORY_SEPARATOR
+                        )
+                        . $arguments[$index];
                 }
             }
-            
+
             $apiKey = null;
             if (isset($arguments['apikey'])) {
                 $apiKey = $arguments['apikey'];
