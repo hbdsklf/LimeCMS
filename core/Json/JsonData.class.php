@@ -367,6 +367,7 @@ class JsonData {
      * </pre>
      * @param array $files Key is the POST field name, value is the file path
      * @param boolean $sendJson Whether to encode data as JSON, default false
+     * @param int $timeout Max. time in seconds the request may take. 0 for no timeout
      * @return stdClass|boolean Decoded JSON on success, false otherwise
      */
     public function getJson(
@@ -375,7 +376,8 @@ class JsonData {
         $certificateFile = '',
         $httpAuth=array(),
         $files = array(),
-        $sendJson = false
+        $sendJson = false,
+        $timeout = 0
     ) {
         if (count($data)) {
             $request = new \HTTP_Request2($url, \HTTP_Request2::METHOD_POST);
@@ -387,7 +389,9 @@ class JsonData {
             $userAgent = $headers['user-agent'] . ' ' . \DBG::getLogHash();
             $request->setHeader('user-agent', $userAgent);
         }
-        $request->setConfig('timeout', 20);
+        if ($timeout) {
+            $request->setConfig('timeout', $timeout);
+        }
 
         if (!empty($httpAuth)) {
             switch($httpAuth['httpAuthMethod']) {
