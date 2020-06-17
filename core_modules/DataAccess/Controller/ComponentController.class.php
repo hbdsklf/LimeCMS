@@ -905,7 +905,12 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
                     }
                 );
                 $primaryKeyNames = $dataSource->getIdentifierFieldNames();
-                $keyName = 0;
+                if (!$primaryKeyNames || !is_array($primaryKeyNames)) {
+                    throw new \Cx\Core\Core\Controller\InstanceException(
+                        'Missing identifier'
+                    );
+                }
+                $keyName = null;
                 foreach ($positionalArgumentKeys as $index) {
                     if ($primaryKeyNames) {
                         $keyName = array_shift($primaryKeyNames);
