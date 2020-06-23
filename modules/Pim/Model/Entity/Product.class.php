@@ -534,7 +534,12 @@ class Product extends \Cx\Model\Base\EntityBase {
     }
 
     public function getNewEntityForSale($saleOptions) {
-        return \Env::get('em')->getRepository($this->entityClass)->findOneForSale($this->entityAttributes, $saleOptions);
+        $entityRepo = \Env::get('em')->getRepository($this->entityClass);
+        if (!$entityRepo || !method_exists($entityRepo, 'findOneForSale')) {
+            return null;
+        }
+
+        return $entityRepo->findOneForSale($this->entityAttributes, $saleOptions);
     }
 
     public function getEntityById($entityId) {

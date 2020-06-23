@@ -51,6 +51,9 @@ class BackendController extends \Cx\Core\Core\Model\Entity\SystemComponentBacken
      */
     protected $template;
 
+    public function showOverviewPage() {
+        return true;
+    }
 
     /**
      * Returns a list of available commands (?act=XY)
