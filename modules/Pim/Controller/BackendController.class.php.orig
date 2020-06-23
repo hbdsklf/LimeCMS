@@ -85,11 +85,27 @@ class BackendController extends \Cx\Core\Core\Model\Entity\SystemComponentBacken
         if ($act != '') {
             parent::parsePage($template, $cmd, $isSingle);
         } else {
-            $this->parseEntityClassPage($template, 'Cx\Modules\Pim\Model\Entity\Product', 'Product');
+            $this->parseEntityClassPage($template, '\Cx\Modules\Pim\Model\Entity\Product', 'Product');
         }
 
         \Message::show();
     }
+<<<<<<< HEAD
+=======
+
+    /**
+     * Trigger a controller according the act param from the url
+     *
+     * @param   string $act
+     */
+    public function connectToController($act)
+    {
+        $act = ucfirst($act);
+        $controller = $this->getSystemComponentController()->getController($act);
+        $controller->parsePage($this->template, array());
+
+    }
+>>>>>>> master
 
     /**
      * This function returns the ViewGeneration options for a given entityClass
