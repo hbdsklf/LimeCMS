@@ -122,13 +122,12 @@ class GuestBook extends GuestBookLibrary {
         $this->_objTpl->setVariable("GUESTBOOK_TOTAL_ENTRIES", $count);
 
         $query = "    SELECT         id,
-								forename,
-								name,
+                                forename,
+                                name,
                                 gender,
                                 url,
                                 email,
                                 comment,
-                                ip,
                                 location,
                                 datetime
                     FROM         " . DBPREFIX . "module_guestbook
@@ -138,7 +137,7 @@ class GuestBook extends GuestBookLibrary {
 
         while ($objResult !== false and !$objResult->EOF) {
             $class = ($i % 2) ? "row1" : "row2";
-            $gender = ($objResult->fields["gender"] == "M") ? $_ARRAYLANG['guestbookGenderMale'] : $_ARRAYLANG['guestbookGenderFemale']; // N/A
+            $gender = ($objResult->fields["gender"] == "M") ? $_ARRAYLANG['TXT_MALE'] : $_ARRAYLANG['TXT_FEMALE']; // N/A
 
             if ($objResult->fields['url'] != "") {
                 $this->_objTpl->setVariable('GUESTBOOK_URL', '<a href="' . $objResult->fields['url'] . '" target="_blank"><img alt="' . $objResult->fields['url'] . '" src=".'.ASCMS_MODULE_FOLDER.'/GuestBook/View/Media/www.gif" style="vertical-align:baseline" border="0" /></a>');
@@ -168,7 +167,6 @@ class GuestBook extends GuestBookLibrary {
                 'GUESTBOOK_DATE' => date(ASCMS_DATE_FORMAT, strtotime($objResult->fields['datetime'])),
                 'GUESTBOOK_COMMENT' => nl2br($objResult->fields["comment"]),
                 'GUESTBOOK_ID' => $objResult->fields["id"],
-                'GUESTBOOK_IP' => $objResult->fields["ip"]
             ));
             $this->_objTpl->parse('guestbook_row');
             $i++;
@@ -209,7 +207,7 @@ class GuestBook extends GuestBookLibrary {
                 $errors .= $error . "<br />";
             }
         }
-        
+
         $checked = "checked=\"checked\"";
 
         if ($_POST['malefemale'] == "F") {
@@ -282,31 +280,29 @@ class GuestBook extends GuestBookLibrary {
 
         $query = "INSERT INTO " . DBPREFIX . "module_guestbook
                         (status,
-	                     forename,
-	                     name,
+                         forename,
+                         name,
                          gender,
                          url,
                          datetime,
                          email,
                          comment,
-                         ip,
                          location,
                          lang_id)
                  VALUES ($status,
-						'" . addslashes($name) . "',
-						'" . addslashes($forename) . "',
+                        '" . addslashes($name) . "',
+                        '" . addslashes($forename) . "',
                         '" . addslashes($gender) . "',
                         '" . addslashes($url) . "',
                         '".date('Y-m-d H:i:s')."',
                         '" . addslashes($mail) . "',
                         '" . addslashes($comment) . "',
-                        '" . addslashes($_SERVER['REMOTE_ADDR']) . "',
                         '" . addslashes($location) . "',
                         " . $this->langId . ")";
         $objDatabase->Execute($query);
 
         if ($this->arrSettings['guestbook_send_notification_email'] == 1) {
-            $this->sendNotificationEmail($forename, $name, $comment, $mail);
+            $this->sendNotificationEmail($forename, $name, $comment);
         }
         $this->statusMessage = $_ARRAYLANG['TXT_GUESTBOOK_RECORD_STORED_SUCCESSFUL'] . "<br />";
         if ($this->arrSettings['guestbook_activate_submitted_entries'] == 0) {
@@ -381,7 +377,7 @@ class GuestBook extends GuestBookLibrary {
      * @return void
      * @desc Sends a notification email to the administrator
      */
-    function sendNotificationEmail($forename, $name, $comment, $email = null) {
+    function sendNotificationEmail($forename, $name, $comment) {
         global $_ARRAYLANG, $_CONFIG;
 
         $message = $_ARRAYLANG['TXT_CHECK_GUESTBOOK_ENTRY'] . "\n\n";
@@ -389,34 +385,16 @@ class GuestBook extends GuestBookLibrary {
         $mailto = $_CONFIG['coreAdminEmail'];
         $subject = $_ARRAYLANG['TXT_NEW_GUESTBOOK_ENTRY'] . " " . $_CONFIG['domainUrl'];
 
-        if (@include_once ASCMS_LIBRARY_PATH . '/phpmailer/class.phpmailer.php') {
-            $objMail = new \phpmailer();
+        $objMail = new \Cx\Core\MailTemplate\Model\Entity\Mail();
 
-            if ($_CONFIG['coreSmtpServer'] > 0 && @include_once ASCMS_CORE_PATH . '/SmtpSettings.class.php') {
-                if (($arrSmtp = \SmtpSettings::getSmtpAccount($_CONFIG['coreSmtpServer'])) !== false) {
-                    $objMail->IsSMTP();
-                    $objMail->Host = $arrSmtp['hostname'];
-                    $objMail->Port = $arrSmtp['port'];
-                    $objMail->SMTPAuth = true;
-                    $objMail->Username = $arrSmtp['username'];
-                    $objMail->Password = $arrSmtp['password'];
-                }
-            }
-
-            $objMail->CharSet = CONTREXX_CHARSET;
-            if (isset($email)) {
-                $objMail->From = $email;
-                $objMail->AddReplyTo($email);
-            } else {
-                $objMail->From = $mailto;
-            }
-            $objMail->Subject = $subject;
-            $objMail->IsHTML(false);
-            $objMail->Body = $message;
-            $objMail->AddAddress($mailto);
-            if ($objMail->Send()) {
-                return true;
-            }
+        $from = $mailto;
+        $objMail->SetFrom($from);
+        $objMail->Subject = $subject;
+        $objMail->IsHTML(false);
+        $objMail->Body = $message;
+        $objMail->AddAddress($mailto);
+        if ($objMail->Send()) {
+            return true;
         }
 
         return false;

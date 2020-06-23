@@ -80,7 +80,7 @@ class U2u extends U2uLibrary
     *
     * @access public
     */
-    function getPage()	{
+    function getPage()    {
         if (isset($_GET['act'])) {
             $action = $_GET['act'];
         } else if(isset($_GET['cmd'])) {
@@ -184,7 +184,7 @@ class U2u extends U2uLibrary
 
             $this->_objTpl->setVariable(array(
                 'TXT_SEND_PRIVATE_MESSAGE'           =>  $_ARRAYLANG['TXT_SEND_PRIVATE_MESSAGE'],
-                'MESSAGE_INPUT'		                 =>	 $strMessageInputHTML,
+                'MESSAGE_INPUT'                         =>     $strMessageInputHTML,
                 'TXT_RECEPIENTS'                     =>  $_ARRAYLANG['TXT_RECEPIENTS'],
                 'TXT_RECEPIENTS_USERNAME'            =>  $_ARRAYLANG['TXT_RECEPIENTS_USERNAME'],
                 'TXT_BCC_RECEPIENTS_USERNAME'        =>  $_ARRAYLANG['TXT_BCC_RECEPIENTS_USERNAME'],
@@ -202,6 +202,9 @@ class U2u extends U2uLibrary
           foreach($buddyNames as $buddyKey => $buddyValue) {
                 if($id!=$buddyValue) {
                 $name=$this->_getName($buddyValue);
+                if (!$name) {
+                    continue;
+                }
                 $this->_objTpl->setVariable('TXT_U2U_OPTION_VALUE', $name['username']);
                 $this->_objTpl->parse('u2u_user_drop_down');
                 }
@@ -246,7 +249,7 @@ class U2u extends U2uLibrary
                 'PRIVATE_MESSAGE_ID'           => $MsgID,
                 'MESSAGE_AUTHOR_NAME'          => $messageItem["username"],
                 'MESSAGE_SENT_DATE'            => $messageItem["date_time"],
-                'ROW_CLASS'	 				=> $i % 2 == 0 ? "row1" : "row2",
+                'ROW_CLASS'                     => $i % 2 == 0 ? "row1" : "row2",
             ));
             $this->_objTpl->parse('privatemessage');
             if($_CONFIG['corePagingLimit'] < $this->counter) {
@@ -302,7 +305,7 @@ class U2u extends U2uLibrary
                 'PRIVATE_MESSAGE_ID'           => $MsgID,
                 'MESSAGE_AUTHOR_NAME'          => $messageItem["username"],
                 'MESSAGE_SENT_DATE'            => $messageItem["date_time"],
-                'ROW_CLASS'	 				=> $i % 2 == 0 ? "row1" : "row2",
+                'ROW_CLASS'                     => $i % 2 == 0 ? "row1" : "row2",
             ));
             $i++;
             $this->_objTpl->parse('privatemessage');
@@ -395,6 +398,9 @@ class U2u extends U2uLibrary
 
         foreach($objResult as $objId => $objValue) {
             $userName   = $this->_getName($objValue['buddies_id']);
+            if (!$userName) {
+                continue;
+            }
             $userEmail  = $this->_getEmail($objValue['buddies_id']);
             $userCity   = $this->_getCity($objValue['buddies_id']);
             $userSite   = $this->_getSite($objValue['buddies_id']);
@@ -418,7 +424,7 @@ class U2u extends U2uLibrary
                    'TXT_U2U_ADDRESS_BUDDIES_ID'     =>  $objValue['buddies_id'],
                    'TXT_U2U_BUDDY_SITE'             =>  $userSite['website'],
                    'TXT_U2U_IMG_PATH'               =>  $imgPath,
-                   'ROW_CLASS'	 				    => $i % 2 == 0 ? "row1" : "row2",
+                   'ROW_CLASS'                         => $i % 2 == 0 ? "row1" : "row2",
             ));
             $this->_objTpl->parse('address_list');
             $i++;
@@ -547,7 +553,7 @@ class U2u extends U2uLibrary
                 'PRIVATE_MESSAGE_ID'           => $MsgID,
                 'MESSAGE_AUTHOR_NAME'          => $messageItem["username"],
                 'MESSAGE_SENT_DATE'            => $messageItem["date_time"],
-                'ROW_CLASS'	 				=> $i % 2 == 0 ? "row1" : "row2",
+                'ROW_CLASS'                     => $i % 2 == 0 ? "row1" : "row2",
             ));
             $i++;
             $this->_objTpl->parse('privatemessage');
@@ -577,7 +583,7 @@ class U2u extends U2uLibrary
            if (!isset($_REQUEST['private_message'])) {
                return false;
            }
-           
+
            $errArray = array();
            $_REQUEST['private_message'] = \Cx\Core\Wysiwyg\Wysiwyg::prepareBBCodeForDb($_REQUEST['private_message']);
         $this->strMessages=$_REQUEST['private_message'];
@@ -668,6 +674,7 @@ class U2u extends U2uLibrary
                        $this->arrStatusMsg['error'][] = $errorString;
                        $errorMessage = true;
                     } else {
+                        $errArray[0] = array();
                         $errArray[0]['receipents_userid']  =  $ID;
                         $errArray[0]['sending_userid']     =  $objFWUser->objUser->getId();
                         $errArray[0]['title']              =  contrexx_addslashes(strip_tags(trim(htmlentities($_REQUEST['title'],ENT_QUOTES,CONTREXX_CHARSET))));
@@ -702,44 +709,29 @@ class U2u extends U2uLibrary
     function sendNotificationMail($fromId, $toId) {
         global $_CONFIG;
 
-        if (@\Env::get('ClassLoader')->loadFile(ASCMS_LIBRARY_PATH.'/phpmailer/class.phpmailer.php')) {
-            $objMail = new \phpmailer();
-            if ($_CONFIG['coreSmtpServer'] > 0) {
-                 $objSmtpSettings = new SmtpSettings();
-                 if (($arrSmtp = $objSmtpSettings->getSmtpAccount($_CONFIG['coreSmtpServer'])) !== false) {
-                       $objMail->IsSMTP();
-                       $objMail->Host = $arrSmtp['hostname'];
-                       $objMail->Port = $arrSmtp['port'];
-                       $objMail->SMTPAuth = true;
-                       $objMail->Username = $arrSmtp['username'];
-                       $objMail->Password = $arrSmtp['password'];
-                 }
-            }
+        $objMail = new \Cx\Core\MailTemplate\Model\Entity\Mail();
 
-            $strName = $this->_getName($fromId);
-            $strReceiverName = $this->_getName($toId);
-            $toEmail=$this->_getEmail($toId);
+        $strName = $this->_getName($fromId);
+        $strReceiverName = $this->_getName($toId);
+        $toEmail=$this->_getEmail($toId);
 
-            $from            = $this->_getEmailFromDetails();
-            $subject         = $this->_getEmailSubjectDetails();
-            $messageContent  = $this->_getEmailMessageDetails();
+        $from            = $this->_getEmailFromDetails();
+        $subject         = $this->_getEmailSubjectDetails();
+        $messageContent  = $this->_getEmailMessageDetails();
 
-            $strMailSubject     = str_replace(  array('[senderName]',       '[receiverName]',             '[domainName]'),
-                                                array($strName['username'], $strReceiverName['username'], $_CONFIG['domainUrl']),
-                                                $subject['subject']);
+        $strMailSubject     = str_replace(  array('[senderName]',       '[receiverName]',             '[domainName]'),
+                                            array($strName['username'], $strReceiverName['username'], $_CONFIG['domainUrl']),
+                                            $subject['subject']);
 
-            $strMailBody     = str_replace(  array('[senderName]',       '[receiverName]',             '[domainName]'),
-                                             array($strName['username'], $strReceiverName['username'], $_CONFIG['domainUrl']),
-                                             $messageContent['email_message']);
-            $objMail->CharSet   = CONTREXX_CHARSET;
-            $objMail->From      = $_CONFIG['coreAdminEmail'];
-            $objMail->FromName  = $from['from'];//$_CONFIG['coreGlobalPageTitle'];
-            $objMail->AddAddress($toEmail['email']);
-            $objMail->Subject 	= $strMailSubject;//$strMailSubject;
-            $objMail->IsHTML(true);
-            $objMail->Body    	= $strMailBody;
-            $objMail->Send();
-        }
+        $strMailBody     = str_replace(  array('[senderName]',       '[receiverName]',             '[domainName]'),
+                                         array($strName['username'], $strReceiverName['username'], $_CONFIG['domainUrl']),
+                                         $messageContent['email_message']);
+        $objMail->SetFrom($_CONFIG['coreAdminEmail'], $from['from']);
+        $objMail->AddAddress($toEmail['email']);
+        $objMail->Subject     = $strMailSubject;//$strMailSubject;
+        $objMail->IsHTML(true);
+        $objMail->Body        = $strMailBody;
+        $objMail->Send();
     }
 
     /**
@@ -791,13 +783,13 @@ class U2u extends U2uLibrary
 
         foreach($errArray as $userID => $strValue) {
            $insMessageLog      = 'INSERT
-                                   INTO	`'.DBPREFIX.'module_u2u_message_log`
+                                   INTO    `'.DBPREFIX.'module_u2u_message_log`
                                    SET  `message_title` = "'.$errArray[$userID]['title'].'",
                                         `message_text`  = "'.$strValue["private_message"].'"';
            $objDatabase->Execute($insMessageLog);
            $messageID = $objDatabase->insert_id();
            $insSentMessages    = 'INSERT
-                                   INTO	`'.DBPREFIX.'module_u2u_sent_messages`
+                                   INTO    `'.DBPREFIX.'module_u2u_sent_messages`
                                    SET      `userid`                =   '.$strValue["sending_userid"].',
                                             `message_id`            =   '.$messageID.',
                                             `receiver_id`           =   '.$errArray[$userID]['receipents_userid'].',

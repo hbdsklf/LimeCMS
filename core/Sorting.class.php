@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * Provides methods to create sorted tables
  *
@@ -342,10 +342,13 @@ class Sorting
                 ? $_CORELANG['TXT_CORE_SORTING_ASCENDING']
                 : $_CORELANG['TXT_CORE_SORTING_DESCENDING']
             );
+        $img = \Cx\Core\Core\Controller\Cx::instanciate()->getClassLoader()->getWebFilePath(
+            \Cx\Core\Core\Controller\Cx::instanciate()->getCoreFolderName() . '/Core/View/Media/icons/'.
+            strtolower($this->orderDirection).
+            '.png'
+        );
         return
-            '<img src="'.\Env::get('cx')->getCodeBaseOffsetPath().'/core/Core/View/Media/icons/'.
-                strtolower($this->orderDirection).
-            '.png" border="0" alt="'.$orderDirectionString.
+            '<img src="'.$img.'" border="0" alt="'.$orderDirectionString.
             '" title="'.$orderDirectionString.'" />';
     }
 

@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 
 namespace Cx\Core_Modules\TemplateEditor\Model\Entity;
 
@@ -40,6 +40,13 @@ use Cx\Core\Html\Sigma;
  */
 class ColorOption extends Option
 {
+    /**
+     * RegEx for CSS colors
+     * Based on https://gist.github.com/olmokramer/82ccce673f86db7cda5e
+     * @var string
+     */
+    const CSS_COLOR_REGEX = '/^(#([0-9a-f]{3}){1,2}|(rgba|hsla)\(\d{1,3}%?(,\s?\d{1,3}%?){2},\s?(1(?:\.0)?|0|0?\.\d+)\)|(rgb|hsl)\(\d{1,3}%?(,\s?\d{1,3}%?){2}\))$/i';
+
     /**
      * Color in hex format
      *
@@ -141,7 +148,7 @@ class ColorOption extends Option
     public function handleChange($data)
     {
         global $_ARRAYLANG;
-        if (!preg_match('/^(#)?[0-9a-f]+$/', $data)) {
+        if (!preg_match(static::CSS_COLOR_REGEX, $data)) {
             throw new OptionValueNotValidException(
                 $_ARRAYLANG['TXT_CORE_MODULE_TEMPLATEEDITOR_COLOR_WRONG_FORMAT']
             );

@@ -1,5 +1,11 @@
 <script type="text/javascript">
 
+    var viewManager = {
+        // wraper to get values from cx.variables
+        get: function(key) {
+            return cx.variables.get(key, 'viewManager');
+        }
+    };
     cx.ready(function() {
         $J("#tabs").tabs({
             show : function (event, ui) {
@@ -7,7 +13,7 @@
                 $J('#selectedTab').val($J( "#tabs" ).tabs('option', 'selected'));
             },
             select: function(event, ui) {
-                window.location.hash = ui.tab.hash;                
+                window.location.hash = ui.tab.hash;
             }
         });
         var activateDialog = cx.ui.dialog({
@@ -30,13 +36,13 @@
         $J(".themesActivate").click(function() {
             var themeId = $J(this).attr('data-themeId');
             if ({THEMES_LANG_ACTIVE_COUNT} > 1) {
-                $J( ".active_language_checkbox_container" ).html(' ');                
+                $J( ".active_language_checkbox_container" ).html(' ');
                 $J.ajax({
                     url     : 'index.php?cmd=JsonData&object=ViewManager&act=activateLanguages',
                     data    : {
                                 themeId : themeId,
                                 themeType : $J('#selectedTab').val()
-                              },                    
+                              },
                     type    : "post",
                     dataType: "json",
                     success: function(response) {
@@ -45,7 +51,7 @@
                         });
                         $J("#multipleFormThemeId").val(themeId);
                         $J('#activateThemeForm input[type=checkbox]').attr('checked', 'checked');
-                        
+
                         activateDialog.open();
                     }
                 });
@@ -55,7 +61,24 @@
                 ajaxActivateTheme(themeId);
                 return false;
             }
-        });        
+        });
+        if (!viewManager.get('enable_theme_access')) {
+            cx.jQuery('input[name="themesActivate"]').hide();
+        }
+        if (!viewManager.get('edit_theme_access')) {
+            cx.jQuery('.themeWrapper:not(.templateEditor) .themeEdit, .themeCopy, .themeDelete').hide();
+        }
+        if (!viewManager.get('theme_import_export_access')) {
+            cx.jQuery('.themeExport').hide();
+        }
+        if (!viewManager.get('theme_template_editor_access')) {
+            cx.jQuery('.templateEditor .themeEdit').hide();
+        }
+        if (!viewManager.get('edit_theme_access') && !viewManager.get('theme_import_export_access')) {
+            cx.jQuery('.newthemeWrapper').hide();
+        } else if (!viewManager.get('edit_theme_access') && viewManager.get('theme_import_export_access')) {
+            cx.jQuery('.newthemeWrapper .addTheme > a').attr('href', '{CONTREXX_BACKEND_URL_LINK}index.php?cmd=ViewManager&act=import&csrf=' + cx.variables.get('csrf', 'contrexx'));
+        }
     });
 
     //Activate Theme
@@ -72,7 +95,7 @@
             data    : data,
             dataType: "json",
             success: function(response) {
-                if (response.status == 'success') {                    
+                if (response.status == 'success') {
                     window.location.reload();
                 } else {
                     cx.tools.StatusMessage.showMessage(response.message, "error", 1000);
@@ -80,7 +103,7 @@
             }
         });
     }
-    
+
     function checkThemeExistsByThemeId(themeId) {
 
         $J.ajax({
@@ -514,6 +537,7 @@
         background-color: #000;
         width: 100%;
         box-sizing: border-box;
+        min-height: 54px;
     }
 
     .action a.action-small-screen {

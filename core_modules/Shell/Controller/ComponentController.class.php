@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -59,7 +59,7 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
         }
     }
 
-    public function executeCommand($command, $arguments)
+    public function executeCommand($command, $arguments, $dataArguments = array())
     {
         //\DBG::activate(DBG_PHP);
         if ($command == 'exit') {
@@ -82,7 +82,7 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
             echo passthru(implode(' ', $arguments) . ' > `tty`');
             return;
         }
-        
+
         $this->commandRunning = true;
         echo 'This is Cloudrexx Command mode shell v3.2
 Please type `help` to find available commands
@@ -90,7 +90,16 @@ Please type `help` to find available commands
         $componentRepo = $this->cx->getDb()->getEntityManager()->getRepository('Cx\Core\Core\Model\Entity\SystemComponent');
         $commands = array();
         foreach ($componentRepo->findAll() as $component) {
-            foreach ($component->getCommandsForCommandMode() as $command) {
+            foreach ($component->getCommandsForCommandMode() as $command=>$permission) {
+                // permission is optional
+                if (is_string($permission)) {
+                    $command = $permission;
+                }
+                // check permission
+                if (!$component->hasAccessToExecuteCommand($command, array())) {
+                    continue;
+                }
+                // avoid duplicates
                 if (isset($commands[$command])) {
                     throw new \Exception('Command \'' . $command . '\' is already in index');
                 }
@@ -115,6 +124,9 @@ Please type `help` to find available commands
 ';
                 continue;
             }
+            if (!$commands[$command]->hasAccessToExecuteCommand($command, $params)) {
+                echo 'Permission denied!' . PHP_EOL;
+            }
             try {
                 $commands[$command]->executeCommand($command, $params);
             } catch (\Exception $e) {
@@ -130,9 +142,8 @@ Please type `help` to find available commands
         $component = $componentRepo->findOneBy(array('name'=>$name));
         return $component;
     }
-    
+
     public function getControllerClasses() {
         return array();
     }
 }
-

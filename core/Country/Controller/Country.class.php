@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * Core Country and Region class
  *
@@ -89,6 +89,9 @@ class Country
      */
     static function getPage()
     {
+        // TODO: reimplement
+        return;
+
         global $objTemplate, $_CORELANG;
 
 //DBG::activate(DBG_PHP|DBG_ADODB|DBG_LOG_FIREPHP);
@@ -160,9 +163,9 @@ class Country
         &$count, $lang_id=null, $limit=-1, $offset=0, $order='`name` ASC'
     ) {
         global $objDatabase;
-        
+
         $lang_id = (int)$lang_id;
-        if (empty($lang_id)) $lang_id = FRONTEND_LANG_ID; 
+        if (empty($lang_id)) $lang_id = FRONTEND_LANG_ID;
         $arrSqlName = \Text::getSqlSnippets('`country`.`id`', $lang_id,
             'core', array('name' => self::TEXT_NAME));
         if (empty($limit)) $limit  = -1;
@@ -233,7 +236,7 @@ class Country
     static function getById($country_id, $lang_id=null)
     {
         global $objDatabase;
-        
+
         $lang_id = (int)$lang_id;
         if (empty($lang_id)) {
 //die("Country::getById(): ERROR: Empty language ID");
@@ -295,7 +298,7 @@ class Country
     static function getByName($country_name, $lang_id=null)
     {
         global $objDatabase;
-        
+
         $lang_id = (int)$lang_id;
         if (empty($lang_id)) {
             $lang_id = FRONTEND_LANG_ID;
@@ -331,7 +334,82 @@ class Country
             'active' => $objResult->fields['active'],
         );
     }
-    
+
+    /**
+     * Returns matched array of Countries data for the given Name
+     *
+     * The array created is of the form
+     *  array(
+     *    'id'           => country ID,
+     *    'name'         => country name,
+     *    'alpha2'       => alpha-2 (two letter) code,
+     *    'alpha3'       => alpha-3 (three letter) code,
+     *    'active'       => boolean,
+     *    'ord'          => ordinal value,
+     *  ),
+     * The Countries are returned in the current frontend language
+     * as set in FRONTEND_LANG_ID, except if the optional $lang_id
+     * argument is not empty.
+     *
+     * @param   string    $term     The search term to get countries
+     * @param   integer   $lang_id  The optional language ID
+     * @return  array               The Country array on success,
+     *                              false otherwise
+     */
+    static function searchByName($term, $lang_id = null, $active = true)
+    {
+        global $objDatabase;
+
+        $lang_id = contrexx_input2int($lang_id);
+        if (empty($lang_id)) {
+            $lang_id = FRONTEND_LANG_ID;
+        }
+        $arrSqlName = \Text::getSqlSnippets('`country`.`id`', $lang_id,
+            'core', array('name' => self::TEXT_NAME));
+
+        $query = '
+            SELECT `country`.`id`,
+                   `country`.`alpha2`,
+                   `country`.`alpha3`,
+                   `country`.`ord`,
+                   `country`.`active`,
+                   '. $arrSqlName['field'] .'
+              FROM `'. DBPREFIX .'core_country` AS `country`
+                  '. $arrSqlName['join'] .'
+             WHERE ' . $arrSqlName['alias']['name'] . ' LIKE "%'. contrexx_raw2db($term) .'%"';
+        $countries = $objDatabase->Execute($query);
+
+        if (!$countries) {
+            return array();
+        }
+
+        $arrCountries = array();
+        while (!$countries->EOF) {
+            $id      = $countries->fields['id'];
+            $strName = $countries->fields['name'];
+            if ($active && !$countries->fields['active']) {
+                $countries->MoveNext();
+                continue;
+            }
+            if ($strName === null) {
+                $objText = \Text::getById($id, 'core', self::TEXT_NAME);
+                if ($objText) {
+                    $strName = $objText->content();
+                }
+            }
+            $arrCountries[] = array(
+                'id'     => $id,
+                'name'   => $strName,
+                'ord'    => $countries->fields['ord'],
+                'alpha2' => $countries->fields['alpha2'],
+                'alpha3' => $countries->fields['alpha3'],
+                'active' => $countries->fields['active'],
+            );
+            $countries->MoveNext();
+        }
+
+        return $arrCountries;
+    }
 
     /**
      * Returns the current number of Country records present in the database
@@ -844,12 +922,16 @@ class Country
 
     /**
      * Sets up the Country settings page
+     * @todo reimplement
      * @return  string          The page content
      */
     static function settings()
     {
+        // TODO: reimplement
+        return;
+
         global $_CORELANG;
-        
+
         $objTemplateCountry = new \Cx\Core\Html\Sigma(\Env::get('cx')->getCodeBaseCorePath() . '/Country/View/Template/Generic');
         $objTemplateCountry->loadTemplateFile('Overview.html');
 

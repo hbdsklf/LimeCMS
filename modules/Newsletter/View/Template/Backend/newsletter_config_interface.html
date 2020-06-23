@@ -3,7 +3,7 @@
     $J(document).ready(function() {
         $J('.recipientAcive').click(function() {
             elemId = $J(this).attr('id');
-            
+
             if ($J(this).is(':checked')) {
                 $J('div.'+elemId).show();
             } else {
@@ -12,33 +12,20 @@
         });
     });
 </script>
-<div id="subnavbar_level2">
-<ul>
-    <li><a href="index.php?cmd=Newsletter&amp;act=dispatch" title="{TXT_DISPATCH_SETINGS}">{TXT_DISPATCH_SETINGS}</a></li>
-    <li><a href="index.php?cmd=Newsletter&amp;act=templates" title="{TXT_NEWSLETTER_TEMPLATES}">{TXT_NEWSLETTER_TEMPLATES}</a></li>
-    <li><a href="index.php?cmd=Newsletter&amp;act=interface" title="{TXT_NEWSLETTER_INTERFACE}">{TXT_NEWSLETTER_INTERFACE}</a></li>
-    <li><a href="index.php?cmd=Newsletter&amp;act=confightml" title="{TXT_GENERATE_HTML}">{TXT_GENERATE_HTML}</a></li>
-    <li><a href="index.php?cmd=Newsletter&amp;act=activatemail" title="{TXT_CONFIRM_MAIL}">{TXT_ACTIVATE_MAIL}</a></li>
-    <li><a href="index.php?cmd=Newsletter&amp;act=confirmmail" title="{TXT_CONFIRM_MAIL}">{TXT_CONFIRM_MAIL}</a></li>
-    <li><a href="index.php?cmd=Newsletter&amp;act=notificationmail" title="{TXT_NOTIFICATION_MAIL}">{TXT_NOTIFICATION_MAIL}</a></li>
-    <li><a href="index.php?cmd=Newsletter&amp;act=system" title="{TXT_DISPATCH_SETINGS}">{TXT_SYSTEM_SETINGS}</a></li>
-</ul>
-</div>
-<br />
-<form name="profileSettings" action="index.php?cmd=Newsletter&amp;act=interface" method="post">
+<form name="profileSettings" action="index.php?cmd=Newsletter&amp;act=Settings&amp;tpl=Interface" method="post">
 <table width="100%" border="0" cellpadding="3" cellspacing="0" class="adminlist">
   <tr>
     <th colspan="3">{TXT_NEWSLETTER_INTERFACE}</th>
   </tr>
   <tr class="row3">
-      <td colspan="3"><strong>{TXT_NEWSLETTER_PROFILE_DETAILS}</strong></td>      
-  </tr>    
+      <td colspan="3"><strong>{TXT_NEWSLETTER_PROFILE_DETAILS}</strong></td>
+  </tr>
     <tr class="row1">
       <td valign="top">{TXT_NEWSLETTER_SEX}</td>
       <td width="5%" nowrap="nowrap"><input type="checkbox" id="recipientSex" class="recipientAcive" name="recipientSex" value="1" {NEWSLETTER_RECIPIENT_SEX} /><label for="recipientSex">{TXT_ACTIVE}</label></td>
       <td><div class="recipientSex" style="display: {NEWSLETTER_RECIPIENT_SEX_MANTOTRY_DISPLAY}" ><input type="checkbox" id="requiredSex" name="requiredSex" value="1" {NEWSLETTER_RECIPIENT_SEX_REQUIRED} /><label for="requiredSex">{TXT_NEWSLETTER_MANDATORY_FIELD}</label></div>
       </td>
-    </tr>    
+    </tr>
     <tr class="row2">
       <td>{TXT_NEWSLETTER_SALUTATION}</td>
       <td><input type="checkbox" name="recipientSalutation" class="recipientAcive" id="recipientSalutation" value="1" {NEWSLETTER_RECIPIENT_SALUTATION} /><label for="recipientSalutation">{TXT_ACTIVE}</label></td>
@@ -124,8 +111,21 @@
       <td><input type="checkbox" name="recipientWebsite" class="recipientAcive" id="recipientWebsite" value="1" {NEWSLETTER_RECIPIENT_WEBSITE} /><label for="recipientWebsite">{TXT_ACTIVE}</label></td>
       <td><div class="recipientWebsite" style="display: {NEWSLETTER_RECIPIENT_WEBSITE_MANTOTRY_DISPLAY}" ><input type="checkbox" id="requiredWebsite" name="requiredWebsite" value="1" {NEWSLETTER_RECIPIENT_WEBSITE_REQUIRED} /><label for="requiredWebsite">{TXT_NEWSLETTER_MANDATORY_FIELD}</label></div></td>
     </tr>
+    <tr class="row1">
+      <td width="15%">{TXT_NEWSLETTER_CAPTCHA}</td>
+      <td>
+          <input type="checkbox" name="captcha" class="captchaAcive" id="captcha" value="1" {NEWSLETTER_CAPTCHA} />
+          <label for="captcha">{TXT_ACTIVE}</label>
+      </td>
+      <td>
+          <div class="captcha" style="display: none;" >
+              <input type="checkbox" id="requiredCaptcha" name="requiredCaptcha" value="1" {NEWSLETTER_CAPTCHA_REQUIRED} />
+              <label for="requiredCaptcha">{TXT_NEWSLETTER_MANDATORY_FIELD}</label>
+          </div>
+      </td>
+    </tr>
 </table>
     <br />
 <input type="submit" name="interfaceSettings" value="{TXT_SAVE}" />
-</form>    
+</form>
 <!-- START module_newsletter_config_interface.html -->

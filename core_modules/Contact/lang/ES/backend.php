@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
  * @author      Cloudrexx Development Team <info@cloudrexx.com>
@@ -64,7 +64,7 @@ $_ARRAYLANG['TXT_CONTACT_FUNCTIONS'] = "Funciones";
 $_ARRAYLANG['TXT_CONTACT_DETAILS'] = "Detalles";
 $_ARRAYLANG['TXT_CONTACT_DELETE_ENTRY'] = "Eliminar Entrada";
 $_ARRAYLANG['TXT_CONTACT_ENTRIES_OF_NAME'] = "Formulario de contacto, entradas de %NAME%";
-$_ARRAYLANG['TXT_CONTACT_CONFIRM_OPEN_UPLOADED_FILE'] = "Podr&iacute;a ser posible que este archivo est&eacute; infectado por un virus o troyano, \n ya que se ha sido subido por alguien desconocido. \ 
+$_ARRAYLANG['TXT_CONTACT_CONFIRM_OPEN_UPLOADED_FILE'] = "Podr&iacute;a ser posible que este archivo est&eacute; infectado por un virus o troyano, \n ya que se ha sido subido por alguien desconocido. \
 \n \¿Desea abrirlo de todas formas?";
 $_ARRAYLANG['TXT_CONTACT_ACTION_IS_IRREVERSIBLE'] = "\¡Esta acci&oacute;n no se puede deshacer!";
 $_ARRAYLANG['TXT_CONTACT_NAME'] = "Nombre";
@@ -147,7 +147,6 @@ $_ARRAYLANG['TXT_CONTACT_CONTACT_FORM_SUCCESSFULLY_DELETED'] = "El formulario de
 $_ARRAYLANG['TXT_CONTACT_FAILED_DELETE_CONTACT_FORM'] = "\¡El formulario de contacto no ha podido ser eliminado debido a un error!";
 $_ARRAYLANG['TXT_CONTACT_DATA_RECORD_UPDATED_SUCCESSFUL_VALIDATE'] = "Sus cambios han sido insertados en la base de datos. Debido a la limitaci&oacute;n de sus permisos de usuario, un administrador debe verificar su actualizaci&oacute;n antes de que los resultados de la misma aparezcan en la p&aacute;gina web.";
 $_ARRAYLANG['TXT_CONTACT_SETTINGS_UPDATED'] = "Los cambios han sido aplicados.";
-$_ARRAYLANG['TXT_CONTACT_META_DATE_BY_EXPORT'] = "Metadatos para exportar";
 $_ARRAYLANG['TXT_CONTACT_DEFAULT_FEEDBACK_TXT'] = "Gracias por su inter&eacute;s. Nos pondremos en contacto usted lo antes posible.";
 $_ARRAYLANG['TXT_CONTACT_SHOW_FORM_AFTER_SUBMIT'] = "Mostrar el formulario de nuevo cuando se muestra la confirmaci&oacute;n de env&iacute;o.";
 $_ARRAYLANG['TXT_CONTACT_LANG'] = "Idioma";

@@ -1,0 +1,21 @@
+.schedule_status {
+    width: 18px;
+    height: 16px;
+    margin-top: 3px;
+    display: inline-block;
+}
+.schedule_status.active {
+    background: url('../Media/icons/led_green.gif') no-repeat;
+}
+.schedule_status.inactive {
+    background: url('../Media/icons/led_red.gif') no-repeat;
+}
+.schedule_status.scheduled {
+    background: url('../Media/icons/status_schedule_publish.png') no-repeat;
+}
+.schedule_status.scheduled.active {
+    background-position: -34px -5px;
+}
+.schedule_status.scheduled.inactive {
+    background-position: -6px -5px;
+}

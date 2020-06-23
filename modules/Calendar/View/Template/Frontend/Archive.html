@@ -5,7 +5,7 @@
 </form>
 <br />
 <table>
-    <tbody> 
+    <tbody>
         <tr>
             <td><h2>Wann</h2></td>
             <td><h2>Anlass</h2></td>
@@ -18,14 +18,17 @@
             {CALENDAR_DATE_LIST}{CALENDAR_SEP_DATE_TIME_LIST}{CALENDAR_TIME_LIST}{TXT_CALENDAR_CLOCK_LIST}
             <!-- END calendarDateList -->
             </td>
-            <td class="cal-lag-col"><a href="{CALENDAR_EVENT_DETAIL_LINK}" target="{CALENDAR_EVENT_DETAIL_TARGET}">{CALENDAR_EVENT_TITLE}</a></td>
+            <td class="cal-lag-col">
+                <!-- BEGIN event_detail_view --><a href="{CALENDAR_EVENT_DETAIL_LINK}" target="{CALENDAR_EVENT_DETAIL_TARGET}">{CALENDAR_EVENT_TITLE}</a><!-- END event_detail_view -->
+                <!-- BEGIN event_no_detail_view -->{CALENDAR_EVENT_TITLE}<!-- END event_no_detail_view -->
+            </td>
             <td class="cal-lag-col">{CALENDAR_EVENT_PLACE}</td>
         </tr>
-        <!-- END eventList -->  
+        <!-- END eventList -->
         <!-- BEGIN emptyEventList -->
         <tr>
             <td colspan="3"><i>{TXT_CALENDAR_NO_EVENTS}</i></td>
-        </tr>    
+        </tr>
         <!-- END emptyEventList -->
     </tbody>
 </table>

@@ -41,7 +41,7 @@ function entriesDoAction(formId, objSelect)
             case "delete_entry":
                 if (confirm('{TXT_MEDIADIR_CONFIRM_DELETE_DATA}\n{TXT_MEDIADIR_ACTION_IS_IRREVERSIBLE}')) {
                     actionValue = "index.php?cmd={MODULE_NAME}&{CSRF}&act=delete_entry";
-            	}
+              }
                 break
             case "confirm_entry":
                 actionValue = "index.php?cmd={MODULE_NAME}&{CSRF}&act=confirm_entry";
@@ -84,26 +84,26 @@ var switchState = function(id, obj, action, type)
 }
 
 cx.jQuery(document).ready(function(){
-	cx.jQuery('#submit-search').click(function(e){
-	searchEntries(e);
-	});
+  cx.jQuery('#submit-search').click(function(e){
+  searchEntries(e);
+  });
 });
 
 var searchEntries = function (event) {
-	event.preventDefault();
-	formId = '';
-	levelId = '';
-	catId = '';
-	if(cx.jQuery('select[name="form_id"]').length>0){
-		formId = '&form_id='+cx.jQuery('select[name="form_id"]').val();
-	}
-	if(cx.jQuery('select[name="level_id"]').length>0){
-		levelId = '&level_id='+cx.jQuery('select[name="level_id"]').val();
-	}
-	if(cx.jQuery('select[name="cat_id"]').length>0){
-		catId = '&cat_id='+cx.jQuery('select[name="cat_id"]').val();
-	}
-	cx.jQuery('#search_mediadir').attr('action', cx.jQuery('#search_mediadir').attr('action') + catId+formId+levelId).submit();
+  event.preventDefault();
+  formId = '';
+  levelId = '';
+  catId = '';
+  if(cx.jQuery('select[name="form_id"]').length>0){
+    formId = '&form_id='+cx.jQuery('select[name="form_id"]').val();
+  }
+  if(cx.jQuery('select[name="level_id"]').length>0){
+    levelId = '&level_id='+cx.jQuery('select[name="level_id"]').val();
+  }
+  if(cx.jQuery('select[name="cat_id"]').length>0){
+    catId = '&cat_id='+cx.jQuery('select[name="cat_id"]').val();
+  }
+  cx.jQuery('#search_mediadir').attr('action', cx.jQuery('#search_mediadir').attr('action') + catId+formId+levelId).submit();
 }
 
 //]]>
@@ -160,7 +160,7 @@ var searchEntries = function (event) {
                             {MEDIADIR_LEVEL_ICON}&nbsp;
                             <a href="javascript: void(0);" onclick="switchState({MEDIADIR_LEVEL_ID}, this, {MEDIADIR_LEVEL_VISIBLE_STATE_ACTION}, 'level')"><img src="../core/Core/View/Media/icons/folder_{MEDIADIR_LEVEL_VISIBLE_STATE_IMG}.gif" border="0" alt="{MEDIADIR_LEVEL_NAME}" title="{MEDIADIR_LEVEL_NAME}" /></a>&nbsp;&nbsp;
                             <input name="levelOrder[{MEDIADIR_LEVEL_ID}]" style="width: 30px;" type="text" value="{MEDIADIR_LEVEL_ORDER}" onfocus="this.select();" />&nbsp;
-                            <a href="index.php?cmd={MODULE_NAME}&amp;act=entries&amp;level_id={MEDIADIR_LEVEL_ID}" title="{MEDIADIR_LEVEL_NAME} - {MEDIADIR_LEVEL_DESCRIPTION}">{MEDIADIR_LEVEL_NAME}</a> ({MEDIADIR_LEVEL_NUM_ENTRIES})
+                            <a href="index.php?cmd={MODULE_NAME}&amp;act=entries&amp;level_id={MEDIADIR_LEVEL_ID}" title="{MEDIADIR_LEVEL_NAME} - {MEDIADIR_LEVEL_DESCRIPTION_ESCAPED}">{MEDIADIR_LEVEL_NAME}</a> ({MEDIADIR_LEVEL_NUM_ENTRIES})
                         </td>
                         <td nowrap="nowrap">
                             <a href="index.php?cmd={MODULE_NAME}&amp;act=modify_level&amp;id={MEDIADIR_LEVEL_ID}" target="_self" title="{MEDIADIR_LEVEL_NAME} {TXT_EDIT}"><img src="../core/Core/View/Media/icons/edit.gif" border="0" alt="{MEDIADIR_LEVEL_NAME} {TXT_EDIT}" title="{MEDIADIR_LEVEL_NAME} {TXT_EDIT}" /></a>
@@ -196,7 +196,7 @@ var searchEntries = function (event) {
                             {MEDIADIR_CATEGORY_ICON}&nbsp;
                             <a href="javascript: void(0);" onclick="switchState({MEDIADIR_CATEGORY_ID}, this, {MEDIADIR_CATEGORY_VISIBLE_STATE_ACTION}, 'category')"><img src="../core/Core/View/Media/icons/folder_{MEDIADIR_CATEGORY_VISIBLE_STATE_IMG}.gif" border="0" alt="{MEDIADIR_CATEGORY_NAME}" title="{MEDIADIR_CATEGORY_NAME}" /></a>&nbsp;&nbsp;
                             <input name="catOrder[{MEDIADIR_CATEGORY_ID}]" style="width: 30px;" type="text" value="{MEDIADIR_CATEGORY_ORDER}" onfocus="this.select();" />&nbsp;
-                            <a href="index.php?cmd={MODULE_NAME}&amp;act=entries&amp;cat_id={MEDIADIR_CATEGORY_ID}" title="{MEDIADIR_CATEGORY_NAME} - {MEDIADIR_CATEGORY_DESCRIPTION}">{MEDIADIR_CATEGORY_NAME}</a> ({MEDIADIR_CATEGORY_NUM_ENTRIES})
+                            <a href="index.php?cmd={MODULE_NAME}&amp;act=entries&amp;cat_id={MEDIADIR_CATEGORY_ID}" title="{MEDIADIR_CATEGORY_NAME} - {MEDIADIR_CATEGORY_DESCRIPTION_ESCAPED}">{MEDIADIR_CATEGORY_NAME}</a> ({MEDIADIR_CATEGORY_NUM_ENTRIES})
                         </td>
                         <td nowrap="nowrap">
                             <a href="index.php?cmd={MODULE_NAME}&amp;act=modify_category&amp;id={MEDIADIR_CATEGORY_ID}" target="_self" title="{MEDIADIR_CATEGORY_NAME} {TXT_EDIT}"><img src="../core/Core/View/Media/icons/edit.gif" border="0" alt="{MEDIADIR_CATEGORY_NAME} {TXT_EDIT}" title="{MEDIADIR_CATEGORY_NAME} {TXT_EDIT}" /></a>

@@ -97,7 +97,7 @@ class Paypal {
       $this->last_error = '';
 
       $this->ipn_log_file = 'ipn_log.txt';
-      $this->ipn_log = true;
+      $this->ipn_log = false;
       $this->ipn_response = '';
 
       // populate $fields array with a few default values.  See the paypal
@@ -202,7 +202,7 @@ class Paypal {
 
       }
 
-      if (eregi("VERIFIED",$this->ipn_response)) {
+      if (stripos('VERIFIED', $this->ipn_response) !== false) {
 
          // Valid IPN transaction.
          $this->log_ipn_results(true);

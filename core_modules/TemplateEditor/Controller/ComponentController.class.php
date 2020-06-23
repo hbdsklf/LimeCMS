@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 
 /**
  * Class ComponentController
@@ -87,9 +87,18 @@ class ComponentController extends SystemComponentController
             $themeRepository = new ThemeRepository();
             $themeID = isset($_GET['preview']) ? $_GET['preview']
                 : null;
+            // load preview theme or page's custom theme
             $theme = $themeID ? $themeRepository->findById(
                 (int)$themeID
-            ) : $themeRepository->getDefaultTheme();
+            ) : $themeRepository->findById($this->cx->getPage()->getSkin());
+            // fallback: load default theme of active language
+            if (!$theme) {
+                $theme = $themeRepository->getDefaultTheme(\Cx\Core\View\Model\Entity\Theme::THEME_TYPE_WEB, FRONTEND_LANG_ID);
+            }
+            // final fallback: try to load any existing default theme (independent of the language)
+            if (!$theme) {
+                $theme = $themeRepository->getDefaultTheme(\Cx\Core\View\Model\Entity\Theme::THEME_TYPE_WEB);
+            }
             $themeOptions = $themeOptionRepository->get(
                 $theme
             );
@@ -105,7 +114,7 @@ class ComponentController extends SystemComponentController
         } catch (PresetRepositoryException $e) {
 
         }
-        catch (\Symfony\Component\Yaml\ParserException $e) {
+        catch (\Symfony\Component\Yaml\Exception\ParseException $e) {
 
         }
     }
@@ -117,4 +126,59 @@ class ComponentController extends SystemComponentController
         return array('JsonController');
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    public function postContentLoad(\Cx\Core\ContentManager\Model\Entity\Page $page) {
+        global $_ARRAYLANG;
+
+        if ($this->cx->getMode() != Cx::MODE_BACKEND) {
+            return;
+        }
+        if ($page->getModule() != $this->getName()) {
+            return;
+        }
+
+        $this->getComponent('View')->addIntroSteps(
+            array(
+                array(
+                    'element' => '.option.layout',
+                    'intro' => $_ARRAYLANG['TXT_CORE_MODULE_TEMPLATEEDITOR_INTRO_LAYOUT_OPTION'],
+                ),
+                array(
+                    'element' => '.option.preset',
+                    'intro' => $_ARRAYLANG['TXT_CORE_MODULE_TEMPLATEEDITOR_INTRO_PRESET_OPTION'],
+                ),
+                array(
+                    'element' => '.activate-preset',
+                    'intro' => $_ARRAYLANG['TXT_CORE_MODULE_TEMPLATEEDITOR_INTRO_PRESET_ACTIVATE'],
+                ),
+                array(
+                    'element' => '.add-preset',
+                    'intro' => $_ARRAYLANG['TXT_CORE_MODULE_TEMPLATEEDITOR_INTRO_PRESET_ADD'],
+                ),
+                array(
+                    'element' => '.reset-preset',
+                    'intro' => $_ARRAYLANG['TXT_CORE_MODULE_TEMPLATEEDITOR_INTRO_PRESET_RESET'],
+                ),
+                array(
+                    'element' => '.option.view',
+                    'intro' => $_ARRAYLANG['TXT_CORE_MODULE_TEMPLATEEDITOR_INTRO_VIEW_OPTION'],
+                ),
+                array(
+                    'element' => '.option-list > .option',
+                    'intro' => $_ARRAYLANG['TXT_CORE_MODULE_TEMPLATEEDITOR_INTRO_VIEW_OPTION_LIST'],
+                ),
+                array(
+                    'element' => '#preview-template-editor',
+                    'intro' => $_ARRAYLANG['TXT_CORE_MODULE_TEMPLATEEDITOR_INTRO_PREVIEW'],
+                ),
+                array(
+                    'element' => 'button.save',
+                    'intro' => $_ARRAYLANG['TXT_CORE_MODULE_TEMPLATEEDITOR_INTRO_SAVE'],
+                )
+            ),
+            'TemplateEditor'
+        );
+    }
 }

@@ -68,7 +68,7 @@ class Stats extends StatsLibrary
 
 
     private $act = '';
-    
+
     /**
     * constructor
     *
@@ -78,25 +78,26 @@ class Stats extends StatsLibrary
     function __construct()
     {
         parent::__construct();
-        
+
         $this->_objTpl = new \Cx\Core\Html\Sigma($this->cx->getCodeBaseCoreModulePath().'/Stats/View/Template/Backend');
         \Cx\Core\Csrf\Controller\Csrf::add_placeholder($this->_objTpl);
-        $this->_objTpl->setErrorHandling(PEAR_ERROR_DIE);       
+        $this->_objTpl->setErrorHandling(PEAR_ERROR_DIE);
 
-        $this->firstDate = time();        
+        $this->firstDate = time();
     }
-    
+
     private function setNavigation()
     {
         global $objTemplate, $_ARRAYLANG;
 
-        $objTemplate->setVariable("CONTENT_NAVIGATION","
-            <a href='index.php?cmd=Stats&amp;stat=visitors' class='".($this->act == 'visitors' ? 'active' : '')."'>".$_ARRAYLANG['TXT_VISITOR_DETAILS']."</a>
-            <a href='index.php?cmd=Stats&amp;stat=requests' class='".($this->act == 'requests' ? 'active' : '')."'>".$_ARRAYLANG['TXT_VISITORS_AND_PAGE_VIEWS']."</a>
-            <a href='index.php?cmd=Stats&amp;stat=referer' class='".($this->act == 'referer' ? 'active' : '')."'>".$_ARRAYLANG['TXT_REFERER']."</a>
-            <a href='index.php?cmd=Stats&amp;stat=spiders' class='".($this->act == 'spiders' ? 'active' : '')."'>".$_ARRAYLANG['TXT_SEARCH_ENGINES']."</a>
-            <a href='index.php?cmd=Stats&amp;stat=search' class='".($this->act == 'search' ? 'active' : '')."'>".$_ARRAYLANG['TXT_SEARCH_TERMS']."</a>
-            <a href='index.php?cmd=Stats&amp;stat=settings' class='".($this->act == 'settings' ? 'active' : '')."'>".$_ARRAYLANG['TXT_SETTINGS']."</a>");
+        $objTemplate->setVariable("CONTENT_NAVIGATION", 
+            (\Permission::checkAccess(166, 'static', true) ? "<a href='index.php?cmd=Stats&amp;stat=visitors' class='".($this->act == 'visitors' ? 'active' : '')."'>".$_ARRAYLANG['TXT_VISITOR_DETAILS']."</a>" : '')
+            .(\Permission::checkAccess(164, 'static', true) ? "<a href='index.php?cmd=Stats&amp;stat=requests' class='".($this->act == 'requests' ? 'active' : '')."'>".$_ARRAYLANG['TXT_VISITORS_AND_PAGE_VIEWS']."</a>" : '')
+            .(\Permission::checkAccess(167, 'static', true) ? "<a href='index.php?cmd=Stats&amp;stat=referer' class='".($this->act == 'referer' ? 'active' : '')."'>".$_ARRAYLANG['TXT_REFERER']."</a>" : '')
+            .(\Permission::checkAccess(168, 'static', true) ? "<a href='index.php?cmd=Stats&amp;stat=spiders' class='".($this->act == 'spiders' ? 'active' : '')."'>".$_ARRAYLANG['TXT_SEARCH_ENGINES']."</a>" : '')
+            .(\Permission::checkAccess(169, 'static', true) ? "<a href='index.php?cmd=Stats&amp;stat=search' class='".($this->act == 'search' ? 'active' : '')."'>".$_ARRAYLANG['TXT_SEARCH_TERMS']."</a>" : '')
+            .(\Permission::checkAccess(170, 'static', true) ? "<a href='index.php?cmd=Stats&amp;stat=settings' class='".($this->act == 'settings' ? 'active' : '')."'>".$_ARRAYLANG['TXT_SETTINGS']."</a>" : '')
+        );
     }
 
 
@@ -110,39 +111,43 @@ class Stats extends StatsLibrary
     function getContent(){
         global $objTemplate;
 
-        $this->_optimizeTables();
-
         if(!isset($_GET['stat'])){
             $_GET['stat'] = "";
         }
 
         switch ($_GET['stat']){
             case 'visitors':
+                \Permission::checkAccess(166, 'static');
                 $this->showVisitors();
                 break;
 
             case 'requests': // show request stats
+                \Permission::checkAccess(164, 'static');
                 $this->_showRequests();
                 break;
 
             case 'referer':
+                \Permission::checkAccess(167, 'static');
                 $this->_showReferer();
                 break;
 
             case 'spiders':
+                \Permission::checkAccess(168, 'static');
                 $this->_showSpiders();
                 break;
 
             case 'search': // show search term stats
+                \Permission::checkAccess(169, 'static');
                 $this->_showSearchTerms();
                 break;
 
             case 'settings':
-                \Permission::checkAccess(40, 'static');
+                \Permission::checkAccess(170, 'static');
                 $this->_showSettings();
                 break;
 
             default: // show overview
+                \Permission::checkAccess(166, 'static');
                 $this->showVisitors();
                 break;
         }
@@ -156,27 +161,6 @@ class Stats extends StatsLibrary
 
         $this->act = $_REQUEST['stat'];
         $this->setNavigation();
-    }
-
-    function _optimizeTables() {
-        global $objDatabase;
-        $query = "OPTIMIZE TABLE `".DBPREFIX."stats_browser`,
-                                 `".DBPREFIX."stats_colourdepth`,
-                                 `".DBPREFIX."stats_config`,
-                                 `".DBPREFIX."stats_country`,
-                                 `".DBPREFIX."stats_hostname`,
-                                 `".DBPREFIX."stats_javascript`,
-                                 `".DBPREFIX."stats_operatingsystem`,
-                                 `".DBPREFIX."stats_referer`,
-                                 `".DBPREFIX."stats_requests`,
-                                 `".DBPREFIX."stats_requests_summary`,
-                                 `".DBPREFIX."stats_screenresolution`,
-                                 `".DBPREFIX."stats_search`,
-                                 `".DBPREFIX."stats_spiders`,
-                                 `".DBPREFIX."stats_spiders_summary`,
-                                 `".DBPREFIX."stats_visitors`,
-                                 `".DBPREFIX."stats_visitors_summary`";
-        $objDatabase->Execute($query);
     }
 
     private function showVisitors() {
@@ -307,9 +291,13 @@ class Stats extends StatsLibrary
 
         // set javascript statistics
         if ($this->supportJavaScriptSum>0) {
+            $javascriptSupport = isset($this->arrSupportJavaScript[1])
+                ? $this->arrSupportJavaScript[1] : 0;
+            $noJavascriptSupport = isset($this->arrSupportJavaScript[0])
+                ? $this->arrSupportJavaScript[0] : 0;
             $this->_objTpl->setVariable(array(
-                'STATS_CLIENTS_JAVASCRIPT_SUPPORT'        => $this->_makePercentBar(200,10,100/$this->supportJavaScriptSum*$this->arrSupportJavaScript[1],100,1,'Javascript Support unterst�tzt').' '.round(100/$this->supportJavaScriptSum*$this->arrSupportJavaScript[1],2).'% ('.$this->arrSupportJavaScript[1].')',
-                'STATS_CLIENTS_JAVASCRIPT_NO_SUPPORT'    => $this->_makePercentBar(200,10,100/$this->supportJavaScriptSum*$this->arrSupportJavaScript[0],100,1,'Javascript wird nicht unters�tzt').' '.round(100/$this->supportJavaScriptSum*$this->arrSupportJavaScript[0],2).'% ('.$this->arrSupportJavaScript[0].')'
+                'STATS_CLIENTS_JAVASCRIPT_SUPPORT'    => $this->_makePercentBar(200, 10, 100/$this->supportJavaScriptSum * $javascriptSupport, 100, 1,'Javascript Support unterstützt') . ' ' . round(100/$this->supportJavaScriptSum * $javascriptSupport, 2).'% ('. $javascriptSupport .')',
+                'STATS_CLIENTS_JAVASCRIPT_NO_SUPPORT' => $this->_makePercentBar(200, 10, 100/$this->supportJavaScriptSum * $noJavascriptSupport, 100, 1,'Javascript wird nicht unterstützt') . ' ' . round(100/$this->supportJavaScriptSum * $noJavascriptSupport, 2).'% ('. $noJavascriptSupport .')'
             ));
             $this->_objTpl->hideBlock('stats_clients_javascript_nodata');
         } else {
@@ -407,7 +395,7 @@ class Stats extends StatsLibrary
         if (count($this->arrCountries)>0) {
             $rowClass = 0;
 
-            // get country names from xml file            
+            // get country names from xml file
             $xmlCountryFilePath  = $this->cx->getClassLoader()->getFilePath($this->cx->getCoreModuleFolderName() . '/Stats/Data/countries.xml');
             $xml_parser = xml_parser_create();
             xml_set_object($xml_parser,$this);
@@ -540,8 +528,10 @@ class Stats extends StatsLibrary
         foreach ($arrRange as $hour) {
             $pHour = str_pad($hour, 2, 0, STR_PAD_LEFT);
             if (isset($this->arrRequests[$pHour])) {
-                $visitors = $this->arrRequests[$pHour]['visitors'];
-                $requests = $this->arrRequests[$pHour]['requests'];
+                $visitors = isset($this->arrRequests[$pHour]['visitors'])
+                    ? $this->arrRequests[$pHour]['visitors'] : 0;
+                $requests = isset($this->arrRequests[$pHour]['requests'])
+                    ? $this->arrRequests[$pHour]['requests'] : 0;
             } else {
                 $visitors = 0;
                 $requests = 0;
@@ -613,8 +603,9 @@ class Stats extends StatsLibrary
         $arrDayNames = explode(',',$_ARRAYLANG['TXT_DAY_ARRAY']);
         $arrRange = array();
         if (date('d') < date('t')) {
+            $previousYear = (date('m') == 1 ? date('Y') -1 : date('Y'));
             $arrRange[$previousMonth = (date('m') == 1 ? 12 : date('m')-1)] = range(
-                date('d') + 1 > ($daysOfPreviousMonth = date('t', mktime(0,0,0,$previousMonth,1,$previousYear,$previousYear = (date('m') == 1 ? date('Y') -1 : date('Y')))))
+                date('d') + 1 > ($daysOfPreviousMonth = date('t', mktime( 0, 0, 0, $previousMonth, 1, $previousYear)))
                     ?    $daysOfPreviousMonth
                     :    date('d') + 1,
                 $daysOfPreviousMonth
@@ -954,7 +945,7 @@ class Stats extends StatsLibrary
 
         $this->_objTpl->loadTemplateFile('module_stats_spiders.html',true,true);
         $this->pageTitle = $_ARRAYLANG['TXT_SEARCH_ENGINES'];
-        
+
         $this->_initSpiders();
 
         // set language variables
@@ -1152,7 +1143,7 @@ class Stats extends StatsLibrary
             'TXT_COLOUR_DEPTH'                => $_ARRAYLANG['TXT_COLOUR_DEPTH'],
             'TXT_JAVASCRIPT_SUPPORT'        => $_ARRAYLANG['TXT_JAVASCRIPT_SUPPORT'],
             'TXT_REMOVE_REQUESTS'            => $_ARRAYLANG['TXT_REMOVE_REQUESTS'],
-            'TXT_EXCLUDE_IDENTIFYING_INFO'	 => $_ARRAYLANG['TXT_EXCLUDE_IDENTIFYING_INFO'],
+            'TXT_EXCLUDE_IDENTIFYING_INFO'     => $_ARRAYLANG['TXT_EXCLUDE_IDENTIFYING_INFO'],
             'TXT_REMOVE_REQUESTS_INTERVAL'    => $_ARRAYLANG['TXT_REMOVE_REQUESTS_INTERVAL'],
             'TXT_STATS_COUNT_VISIOTR_NUMBER'    => $_ARRAYLANG['TXT_STATS_COUNT_VISIOTR_NUMBER'],
             'TXT_ONLINE_TIMEOUT'            => $_ARRAYLANG['TXT_ONLINE_TIMEOUT'],
@@ -1170,7 +1161,8 @@ class Stats extends StatsLibrary
             'TXT_INDEXED_PAGES'                    => $_ARRAYLANG['TXT_INDEXED_PAGES'],
             'TXT_MARKED'                        => $_ARRAYLANG['TXT_MARKED'],
             'TXT_SELECT_ALL'                    => $_ARRAYLANG['TXT_SELECT_ALL'],
-            'TXT_REMOVE_SELECTION'                => $_ARRAYLANG['TXT_REMOVE_SELECTION']
+            'TXT_REMOVE_SELECTION'                => $_ARRAYLANG['TXT_REMOVE_SELECTION'],
+            'TXT_STATS_BDSG'                          => $_ARRAYLANG['TXT_STATS_BDSG'],
         ));
 
         $this->_objTpl->setVariable(array(

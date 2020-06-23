@@ -17,7 +17,7 @@ function elementIsChecked(fieldName)
             x++;
         }
     }
-    
+
     if(x > 0) {
         return true;
     } else {
@@ -34,15 +34,15 @@ function selectMultiAction()
                 document.formCategoryList.action = "index.php?cmd={CALENDAR_MODULE_NAME}&act=categories&multi=delete&{CALENDAR_CSRF}";
                 document.formCategoryList.submit();
             }
-        } 
-        if(document.formCategoryList.formCategoryList_MultiAction.value == "activate") {                
+        }
+        if(document.formCategoryList.formCategoryList_MultiAction.value == "activate") {
             document.formCategoryList.action = "index.php?cmd={CALENDAR_MODULE_NAME}&act=categories&multi=activate&{CALENDAR_CSRF}";
-            document.formCategoryList.submit(); 
-        } 
-        if(document.formCategoryList.formCategoryList_MultiAction.value == "deactivate") {                
+            document.formCategoryList.submit();
+        }
+        if(document.formCategoryList.formCategoryList_MultiAction.value == "deactivate") {
             document.formCategoryList.action = "index.php?cmd={CALENDAR_MODULE_NAME}&act=categories&multi=deactivate&{CALENDAR_CSRF}";
-            document.formCategoryList.submit(); 
-        } 
+            document.formCategoryList.submit();
+        }
     } else {
         alert("{TXT_CALENDAR_MAKE_SELECTION}");
     }
@@ -65,7 +65,7 @@ function selectMultiAction()
             <td style="width:1%; text-align: center;"><strong>&nbsp;{TXT_CALENDAR_STATUS}&nbsp;</strong></td>
             <td style="width:1%; text-align: center;"><strong>&nbsp;{TXT_CALENDAR_SORT}&nbsp;</strong></td>
             <td><strong>{TXT_CALENDAR_TITLE}&nbsp;</strong></td>
-            <td width="100"><strong>{TXT_CALENDAR_EVENTS}&nbsp;</strong></td>
+            <td width="100"><strong>{TXT_CALENDAR_EVENTS}&nbsp;</strong><span class="icon-info tooltip-trigger"></span><span class="tooltip-message">{TXT_CALENDAR_COUNT_WITHOUT_SERIES}</span></td>
             <td width="100" style="text-align: right;"><strong>{TXT_CALENDAR_ACTION}&nbsp;</strong></td>
         </tr>
         <!-- BEGIN categoryList -->
@@ -81,7 +81,7 @@ function selectMultiAction()
             </td>
         </tr>
         <!-- END categoryList -->
-    
+
         <!-- BEGIN emptyCategoryList -->
         <tr class="row1">
             <td colspan="6"><i>{TXT_CALENDAR_NO_CATEGORIES_FOUND}</i></td>

@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,15 +24,15 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
-/** 
+
+/**
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
  * @author      Cloudrexx Development Team <info@cloudrexx.com>
- * @access      public 
+ * @access      public
  * @package     cloudrexx
  * @subpackage  core_viewmanager
- */ 
-global $_ARRAYLANG; 
+ */
+global $_ARRAYLANG;
 $_ARRAYLANG['TXT_DESIGN_MANAGEMENT'] = "Layout";
 $_ARRAYLANG['TXT_THEME_UNABLE_TO_CREATE'] = 'oluşturulamadı ';
 $_ARRAYLANG['TXT_DESIGN_OVERVIEW'] = 'Genel bakış';
@@ -105,7 +105,6 @@ $_ARRAYLANG['TXT_ACTIVE_TEMPLATE'] = 'Etkin Template';
 $_ARRAYLANG['TXT_ACTIVE_PDF_TEMPLATE'] = 'PDF';
 $_ARRAYLANG['TXT_ACTIVE_PRINT_TEMPLATE'] = 'Etkin Yazımgörünüm Templatesi';
 $_ARRAYLANG['TXT_THEME_ACTIVATE_INFO'] = 'Etkinlenen Diller';
-$_ARRAYLANG['TXT_THEME_ACTIVATE_INFO_BODY'] = 'Eğer dil pembe renkte  ise, öyelyse Frontend de <a href="index.php?cmd=LanguageManager">Dilayarları</a> etkinlendi';
 $_ARRAYLANG['TXT_ACTIVE_MOBILE_TEMPLATE'] = 'Mobile';
 $_ARRAYLANG['TXT_APP'] = 'App';
 $_ARRAYLANG['TXT_DESIGN_VARIABLES_LIST'] = 'Yer tutacakları dizini';

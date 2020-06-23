@@ -27,7 +27,7 @@
 
 /**
  * Main controller for DocSys
- * 
+ *
  * @copyright  cloudrexx
  * @author     Project Team SS4U <info@cloudrexx.com>
  * @package    cloudrexx
@@ -38,7 +38,7 @@ namespace Cx\Modules\DocSys\Controller;
 
 /**
  * Main controller for DocSys
- * 
+ *
  * @copyright  cloudrexx
  * @author     Project Team SS4U <info@cloudrexx.com>
  * @package    cloudrexx
@@ -47,7 +47,7 @@ namespace Cx\Modules\DocSys\Controller;
 class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentController {
     /**
      * getControllerClasses
-     * 
+     *
      * @return type
      */
     public function getControllerClasses() {
@@ -56,20 +56,16 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
 
      /**
      * Load the component DocSys.
-     * 
+     *
      * @param \Cx\Core\ContentManager\Model\Entity\Page $page       The resolved page
      */
     public function load(\Cx\Core\ContentManager\Model\Entity\Page $page) {
         global $objTemplate, $_CORELANG, $subMenuTitle;
-                
+
         switch ($this->cx->getMode()) {
-            case \Cx\Core\Core\Controller\Cx::MODE_FRONTEND:               
+            case \Cx\Core\Core\Controller\Cx::MODE_FRONTEND:
                 $docSysObj= new DocSys(\Env::get('cx')->getPage()->getContent());
                 \Env::get('cx')->getPage()->setContent($docSysObj->getDocSysPage());
-                $docSysObj->getPageTitle(\Env::get('cx')->getPage()->getTitle());
-                \Env::get('cx')->getPage()->setTitle($docSysObj->docSysTitle);
-                \Env::get('cx')->getPage()->setContentTitle($docSysObj->docSysTitle);
-                \Env::get('cx')->getPage()->setMetaTitle($docSysObj->docSysTitle);
                 break;
 
             case \Cx\Core\Core\Controller\Cx::MODE_BACKEND:
@@ -86,14 +82,37 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
                 break;
         }
     }
-    
+
     /**
-     * Do something for search the content
-     * 
-     * @param \Cx\Core\ContentManager\Model\Entity\Page $page       The resolved page
+     * {@inheritDoc}
      */
-    public function preContentParse(\Cx\Core\ContentManager\Model\Entity\Page $page) {
-        $this->cx->getEvents()->addEventListener('SearchFindContent', new \Cx\Modules\DocSys\Model\Event\DocSysEventListener());
+    public function registerEventListeners()
+    {
+        $evm            = $this->cx->getEvents();
+        $docSysListener = new \Cx\Modules\DocSys\Model\Event\DocSysEventListener();
+        $evm->addEventListener('SearchFindContent', $docSysListener);
     }
 
+    /**
+     * {@inheritdoc}
+     */
+    public function adjustResponse(
+        \Cx\Core\Routing\Model\Entity\Response $response
+    ) {
+        $page = $response->getPage();
+        if (
+            !$page ||
+            $page->getModule() !== $this->getName() ||
+            $page->getCmd() !== 'details'
+        ) {
+            return;
+        }
+
+        $docSysObj = new DocSys('');
+        $docSysObj->getDetails();
+        //Set the Page Title
+        $page->setTitle($docSysObj->docSysTitle);
+        $page->setContentTitle($docSysObj->docSysTitle);
+        $page->setMetaTitle($docSysObj->docSysTitle);
+    }
 }

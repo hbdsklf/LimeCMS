@@ -1,5 +1,6 @@
 var baseUrl = 'index.php?cmd=ContentManager';
 var regExpUriProtocol = new RegExp(cx.variables.get('regExpUriProtocol', 'contentmanager'));
+var firstLoad = true;
 
 var mouseIsUp = true;
 cx.jQuery(document).bind('mouseup.global', function() {
@@ -14,7 +15,7 @@ loadHistoryVersion = function(version) {
     if (isNaN(pageId)) {
         return;
     }
-    
+
     cx.cm.loadPage(pageId, 0, version, "content", false);
 };
 
@@ -109,34 +110,34 @@ var initMultiSelect = function(select) {
 
     // workaround for multiselect bug, disabled options are also moved to other select after click on removeAll()
     var allSel = select.next().children(".ms2side__select").children("select");
-    var	leftSel = allSel.eq(0);
-    var	rightSel = allSel.eq(1);
+    var  leftSel = allSel.eq(0);
+    var  rightSel = allSel.eq(1);
     leftSel.change(function() {
         // move all disabled options from left to right select
         leftSel.children('option[disabled]').remove().appendTo(rightSel);
     });
 };
 
-reloadCustomContentTemplates = function() {        
+reloadCustomContentTemplates = function() {
     var skinId = cx.jQuery('#page select[name="page[skin]"]').val();
     var module = cx.jQuery('#page select[name="page[application]"]').val();
     var select = cx.jQuery('#page select[name="page[customContent]"]');
     var lastChoice = select.data('sel');
     select.empty();
     select.append(cx.jQuery("<option value=\"\" selected=\"selected\">(Default)</option>"));
-        
+
     cx.jQuery('#page select[name="page[customContent]"]').trigger('change');
-    
+
     // Default skin
     if (skinId == 0) {
         skinId = cx.variables.get('defaultTemplates', 'contentmanager/themes')[cx.cm.getCurrentLang()];
     }
-    
+
     var templates = cx.variables.get('contentTemplates', "contentmanager");
     if (templates[skinId] == undefined) {
         return;
     }
-    
+
     for (var i = 0; i < templates[skinId].length; i++) {
         var isHome = /^home_/.exec(templates[skinId][i]);
         if ((isHome && module == "Home") || !isHome && module != "Home") {
@@ -158,15 +159,17 @@ cx.ready(function() {
     cx.cm.pageContentTemplate = '';
     // initialise the page custom application template
     cx.cm.pageApplicationTemplate = '';
+    // this is true between the events loadingStart and loadingEnd
+    cx.cm.isAdjusting = true;
 
     // Disable the option use for all channels by default
     cx.jQuery('input[name="page[useSkinForAllChannels]"], input[name="page[useCustomContentForAllChannels]"], input[name="page[useCustomApplicationTemplateForAllChannels]"]').attr('disabled', 'disabled');
-            
+
     setWebPageUrlCallback = function(data) {
       if(data.type=="page") {
         var url  = data.data[0].node;
         var path = data.data[0].url;
-        
+
         url = url.replace(cx.variables.get('contrexxPathOffset', 'contentmanager'), '');
         if (path == '') {
             path = url;
@@ -176,28 +179,28 @@ cx.ready(function() {
         }
         var lang = cx.variables.get('language', 'contrexx');
         cx.jQuery('#page_target_wrapper').hide();
-        cx.jQuery('#page_target_text').text(cx.variables.get('contrexxBaseUrl', 'contentmanager') + lang + '/' + path).attr('href', function() {return cx.jQuery(this).text()});
-        cx.jQuery('#page_target_text_wrapper').show();
+        cx.jQuery('.page_target_text').text(cx.variables.get('contrexxBaseUrl', 'contentmanager') + lang + '/' + path).attr('href', function() {return cx.jQuery(this).text()});
+        cx.jQuery('.page_target_text_wrapper').show();
         cx.jQuery('#page_target_protocol > option').removeAttr('selected');
         cx.jQuery('#page_target_protocol > option[value=""]').attr("selected", "selected");
-        cx.jQuery('#page_target, #page_target_backup').val(url);
+        cx.jQuery('#page_target, .page_target_backup').val(url);
       }
       else if (data.type == "file") {
         cx.jQuery('#page_target_wrapper').hide();
-        cx.jQuery('#page_target_text').text(cx.variables.get('contrexxBaseUrl', 'contentmanager') + data.data[0].datainfo.filepath.substr(1)).attr('href', function() {return cx.jQuery(this).text()});
-        cx.jQuery('#page_target_text_wrapper').show();
+        cx.jQuery('.page_target_text').text(cx.variables.get('contrexxBaseUrl', 'contentmanager') + data.data[0].datainfo.filepath.substr(1)).attr('href', function() {return cx.jQuery(this).text()});
+        cx.jQuery('.page_target_text_wrapper').show();
         cx.jQuery('#page_target_protocol > option').removeAttr('selected');
         cx.jQuery('#page_target_protocol > option[value=""]').attr("selected", "selected");
-        cx.jQuery('#page_target, #page_target_backup').val(data.data[0].datainfo.filepath);
+        cx.jQuery('#page_target, .page_target_backup').val(data.data[0].datainfo.filepath);
       }
     }
-    
+
     cx.jQuery('#page_target').keyup(function() {
         var targetValue = cx.jQuery.trim(cx.jQuery(this).val());
         if (cx.jQuery(this).val() != targetValue) {
             cx.jQuery(this).val(targetValue);
         }
-        var targetValueBackup = cx.jQuery('#page_target_backup').val();
+        var targetValueBackup = cx.jQuery('.page_target_backup').val();
         var matchesPageTarget = regExpUriProtocol.exec(targetValueBackup);
         if (matchesPageTarget) {
             targetValueBackup = targetValueBackup.replace(matchesPageTarget[0], '');
@@ -209,7 +212,7 @@ cx.ready(function() {
         cx.jQuery('#page_target_check').toggle(showOrHide);
     });
     cx.jQuery('#page_target_protocol').change(function() {
-        var targetValueBackup    = cx.jQuery('#page_target_backup').val();
+        var targetValueBackup    = cx.jQuery('.page_target_backup').val();
         var matchesPageTarget    = regExpUriProtocol.exec(targetValueBackup);
         var targetProtocolBackup = '';
         if (matchesPageTarget) {
@@ -223,23 +226,26 @@ cx.ready(function() {
     });
     cx.jQuery('#page_target_edit').click(function() {
         cx.jQuery('#page_target_cancel').show();
-        cx.jQuery('#page_target_text_wrapper').hide().prev().show();
+        cx.jQuery('#page_target_text_wrapper_redirect').hide().prev().show();
     });
     cx.jQuery('#page_target_cancel').click(function() {
-        cx.cm.setPageTarget(cx.jQuery("#page_target_backup").val(), cx.jQuery("#page_target_text").text());
+        cx.cm.setPageTarget(
+            cx.jQuery(".page_target_backup").val(),
+            cx.jQuery(this).parent().next(".page_target_text_wrapper").find(".page_target_text").text()
+        );
     });
     cx.jQuery('#page_target_check').click(function() {
         cx.jQuery(this).hide();
-        cx.jQuery('#page_target_text').text('');
-        cx.jQuery('#page_target_backup').val(cx.jQuery('#page_target_protocol').val() + cx.jQuery('#page_target').val());
+        cx.jQuery('.page_target_text').text('');
+        cx.jQuery('.page_target_backup').val(cx.jQuery('#page_target_protocol').val() + cx.jQuery('#page_target').val());
         cx.jQuery.getJSON('index.php?cmd=JsonData&object=page&act=getPathByTarget', {
-            target: cx.jQuery('#page_target_backup').val()
+            target: cx.jQuery('.page_target_backup').val()
         }, function(data) {
-            cx.jQuery('#page_target_text').text(data.data).attr('href', function() {return cx.jQuery(this).text()});
+            cx.jQuery('.page_target_text').text(data.data).attr('href', function() {return cx.jQuery(this).text()});
         });
         cx.jQuery('#page_target_wrapper').hide().next().show();
     });
-    
+
     cx.jQuery('.jstree-action').click(function(event) {
         event.preventDefault();
         action = cx.jQuery(this).attr('class').split(' ')[1];
@@ -274,7 +280,7 @@ cx.ready(function() {
             cx.jQuery('#site-tree').jstree(action+'_all');
         }
     });
-    
+
     cx.jQuery('#multiple-actions-select').change(function() {
         data = new Object();
         data.action = cx.jQuery(this).children('option:selected').val();
@@ -283,7 +289,7 @@ cx.ready(function() {
         }
         data.lang  = cx.jQuery('#site-tree').jstree('get_lang');
         data.nodes = new Array();
-        cx.jQuery('#site-tree ul li.jstree-checked').not(".action-item").each(function() {
+        cx.jQuery('#site-tree ul li.jstree-checked:not(.action-item):not(.translation)').each(function() {
             nodeId = cx.jQuery(this).attr('id').match(/\d+$/)[0];
             data.nodes.push(nodeId);
         });
@@ -341,23 +347,11 @@ cx.ready(function() {
             cx.jQuery('#multiple-actions-select').val(0);
         }
     });
-    
-    // aliases:
-    if (!publishAllowed) {
-        cx.jQuery("div.page_alias").each(function (index, field) {
-            field = cx.jQuery(field);
-            field.removeClass("empty");
-            if (field.children("span.noedit").html() == "") {
-                field.addClass("empty");
-            }
-        });
-        cx.jQuery(".empty").hide();
-    }
-    
+
     // alias input fields
     cx.jQuery("div.page_alias input").keyup(function() {
         cx.jQuery("div.page_alias input.warning").removeClass("warning");
-        
+
         var originalAlias  = cx.jQuery(this).val();
         var slugifiedAlias = cx.cm.slugify(originalAlias);
         if (originalAlias != slugifiedAlias) {
@@ -414,7 +408,26 @@ cx.ready(function() {
             }
         }
     });
-    
+
+    cx.jQuery("#site-tree .translations-expanded ins").live("click", function(event) {
+        if (cx.jQuery(this).is('ins.page')) {
+            action = "hide";
+            if (cx.jQuery(this).hasClass('invisible')) {
+                action = "show";
+            }
+        } else {
+            action = "deactivate";
+            if (cx.jQuery(this).hasClass('unpublished')) {
+                action = "activate";
+            }
+        }
+        var node = cx.jQuery(this).closest("li[id^='node_']");
+        var nodeId = node.attr("id").split("_")[1];
+        var lang = cx.jQuery(this).parent().attr("class").split(" ")[1];
+        var page = node.children("a."+lang);
+        cx.cm.performAction(action, page.attr("id"), nodeId);
+    });
+
     var data = cx.jQuery.parseJSON(cx.variables.get("tree-data", "contentmanager/tree"));
     cx.cm.actions = data.data.actions;
     cx.cm.hasHome = data.data.hasHome;
@@ -429,19 +442,19 @@ cx.ready(function() {
         var dpOptions = {
             showSecond: false,
             dateFormat: 'dd.mm.yy',
-            timeFormat: 'hh:mm' 
+            timeFormat: 'hh:mm'
         };
         cx.jQuery("input.date").datetimepicker(dpOptions);
 
         node = cx.jQuery('#page input[name="page[node]"]').val();
         //pageId = cx.jQuery('#node_'+node+" a."+str).attr("id");
         pageId = cx.jQuery('#pageId').val();
-        
+
         // get translated page id (page->getNode()->getPage(lang)->getId())
         if (pageId) {
             pageId = cx.jQuery('li#node_'+node).children('.'+str).attr('id');
         }
-        
+
         if (fallbacks[str]) {
             cx.jQuery('.hidable_nofallback').show();
             cx.jQuery('#fallback').text(language_labels[fallbacks[str]]);
@@ -460,60 +473,52 @@ cx.ready(function() {
 
         cx.jQuery('#site-tree>ul li .jstree-wrapper').each(function() {
             jsTreeLang = cx.jQuery('#site-tree').jstree('get_lang');
-            cx.jQuery(this).children('.module.show, .preview.show, .lastupdate.show').removeClass('show').addClass('hide');
-            cx.jQuery(this).children('.module.'+jsTreeLang + ', .preview.'+jsTreeLang + ', .lastupdate.' + jsTreeLang).toggleClass('show hide');
+            var prevShown = cx.jQuery(this).children('.module.show, .preview.show, .lastupdate.show');
+            prevShown.removeClass('show').addClass('hide');
+            cx.jQuery(this).children('.module.'+jsTreeLang + ', .preview.'+jsTreeLang + ', .lastupdate.' + jsTreeLang)
+              .css("left", function() {
+                  return prevShown.filter("."+cx.jQuery(this).attr("class").split(" ")[0]).css("left");
+              })
+              .toggleClass('show hide');
         });
     });
     cx.jQuery(".chzn-select").trigger('change');
-
-    cx.jQuery('div.actions-expanded li.action-item').live('click', function(event) {
-        var classes =  cx.jQuery(event.target).attr("class").split(/\s+/);
-        var url = cx.jQuery(event.target).attr('data-href');
-        var lang = cx.jQuery('#site-tree').jstree('get_lang');
-        
-        var action = classes[1];
-        var pageId = cx.jQuery(event.target).closest(".jstree-wrapper").nextAll("a." + lang).attr("id");
-        var nodeId = cx.jQuery(event.target).closest(".jstree-wrapper").parent().attr("id").split("_")[1];
-        
-        cx.cm.performAction(action, pageId, nodeId);
-        
-        cx.jQuery(event.target).closest('.actions-expanded').hide();
-    });
+    cx.cm.updateLocaleSelect();
 
     //add callback to reload custom content templates available as soon as template or module changes
     cx.jQuery('#page select[name="page[skin]"]').bind('change', function() {
         if (parseInt(cx.jQuery(this).val()) == 0) {
             cx.jQuery('input[name="page[useSkinForAllChannels]"]').removeAttr('checked');
             cx.jQuery('input[name="page[useSkinForAllChannels]"]').attr('disabled', 'disabled');
-        } else {            
+        } else {
             if (parseInt(cx.cm.pageSkin) == 0) {
                 cx.jQuery('input[name="page[useSkinForAllChannels]"]').attr('checked', 'checked');
             }
             cx.jQuery('input[name="page[useSkinForAllChannels]"]').removeAttr('disabled');
         }
-        
+
         cx.cm.pageSkin = cx.jQuery(this).val();
-        
+
         reloadCustomContentTemplates();
-        cx.cm.loadApplicationTemplate(cx.jQuery('#page select[name="page[application]"]').val(), 
-                                      cx.jQuery('#page input[name="page[area]"]').val(), 
+        cx.cm.loadApplicationTemplate(cx.jQuery('#page select[name="page[application]"]').val(),
+                                      cx.jQuery('#page input[name="page[area]"]').val(),
                                       cx.jQuery('#page select[name="page[skin]"]').val());
     });
-    
+
     cx.jQuery('#page select[name="page[customContent]"]').bind('change', function() {
         if (cx.jQuery(this).val() == '') {
             cx.jQuery('input[name="page[useCustomContentForAllChannels]"]').removeAttr('checked');
             cx.jQuery('input[name="page[useCustomContentForAllChannels]"]').attr('disabled', 'disabled');
-        } else {            
+        } else {
             if (cx.cm.pageContentTemplate == '') {
                 cx.jQuery('input[name="page[useCustomContentForAllChannels]"]').attr('checked', 'checked');
             }
             cx.jQuery('input[name="page[useCustomContentForAllChannels]"]').removeAttr('disabled');
-        }        
-        
+        }
+
         cx.cm.pageContentTemplate = cx.jQuery(this).val();
     });
-    
+
     cx.jQuery('#page select[name="page[applicationTemplate]"]').bind('change', function() {
         if (cx.jQuery(this).val() == '') {
             cx.jQuery('input[name="page[useCustomApplicationTemplateForAllChannels]"]').removeAttr('checked');
@@ -523,11 +528,11 @@ cx.ready(function() {
                 cx.jQuery('input[name="page[useCustomApplicationTemplateForAllChannels]"]').attr('checked', 'checked');
             }
             cx.jQuery('input[name="page[useCustomApplicationTemplateForAllChannels]"]').removeAttr('disabled');
-        }        
-        
+        }
+
         cx.cm.pageApplicationTemplate = cx.jQuery(this).val();
     });
-    
+
     cx.jQuery('#page_skin_view, #page_skin_edit').click(function(event) {
         var themeId = 0;
         var themeName = "";
@@ -538,7 +543,7 @@ cx.ready(function() {
             themeId = cx.variables.get('themeId', 'contentmanager/theme');
             themeName = cx.variables.get('themeName', 'contentmanager/theme');
         }
-        
+
         if (themeId == 0) {
             themeId = cx.variables.get('defaultTemplates', 'contentmanager/themes')[cx.cm.getCurrentLang()];
         }
@@ -552,10 +557,26 @@ cx.ready(function() {
 
     cx.jQuery('#page select[name="page[application]"]').bind('blur', function() {
         reloadCustomContentTemplates();
-        cx.cm.loadApplicationTemplate(cx.jQuery('#page select[name="page[application]"]').val(), 
-                                      cx.jQuery('#page input[name="page[area]"]').val(), 
+        cx.cm.loadApplicationTemplate(cx.jQuery('#page select[name="page[application]"]').val(),
+                                      cx.jQuery('#page input[name="page[area]"]').val(),
                                       cx.jQuery('#page select[name="page[skin]"]').val());
     });
+
+    cx.bind("setEditorData", function(data) {
+        if (
+            cx.jQuery('input[name="page[type]"]:checked').val() != 'application' ||
+            !cx.cm.editorInUse() ||
+            cx.jQuery("[name=\"page[application]\"").val() == 'Home'
+        ) {
+            return;
+        }
+        var pattern = /\[\[APPLICATION_DATA\]\]/;
+
+        //check whether the application type contains the placeholder [[APPLICATION_DATA]] in textarea
+        if (!pattern.test(data.content)) {
+            data.content = data.content + '[[APPLICATION_DATA]]';
+        }
+    }, "contentmanager");
 
     // react to get ?loadpage=
     /*if (jQuery.getUrlVar('loadPage')) {
@@ -563,14 +584,20 @@ cx.ready(function() {
     }*/
     if (cx.jQuery.getUrlVar("page") || cx.jQuery.getUrlVar("node")) {
         cx.cm.loadPage(cx.jQuery.getUrlVar("page"), cx.jQuery.getUrlVar("node"), cx.jQuery.getUrlVar("version"), cx.jQuery.getUrlVar("tab"));
+    } else {
+        cx.cm.isAdjusting = false;
     }
+
+    cx.jQuery(document).click(function() {
+        cx.jQuery(".translations-expanded, .actions-expanded").hide();
+    });
 
     cx.cm();
 });
 
 cx.cm = function(target) {
     cx.cm.initHistory();
-    
+
     var dpOptions = {
         showSecond: false,
         dateFormat: 'dd.mm.yy',
@@ -612,7 +639,7 @@ cx.cm = function(target) {
     inputs.blur(function(){
         cx.jQuery(this).css('color','#000000');
     });
-    
+
     cx.jQuery("#cancel").click(function() {
         cx.cm.hideEditView();
     });
@@ -655,7 +682,11 @@ cx.cm = function(target) {
                         page.visibility.type = "redirection";
                         page.visibility.fallback = false;
                         break;
-                    case "application": 
+                    case "symlink":
+                        page.visibility.type = "symlink";
+                        page.visibility.fallback = false;
+                        break;
+                    case "application":
                         var module = cx.jQuery("[name=\"page[application]\"").val();
                         if (module != "Home") {
                             page.visibility.type = "application";
@@ -735,6 +766,10 @@ cx.cm = function(target) {
                         page.visibility.type = "redirection";
                         page.visibility.fallback = false;
                         break;
+                    case "symlink":
+                        page.visibility.type = "symlink";
+                        page.visibility.fallback = false;
+                        break;
                     case "application":
                         var module = cx.jQuery("[name=\"page[application]\"").val();
                         if (module != "Home") {
@@ -807,7 +842,7 @@ cx.cm = function(target) {
         cx.jQuery('div.activeType').removeClass('activeType');
         cx.jQuery(event.target).parentsUntil('div.type').addClass('activeType');
     });
-    
+
     cx.jQuery('#page').bind('tabsselect', function(event, ui) {
         if (ui.index == 5) {
             if (cx.jQuery('#page_history').html() == '') {
@@ -844,27 +879,23 @@ cx.cm = function(target) {
         cx.jQuery('#page .type_hidable').hide();
         cx.jQuery('#page .type_'+cx.jQuery(event.target).val()).show();
         cx.jQuery('#page #type_toggle label').text(cx.jQuery(this).next().text());
+
+        // if we change type from fallback to content or application, we want to
+        // load content from fallback page:
+        var content = cx.cm.getEditorData();
+
         if (cx.jQuery(this).val() == 'application') {
-            var pattern = /\[\[APPLICATION_DATA\]\]/;
-            if (cx.jQuery('#page_sourceMode').prop('checked')) {
-                var content = cx.jQuery('#cm_ckeditor').val();
-
-                //check whether the application type contains the placeholder [[APPLICATION_DATA]] in textarea
-                if (!pattern.test(content)) {
-                    cx.jQuery("#cm_ckeditor").val(content + '[[APPLICATION_DATA]]');
-                }
-            } else if (CKEDITOR.instances.cm_ckeditor != null) {
-                var content = CKEDITOR.instances.cm_ckeditor.getData();
-
-                //check whether the application type contains the placeholder [[APPLICATION_DATA]] in ckeditor
-                if (!pattern.test(content)) {
-                    var range = CKEDITOR.instances['cm_ckeditor'].createRange();
-                    if (range && CKEDITOR.instances['cm_ckeditor'].getSelection()!=null) {
-                        range.moveToPosition(range.root, CKEDITOR.POSITION_BEFORE_END);
-                        CKEDITOR.instances['cm_ckeditor'].getSelection().selectRanges([range]);
-                    }
-                    CKEDITOR.instances['cm_ckeditor'].insertText('[[APPLICATION_DATA]]');
-                }
+            cx.bind("loadingStart", function() {
+                cx.cm.isAdjusting = true;
+            }, "contentmanager");
+            cx.bind("loadingEnd", function() {
+                cx.cm.isAdjusting = false;
+            }, "contentmanager");
+            if (    event.originalEvent !== undefined
+                &&  cx.cm.isAdjusting != undefined
+                &&  !cx.cm.isAdjusting
+            ) {
+                cx.cm.setEditorData(content);
             }
             cx.jQuery('#page #application_toggle label').text(cx.jQuery(this).next().text());
         }
@@ -874,20 +905,12 @@ cx.cm = function(target) {
             cx.jQuery('#page #preview').show();
         }
         if (cx.jQuery(this).val() == 'fallback') {
-            cx.jQuery("#type_toggle").hide();
+            cx.jQuery("#type_toggle, #themes_toggle, #themes_container").hide();
         } else {
-            cx.jQuery("#type_toggle").show();
+            cx.jQuery("#type_toggle, #themes_toggle, #themes_container").show();
         }
         cx.cm.resizeEditorHeight();
-        
-        // if we change type from fallback to content or application, we want to
-        // load content from fallback page:
-        var content = cx.jQuery('#cm_ckeditor').val();
-        var isCkEditor = false;
-        if (CKEDITOR.instances.cm_ckeditor != null) {
-            content = CKEDITOR.instances.cm_ckeditor.getData();
-            isCkEditor = true;
-        }
+
         if (cx.cm.lastPageType == "fallback" && (cx.jQuery(this).val() == "content" || cx.jQuery(this).val() == "application") && content == "") {
             var fallbackLanguage = cx.cm.getCurrentLang();
             while (true) {
@@ -907,7 +930,7 @@ cx.cm = function(target) {
                         return;
                     }
                     var fallbackPageContent = response.data.content;
-                    if (isCkEditor) {
+                    if (cx.cm.editorInUse()) {
                         CKEDITOR.instances.cm_ckeditor.setData(fallbackPageContent);
                     } else {
                         cx.jQuery("#cm_ckeditor").val(fallbackPageContent);
@@ -952,7 +975,7 @@ cx.cm = function(target) {
             container.animate({height: 'toggle'}, 400);
         }
     });
-    
+
     cx.jQuery("#page_name").blur(function() {
         var val = cx.jQuery(this).val();
         if (val != "") {
@@ -973,12 +996,16 @@ cx.cm = function(target) {
             cx.jQuery("#preview").attr("href", previewTarget + "?pagePreview=1");
         }
     });
-    
-    cx.jQuery("select#page_application").change(cx.cm.homeCheck, cx.jQuery("#pageId").val());
-    cx.jQuery('#page input[name="page[area]"]').keyup(cx.cm.homeCheck, cx.jQuery("#pageId").val());
+
+    cx.jQuery("select#page_application").change(function() {
+        return cx.cm.homeCheck(true, cx.jQuery("#pageId").val());
+    });
+    cx.jQuery('#page input[name="page[area]"]').keyup(function() {
+        return cx.cm.homeCheck(true, cx.jQuery("#pageId").val());
+    });
     cx.jQuery('#page input[name="page[area]"]').change(function() {
-        cx.cm.loadApplicationTemplate(cx.jQuery('#page select[name="page[application]"]').val(), 
-                                      cx.jQuery('#page input[name="page[area]"]').val(), 
+        cx.cm.loadApplicationTemplate(cx.jQuery('#page select[name="page[application]"]').val(),
+                                      cx.jQuery('#page input[name="page[area]"]').val(),
                                       cx.jQuery('#page select[name="page[skin]"]').val());
     });
     // prevent enter key from opening fileBrowser
@@ -987,7 +1014,7 @@ cx.cm = function(target) {
             return false;
         }
     });
-    
+
     cx.bind("pageStatusUpdate", cx.cm.updatePageIcons, "contentmanager");
     cx.bind("pageStatusUpdate", cx.cm.updateTranslationIcons, "contentmanager");
     cx.bind("pageStatusUpdate", cx.cm.updateActionMenu, "contentmanager");
@@ -1007,12 +1034,12 @@ cx.cm = function(target) {
     cx.jQuery(document).ready(function() {
         if (cx.jQuery('#languageCount').val()<=1) {
             cx.jQuery("#site-language").hide();
-            cx.jQuery(".adminlist ").addClass("margin0");
+            cx.jQuery("#content-manager").addClass("cm-single-locale");
         } else {
             cx.jQuery("#site-language").show();
-            cx.jQuery(".adminlist ").removeClass("margin0");
+            cx.jQuery("#content-manager ").removeClass("cm-single-locale");
         }
-        if (cx.jQuery.getUrlVar('act') == 'new') {
+        if (cx.jQuery('#pageId').val() == 'new') {
             // make sure history tab is hidden
             cx.jQuery('.tab.page_history').hide();
             // load selected tab
@@ -1023,10 +1050,8 @@ cx.cm = function(target) {
     });
 };
 cx.cm.loadApplicationTemplate = function(application, area, template) {
-    cx.trigger("loadingStart", "contentmanager", {});
     cx.jQuery.ajax({
         url: "index.php?cmd=JsonData&object=page&act=loadApplicationTemplate&app=" + application + "&area=" + area + "&template=" + template,
-        async: false,
         success: function(response) {
             var templateFile = response.data.files;
             var select = cx.jQuery('#page select[name="page[applicationTemplate]"]');
@@ -1039,14 +1064,41 @@ cx.cm.loadApplicationTemplate = function(application, area, template) {
                     }).text(templateFile[i]));
                 }
             }
+
+            var page = cx.cm.page;
+            // in case we are creating a new page, then cx.cm.page is not yet defined
+            if (typeof(page) == 'undefined') {
+                page = {
+                    customContent:"",
+                    useCustomContentForAllChannels:0,
+                    applicationTemplate:"",
+                    useCustomApplicationTemplateForAllChannels:0
+                }
+            }
             cx.jQuery('span.area').text(response.data.area);
             cx.jQuery('span.folderPath').text(response.data.path);
-            cx.cm.pageApplicationTemplate = '';
-            cx.jQuery('input[name="page[useCustomApplicationTemplateForAllChannels]"]').attr('disabled', 'disabled');
-            cx.jQuery('input[name="page[useCustomApplicationTemplateForAllChannels]"]').removeAttr('checked');
+            cx.jQuery('#page select[name="page[customContent]"]').val(page.customContent);
+            cx.cm.pageContentTemplate = page.customContent;
+
+            if (page.useCustomContentForAllChannels == '1') {
+                cx.jQuery('#page input[name="page[useCustomContentForAllChannels]"]').attr('checked', 'checked');
+            } else {
+                cx.jQuery('#page input[name="page[useCustomContentForAllChannels]"]').removeAttr('checked');
+            }
+            cx.jQuery('#page select[name="page[customContent]"]').trigger('change');
+
+
+            cx.jQuery('#page select[name="page[applicationTemplate]"]').val(page.applicationTemplate);
+            cx.cm.pageApplicationTemplate = page.applicationTemplate;
+
+            if (page.useCustomApplicationTemplateForAllChannels == '1') {
+                cx.jQuery('#page input[name="page[useCustomApplicationTemplateForAllChannels]"]').attr('checked', 'checked');
+            } else {
+                cx.jQuery('#page input[name="page[useCustomApplicationTemplateForAllChannels]"]').removeAttr('checked');
+            }
+            cx.jQuery('#page select[name="page[applicationTemplate]"]').trigger('change');
         }
     }).always(function(response) {
-        //cx.trigger("loadingEnd", "contentmanager", response);
         if(response.hasOwnProperty('area')){
             delete response.data.area;
         }
@@ -1056,9 +1108,7 @@ cx.cm.loadApplicationTemplate = function(application, area, template) {
         if(response.hasOwnProperty('path')){
             delete response.data.path;
         }
-        cx.trigger("loadingEnd", "contentmanager", response);
     });
-    //cx.trigger("loadingEnd", "contentmanager", {});
 }
 
 cx.cm.homeCheck = function(addClasses, pageId) {
@@ -1072,12 +1122,12 @@ cx.cm.homeCheck = function(addClasses, pageId) {
     if (module.val() != "Home" || cmd.val() != "") {
         return false;
     }
-    
+
     // there is no home for this language yet
     if (!cx.cm.hasHome[cx.cm.getCurrentLang()]) {
         return false;
     }
-    
+
     // is the page not the current page?
     if (pageId && cx.cm.hasHome[cx.cm.getCurrentLang()] == pageId) {
         return false;
@@ -1102,9 +1152,14 @@ cx.cm.createJsTree = function(target, data, nodeLevels, open_all) {
     try {
         target.jstree("destroy");
     } catch (ex) {}
-    
+
     var eventAdded = false;
-    
+
+    // reset expanded table
+    if (cx.jQuery(".switch-tag-dropdown").hasClass("open")) {
+        cx.cm.resetExpandedTable();
+    }
+
     target.jstree({
         // List of active plugins
         "plugins" : [
@@ -1182,7 +1237,10 @@ cx.cm.createJsTree = function(target, data, nodeLevels, open_all) {
             }
         },
         "cookies" : {
-            'save_selected' : false
+            'save_loaded' : cx.variables.get('save_loaded', 'contentmanager/jstree'),
+            'save_opened' : cx.variables.get('save_opened', 'contentmanager/jstree'),
+            'save_selected' : false,
+            'cookie_options': {path: cx.variables.get('basePath')}
         }
     })
     .bind("before.jstree", function(e, data) {
@@ -1277,7 +1335,7 @@ cx.cm.createJsTree = function(target, data, nodeLevels, open_all) {
                     cx.trigger("loadingEnd", "contentmanager", {});
                     return true;
                     // TODO: response/reporting/refresh
-                    if (!r.status) { 
+                    if (!r.status) {
                         cx.jQuery.jstree.rollback(data.rlbk);
                     } else {
                         cx.jQuery(data.rslt.oc).attr("id", "node_" + r.id);
@@ -1297,7 +1355,7 @@ cx.cm.createJsTree = function(target, data, nodeLevels, open_all) {
             cx.jQuery('#node_' + nodeId).children('a').children('.jstree-checkbox').css('left', '-' + ((nodeLevels[nodeId] * 18) + 20) + 'px');
         }
 
-        cx.jQuery('#site-tree ul li').not(".actions-expanded li").each(function() {
+        cx.jQuery('#site-tree ul li').not(".actions-expanded li, .translations-expanded li").each(function() {
             cx.jQuery(this).children('a:last').after(function() {
                 if (!cx.jQuery(this).hasClass('jstree-move') && cx.jQuery(this).siblings('.jstree-move').length == 0) {
                     return '<a class="jstree-move" href="#"></a>';
@@ -1310,7 +1368,7 @@ cx.cm.createJsTree = function(target, data, nodeLevels, open_all) {
             cx.jQuery(leaf).not('.jstree-move').click(function(event) {
                 var action;
                 // don't load a page if the user only meant to select/unselect its checkbox
-                if (!cx.jQuery(event.target).hasClass('jstree-checkbox') 
+                if (!cx.jQuery(event.target).hasClass('jstree-checkbox')
                     && !cx.jQuery(this).hasClass('broken')
                     && !cx.jQuery(event.target).is('ins')) {
                     var module = "";
@@ -1318,7 +1376,7 @@ cx.cm.createJsTree = function(target, data, nodeLevels, open_all) {
                         module = cx.jQuery.trim(cx.jQuery.parseJSON(cx.jQuery(leaf).attr("data-href")).module);
                         module = module.split(" ")[0];
                     } catch (ex) {}
-                    if (cx.jQuery.inArray(module, ["", "Home", "login", "Imprint", "Ids", "Error", "Sitemap", "Agb", "Privacy", "search"]) == -1) {
+                    if (cx.jQuery.inArray(module, ["", "Home", "Login", "Imprint", "Ids", "Error", "Sitemap", "Agb", "Privacy", "Search"]) == -1) {
                         cx.cm.showEditModeWindow(module, this.id, cx.jQuery(this).closest('li').attr("id").split("_")[1]);
                     } else {
                         cx.cm.loadPage(this.id, cx.jQuery(this).closest('li').attr("id").split("_")[1], null, "content");
@@ -1340,7 +1398,7 @@ cx.cm.createJsTree = function(target, data, nodeLevels, open_all) {
                     cx.cm.performAction(action, this.id, nodeId);
                 }
             });
-            
+
             cx.jQuery(this).hover(
                 function() {
                     if (mouseIsUp) {
@@ -1375,7 +1433,7 @@ cx.cm.createJsTree = function(target, data, nodeLevels, open_all) {
         cx.jQuery('#' + cx.jQuery('#pageId').val()).siblings('.jstree-wrapper').addClass('active');
 
         // add a wrapper div for the horizontal lines
-        cx.jQuery('#site-tree li > ins.jstree-icon').each(function(index, node) {
+        cx.jQuery('#site-tree li:not(.translation) > ins.jstree-icon').each(function(index, node) {
             cx.jQuery(this).hover(
                 function() {
                     if (mouseIsUp) {
@@ -1416,13 +1474,18 @@ cx.cm.createJsTree = function(target, data, nodeLevels, open_all) {
                     nodeIds[lang] = node.attr("id").substr(5);
                 }
             });
-            cx.jQuery.each(cx.jQuery("select.chzn-select option"), function(index, el) {
+
+            // show dropdown for more than 4 locales
+            var languages = cx.jQuery("select.chzn-select option");
+            // generate tags
+            cx.jQuery.each(languages, function(index, el) {
                 var lang = cx.jQuery(el).val();
                 var langEl = cx.jQuery("<div class=\"translation " + lang + "\" />");
                 langEl.text(lang);
                 langEl.click(function() {
                     var page = cx.cm.getPageStatus(nodeIds[lang], lang);
                     if (page.existing) {
+
                         cx.cm.loadPage(page.id, null, null, "content");
                     } else {
                         cx.cm.setCurrentLang(lang);
@@ -1431,16 +1494,51 @@ cx.cm.createJsTree = function(target, data, nodeLevels, open_all) {
                 });
                 translations.append(langEl);
             });
+            // dropdown
+            translations
+              .append('<div class="label">' + cx.variables.get('TXT_CORE_CM_TRANSLATIONS', 'contentmanager/lang') + '</div><div class="arrow" /></div>')
+              .prepend("<div class=\"translations-expanded\" style=\"display: none;\"><ul></ul></div>")
+              .click(function(e) {
+                  e.stopPropagation();
+                  if (!cx.jQuery(e.target).is(".translations > .translation")) {
+                      cx.jQuery(this).children(".translations-expanded").toggle();
+                      cx.jQuery(".translations.dropdown").not(this).children(".translations-expanded").hide();
+                      cx.jQuery('.actions-expanded').hide();
+                  }
+              });
+            var translationDropdown = translations.find(".translations-expanded ul");
+            cx.jQuery.each(languages, function(index, el) {
+                var lang = cx.jQuery(el).val();
+                var langEl = cx.jQuery("<li class=\"translation " + lang + "\" />");
+                langEl.html("<span>" + cx.jQuery(el).text() + "</span>");
+                langEl.children("span").click(function() {
+                    var page = cx.cm.getPageStatus(nodeIds[lang], lang);
+                    if (page.existing) {
+                        cx.cm.loadPage(page.id, null, null, "content");
+                    } else {
+                        cx.cm.setCurrentLang(lang);
+                        cx.cm.loadPage(undefined, nodeIds[lang], null, "content");
+                    }
+                });
+                translationDropdown.append(langEl);
+            });
+
             var actions = cx.jQuery('<div class="actions"><div class="label">' + cx.variables.get('TXT_CORE_CM_ACTIONS', 'contentmanager/lang') + '</div><div class="arrow" /></div>')
-                            .append("<div class=\"actions-expanded\" style=\"display: none;\"><ul></ul></div>")
-                            .click(function() {
+                            .prepend("<div class=\"actions-expanded\" style=\"display: none;\"><ul></ul></div>")
+                            .click(function(e) {
+                                e.stopPropagation();
                                 cx.jQuery(this).children(".actions-expanded").toggle();
+                                cx.jQuery(".actions").not(this).children(".actions-expanded").hide();
+                                cx.jQuery('.translations-expanded').hide();
                             });
             var wrapper = cx.jQuery(actions).wrap('<div class="jstree-wrapper" />').parent();
             wrapper.prepend(translations);
             cx.jQuery(node).before(wrapper);
         });
-        if (cx.jQuery(".translations").first().children(".translation").length <= 1) {
+        if (
+            !cx.jQuery(".translations").hasClass("dropdown") &&
+            cx.jQuery(".translations").first().children(".translation").length <= 1
+        ) {
             cx.jQuery(".translations").hide();
             cx.jQuery(".translation").html("");
         }
@@ -1483,7 +1581,8 @@ cx.cm.createJsTree = function(target, data, nodeLevels, open_all) {
                 } else {
                     display = 'hide';
                 }
-                cx.jQuery(e).append($J('<span class="module ' + lang + ' ' + display + '" /><a class="preview ' + lang + ' ' + display + '" target="_blank">' + cx.variables.get('TXT_CORE_CM_VIEW', 'contentmanager/lang') + '</a><span class="lastupdate ' + lang + ' ' + display + '"><span class="date" /><span class="user tp-trigger" /><span class="user tp-value"/></span>'));
+                cx.jQuery(e).find('.translations').after('<span class="module ' + lang + ' ' + display + '" /><a class="preview ' + lang + ' ' + display + '" target="_blank">' + cx.variables.get('TXT_CORE_CM_VIEW', 'contentmanager/lang') + '</a>');
+                cx.jQuery(e).find('.actions').after($J('<span class="lastupdate ' + lang + ' ' + display + '"><span class="date" /><span class="user tp-trigger" /><span class="user tp-value"/></span>'));
                 var info = cx.jQuery.parseJSON(cx.jQuery(e).siblings('a[data-href].' + lang).attr('data-href'));
                 try {
                     if (info != null) {
@@ -1497,22 +1596,18 @@ cx.cm.createJsTree = function(target, data, nodeLevels, open_all) {
                 }
             });
         });
-        
+
         cx.jQuery("a.preview").click(function() {
             var pageId = cx.jQuery(this).parent().parent().children("a." + cx.cm.getCurrentLang()).attr("id");
-            var path = "../" + cx.cm.getCurrentLang() + cx.cm.getPagePath(pageId) + "?pagePreview=1";
+            var path = cx.variables.get("basePath", "contrexx") + cx.cm.getCurrentLang() + cx.cm.getPagePath(pageId) + "?pagePreview=1";
             cx.jQuery(this).attr("href", path);
         });
 
-        cx.jQuery('.jstree li, .actions-expanded').live('mouseleave', function(event) {
-            if (!cx.jQuery(event.target).is('li.action-item') && cx.jQuery('.actions-expanded').length > 0) {
-                cx.jQuery('.actions-expanded').each(function() {
-                    cx.jQuery(this).parent().parent().children().css('z-index', 'auto');
-                    cx.jQuery(this).hide();
-                });
-            }
+        cx.jQuery(".switch-tag-dropdown").unbind("click").bind("click", function(e) {
+            e.preventDefault();
+            cx.cm.switchTagDropdown(true);
         });
-        
+
         // publishing and visibility icons
         cx.jQuery('#site-tree li a ins.jstree-icon').each(function(index, node) {
             if (cx.jQuery(node).hasClass("publishing") || cx.jQuery(node).hasClass("page")) {
@@ -1524,7 +1619,7 @@ cx.cm.createJsTree = function(target, data, nodeLevels, open_all) {
             cx.jQuery(node).before('<ins class="jstree-icon publishing '+publishing+'">&nbsp;</ins>');
             cx.jQuery(node).addClass("page " + visibility);
         });
-        
+
         cx.jQuery("#site-tree ul li > a").each(function(index, element) {
             var pageId = cx.jQuery(element).attr("id");
             var nodeId = cx.jQuery(element).parent("li").attr("id").substr(5);
@@ -1532,14 +1627,40 @@ cx.cm.createJsTree = function(target, data, nodeLevels, open_all) {
             // theres an error here, we'll fix it later:
             if (!cx.jQuery(element).children(".name").length) {
                 var pageName = jQuery.trim(cx.jQuery(element).text());
-                cx.jQuery(element).html(cx.jQuery(element).html().replace(pageName.replace("&", "&amp;"), " "));
+                cx.jQuery(element).contents().filter(function() {
+                    return this.nodeType == 3;
+                }).each(function(index, el) {
+                    // It would be nicer if we could select all page <a>
+                    // elements directly using a class and just remove all text
+                    // nodes or not to add the text nodes in the first place.
+                    // ATTENTION: The space " " is necessary otherwise drag&drop
+                    // stops working.
+                    el.textContent = " ";
+                });
                 cx.jQuery(element).append("<div class=\"name\">" + pageName + "</div>");
             }
             if (pageId) {
                 cx.cm.updateTreeEntry(cx.cm.getPageStatus(nodeId, lang));
             }
+
+            var langEl = cx.jQuery("#node_" +nodeId+ " > .jstree-wrapper  .translations-expanded .translation."+lang);
+            if (
+              !cx.jQuery(this).hasClass("jstree-move") &&
+              !langEl.find("ins.page, ins.publishing").length
+            ) { // don't prepend twice
+                // copy publishing and visibility icon to dropdown
+                if (
+                    !cx.jQuery(this).has("ins.page") ||
+                    !cx.jQuery(this).has("ins.publishing")
+                ) {
+                    return;
+                }
+                var insertPage = cx.jQuery(this).children("ins.page").clone();
+                var insertPublishing = cx.jQuery(this).children("ins.publishing").clone();
+                langEl.prepend(insertPage).prepend(insertPublishing);
+            }
         });
-        
+
         var checkSiteTree = setInterval(function() {
             if (cx.jQuery('#site-tree li').length) {
                 cx.jQuery('.jstree-move').empty();
@@ -1571,7 +1692,7 @@ cx.cm.createJsTree = function(target, data, nodeLevels, open_all) {
 
                     var arrStatuses = new Array();
                     var arrTipMessage = new Array();
-                    
+
                     if (objTrigger.hasClass('unpublished')) {
                         arrStatuses.push(cx.variables.get('TXT_CORE_CM_PUBLISHING_UNPUBLISHED', 'contentmanager/lang/tooltip'));
                     } else {
@@ -1618,7 +1739,7 @@ cx.cm.createJsTree = function(target, data, nodeLevels, open_all) {
                         arrStatuses.push(cx.variables.get('TXT_CORE_CM_PAGE_STATUS_PROTECTED', 'contentmanager/lang/tooltip'));
                     }
 
-                    if (!objTrigger.hasClass('home') && !objTrigger.hasClass('application') && !objTrigger.hasClass('redirection')) {
+                    if (!objTrigger.hasClass('home') && !objTrigger.hasClass('application') && !objTrigger.hasClass('redirection') && !objTrigger.hasClass('symlink')) {
                         arrTypes.push(cx.variables.get('TXT_CORE_CM_PAGE_TYPE_CONTENT_SITE', 'contentmanager/lang/tooltip'));
                     }
                     if (objTrigger.hasClass('application')) {
@@ -1626,6 +1747,9 @@ cx.cm.createJsTree = function(target, data, nodeLevels, open_all) {
                     }
                     if (objTrigger.hasClass('redirection')) {
                         arrTypes.push(cx.variables.get('TXT_CORE_CM_PAGE_TYPE_REDIRECTION', 'contentmanager/lang/tooltip'));
+                    }
+                    if (objTrigger.hasClass('symlink')) {
+                        arrTypes.push(cx.variables.get('TXT_CORE_CM_PAGE_TYPE_SYMLINK', 'contentmanager/lang/tooltip'));
                     }
                     if (objTrigger.hasClass('home')) {
                         arrTypes.push(cx.variables.get('TXT_CORE_CM_PAGE_TYPE_HOME', 'contentmanager/lang/tooltip'));
@@ -1665,7 +1789,7 @@ cx.cm.createJsTree = function(target, data, nodeLevels, open_all) {
                 }
             }
         });
-        
+
         if (cx.jQuery.browser.msie  && parseInt(cx.jQuery.browser.version, 10) === 7) {
             zIndex = cx.jQuery('#site-tree li').length * 10;
             cx.jQuery('#site-tree li').each(function() {
@@ -1673,6 +1797,16 @@ cx.cm.createJsTree = function(target, data, nodeLevels, open_all) {
                 cx.jQuery(this).children('a, ins').css('zIndex', zIndex + 1);
                 zIndex -= 10;
             });
+        }
+        if (
+          firstLoad &&
+          cx.variables.get("showLocaleTagsByDefault", "contentmanager") == "on"
+        ) {
+            cx.cm.switchTagDropdown(true);
+            firstLoad = false;
+        } else {
+            cx.cm.resetExpandedTable();
+            cx.cm.switchTagDropdown(false);
         }
     })
     .bind("loaded.jstree", function(event, data) {
@@ -1682,7 +1816,7 @@ cx.cm.createJsTree = function(target, data, nodeLevels, open_all) {
         cx.cm.is_opening = false;
         cx.jQuery("#site-tree").show();
         cx.tools.StatusMessage.removeAllDialogs();
-        
+
         var setPageTitlesWidth = setInterval(function() {
             if (cx.jQuery('#content-manager').hasClass('edit_view') && cx.jQuery('#site-tree .name').length) {
                 cx.jQuery('#site-tree .name').each(function() {
@@ -1708,6 +1842,31 @@ cx.cm.createJsTree = function(target, data, nodeLevels, open_all) {
     .bind("set_lang.jstree", function(event, data) {
         document.cookie = "userFrontendLangId=" + data.rslt;
     })
+    .bind("open_node.jstree", function(event, data) {
+        if (cx.jQuery(".switch-tag-dropdown").hasClass("open")) {
+            var node = cx.jQuery(data.rslt.obj);
+            // adjust left position of cols (adopt from parent row)
+            var alreadyExpanded = node.children(".jstree-wrapper");
+            var lang = cx.cm.getCurrentLang();
+            //module
+            var cols = node.children("ul").find(".translations," +
+            "."+lang+".module," +
+            "."+lang+".preview," +
+            ".actions," +
+            "."+lang+".lastupdate"
+            );
+            cols.css("left", function() {
+               return alreadyExpanded.children("."+cx.jQuery(this).attr("class").split(" ")[0]).not(".hide").css("left");
+            });
+            // node.children("ul").find(".module."+lang).css("left", alreadyExpanded.children(".module."+lang).css("left"));
+        }
+    })
+    .bind("open_all.jstree", function(event, data) {
+        // setTimout 0 is neccessary, otherwise the translation col width is 0
+        setTimeout(function() {
+            cx.cm.expandSiteStructure();
+        },0);
+    })
     .ajaxStart(function(){
         if (!cx.cm.is_opening) {
             cx.ui.messages.showLoad();
@@ -1729,7 +1888,7 @@ cx.cm.createJsTree = function(target, data, nodeLevels, open_all) {
         }
         catch (e) {}
     });
-    if (typeof(langPreset) == 'string' && langPreset.length == 2) {
+    if (typeof(langPreset) == 'string' && langPreset.length >= 2) {
         cx.cm.setCurrentLang(langPreset);
     }
 };
@@ -1771,7 +1930,7 @@ cx.jQuery(window).resize(function() {
 
 cx.cm.resizeEditorHeight = function() {
     var windowHeight = cx.jQuery(window).height();
-    var contentHeightWithoutEditor = 
+    var contentHeightWithoutEditor =
         cx.jQuery('#header').outerHeight(true) +
         parseInt(cx.jQuery('#content').css('padding-top')) +
         cx.jQuery('.breadcrumb').outerHeight(true) +
@@ -1824,7 +1983,7 @@ cx.cm.validateFields = function() {
         if (el.val() == "") {
             error = true;
             el.addClass("warning");
-            
+
             if (firstError) {
                 var tabName = el.closest(".ui-tabs-panel").attr("id");
                 cx.cm.selectTab(tabName.substr(5));
@@ -1836,7 +1995,7 @@ cx.cm.validateFields = function() {
         error = true;
         if (firstError) {
             errorMessage = cx.variables.get('TXT_CORE_CM_HOME_FAIL', 'contentmanager/lang');
-            
+
             var tabName = cx.jQuery("#page_application").closest(".ui-tabs-panel").attr("id");
             cx.cm.selectTab(tabName.substr(5));
         }
@@ -1859,19 +2018,33 @@ cx.cm.performAction = function(action, pageId, nodeId) {
             cx.jQuery('.tab.page_history').hide();
             cx.jQuery("#parent_node").val(nodeId);
             cx.cm.createEditor();
+            cx.cm.setEditorData("");
             return;
         case "copy":
             url = "index.php?cmd=JsonData&object=node&act=copy&id=" + nodeId;
             break;
         case "activate":
+            // do not try to activate inexisting pages, open them in editor instead
+            if (!page.existing) {
+                cx.cm.setCurrentLang(pageLang);
+                cx.cm.loadPage(undefined, nodeId, null, "content");
+                return;
+            }
+            // intentionally no "break" here!
         case "deactivate":
             // do not toggle activity for drafts
             if (page.publishing.hasDraft != "no") {
-                return
+                return;
             }
             break;
         case "show":
         case "hide":
+            // do not try to activate inexisting pages, open them in editor instead
+            if (!page.existing) {
+                cx.cm.setCurrentLang(pageLang);
+                cx.cm.loadPage(undefined, nodeId, null, "content");
+                return;
+            }
         case "publish":
             // nothing to do yet
             break;
@@ -1944,8 +2117,11 @@ cx.cm.updatePageIcons = function(args) {
         page.removeClass("inexistent");
     }
 
-    // reload the editor values
-    if (args.page.id == cx.jQuery('input#pageId').val()) {
+    // reload the editor values, in case a page had been loaded into the editor
+    if (
+        args.page.id > 0 &&
+        args.page.id == cx.jQuery('input#pageId').val()
+    ) {
         cx.cm.loadPage(args.page.id, undefined, args.page.version, undefined, false);
     }
 }
@@ -1961,7 +2137,7 @@ cx.cm.updatePagesIcons = function(args) {
 cx.cm.updateTranslationIcons = function(args) {
     var node = cx.jQuery("#node_" + args.page.nodeId);
     var page = node.children("a." + args.page.lang);
-    var translationIcon = page.siblings(".jstree-wrapper").children(".translations").children(".translation." + args.page.lang);
+    var translationIcon = page.siblings(".jstree-wrapper").children(".translations").find(".translation." + args.page.lang);
 
     // reset classes
     translationIcon.attr("class", "translation " + args.page.lang);
@@ -1990,10 +2166,10 @@ cx.cm.updateActionMenu = function(args) {
     if (args.page.lang != cx.cm.getCurrentLang()) {
         args.page = cx.cm.getPageStatus(args.page.nodeId, cx.cm.getCurrentLang());
     }
-    
+
     var node = cx.jQuery("#node_" + args.page.nodeId);
     var menu = node.children(".jstree-wrapper").children(".actions").children(".actions-expanded").children("ul");
-    
+
     if (!menu.length) {
         return;
     }
@@ -2020,6 +2196,19 @@ cx.cm.updateActionMenu = function(args) {
             menu.append(cx.jQuery("<li class=\"action-item\">").addClass("show").text(cx.variables.get("show", "contentmanager/lang/actions")));
         }
         menu.append(cx.jQuery("<li class=\"action-item\">").addClass("delete").text(cx.variables.get("delete", "contentmanager/lang/actions")));
+        menu.find('li.action-item').click(function(event) {
+            var classes = cx.jQuery(event.target).attr('class').split(/\s+/);
+            var lang    = cx.jQuery('#site-tree').jstree('get_lang');
+            var action  = classes[1];
+            var pageId  = cx.jQuery(event.target).closest('.jstree-wrapper').nextAll('a.' + lang).attr('id');
+            var nodeId  = cx.jQuery(event.target).closest('.jstree-wrapper').parent().attr('id').split('_')[1];
+
+            cx.cm.performAction(action, pageId, nodeId);
+
+            setTimeout(function(){
+                cx.jQuery(event.target).closest('.actions-expanded').hide();
+            }, 100);
+        });
     }
 }
 
@@ -2118,7 +2307,7 @@ cx.cm.updateTreeEntry = function(newStatus) {
         // Illegal fallback state
         return false;
     }
-    if (cx.jQuery.inArray(newStatus.visibility.type, ["standard", "application", "home", "redirection"]) < 0) {
+    if (cx.jQuery.inArray(newStatus.visibility.type, ["standard", "application", "home", "redirection", "symlink"]) < 0) {
         // Illegal type
         return false;
     }
@@ -2167,10 +2356,17 @@ cx.cm.updateTreeEntry = function(newStatus) {
         case "application":
         case "home":
         case "redirection":
+        case "symlink":
             visibility.addClass(newStatus.visibility.type);
         default:
             break;
     }
+
+    // update publishing/visibility in dropdown as well
+    var translation = node.find(".translations-expanded .translation."+pageLang);
+    translation.children("ins.publishing").attr("class", publishing.attr("class"));
+    translation.children("ins.page").attr("class", visibility.attr("class"));
+
 
     // make sure IDs are correct
     newStatus.id = pageId;
@@ -2268,6 +2464,8 @@ cx.cm.getPageStatus = function(nodeId, lang) {
         type = "home";
     } else if (visibility.hasClass("redirection")) {
         type = "redirection";
+    } else if (visibility.hasClass("symlink")) {
+        type = "symlink";
     }
 
     var name = "";
@@ -2330,14 +2528,14 @@ cx.cm.getcontactFormId = function(pageId) {
         return null;
     }
     var page = cx.jQuery("a#" + pageId);
-    if (!page || !page.length) {        
+    if (!page || !page.length) {
         return null;
-    }    
-    
+    }
+
     formId = 0;
     module = cx.jQuery.trim(cx.jQuery.parseJSON(page.attr("data-href")).module);
     formId = module.split(" ")[1];
-    
+
     return formId;
 }
 
@@ -2363,6 +2561,7 @@ cx.cm.getCurrentLang = function() {
  */
 cx.cm.setCurrentLang = function(newLang) {
     cx.cm.getTree().jstree("set_lang", newLang);
+    cx.jQuery('.chzn-select').trigger("chosen:updated");
 }
 
 /**
@@ -2443,11 +2642,6 @@ cx.cm.resetEditView = function() {
         el = cx.jQuery(el);
         el.val("");
     });
-
-    // empty existing ckeditor
-    if (cx.cm.editorInUse()) {
-        CKEDITOR.instances.cm_ckeditor.setData('');
-    }
 
     // reset hidden fields
     cx.jQuery("input#pageId").val("new");
@@ -2542,9 +2736,9 @@ cx.cm.createEditor = function() {
             return base + sep + key + '=' + value;
         }
         var config = {
-            customConfig: buildUrl(cx.variables.get('basePath', 'contrexx') + cx.variables.get('ckeditorconfigpath', 'contentmanager'), 'pageId', cx.jQuery('#pageId').val()),
+            customConfig: buildUrl(cx.variables.get('ckeditorconfigpath', 'contentmanager'), 'pageId', cx.jQuery('#pageId').val()),
             toolbar: 'Full',
-            skin: 'moono'
+            removePlugins: 'bbcode'
         };
         CKEDITOR.replace('page[content]', config);
 
@@ -2564,13 +2758,29 @@ cx.cm.destroyEditor = function() {
 
 cx.cm.setEditorData = function(pageContent) {
     cx.jQuery(document).ready(function() {
+        var eventData = {content: pageContent};
+        cx.trigger("setEditorData", "contentmanager", eventData);
+        pageContent = eventData.content;
         if (!cx.jQuery('#page_sourceMode').prop('checked') && cx.cm.editorInUse()) {
-            CKEDITOR.instances.cm_ckeditor.setData(pageContent);
+            // This is bit of a hacky solution but CKEDITOR seems to have
+            // problems with setData() sometimes (without throwing an exception)
+            // and this seems to do the trick.
+            CKEDITOR.instances.cm_ckeditor.setData(pageContent, function() {
+                CKEDITOR.instances.cm_ckeditor.setData(pageContent);
+            });
         } else {
             cx.jQuery('#page textarea[name="page[content]"]').val(pageContent);
         }
     });
 };
+
+cx.cm.getEditorData = function() {
+    if (!cx.jQuery('#page_sourceMode').prop('checked') && cx.cm.editorInUse()) {
+        return CKEDITOR.instances.cm_ckeditor.getData();
+    } else {
+        return cx.jQuery('#page textarea[name="page[content]"]').val();
+    }
+}
 
 cx.cm.showEditModeWindow = function(cmdName, pageId) {
     var dialog = cx.variables.get("editmodedialog", 'contentmanager');
@@ -2583,21 +2793,21 @@ cx.cm.showEditModeWindow = function(cmdName, pageId) {
 
     var editModeLayoutLink = "cx.cm.hideEditModeWindow(); cx.cm.loadPage(" + pageId + ", null, null, 'content'); return false;";
     var editModeModuleLink = "index.php?cmd=" + cmdName + "&csrf=" + csrf;
-    
+
     // Redirect to edit page of the contact form if module is contact
     if (cmdName == 'Contact') {
         var contactFormId  = cx.cm.getcontactFormId(pageId);
         editModeModuleLink = "index.php?cmd=" + cmdName + "&act=forms&tpl=edit&formId=" + contactFormId + "&csrf=" + csrf;
-        
+
     // Redirect to media module for media1, 2, 3 and 4
     } else if (/Media[1-4]/.exec(cmdName)) {
         var archiveId = /Media([1-4])/.exec(cmdName)[1];
         editModeModuleLink = "index.php?cmd=Media&archive=archive" + archiveId + "&csrf=" + csrf;
     }
-    
+
     content = content.replace(/\%1/g, editModeLayoutLink);
     content = content.replace(/\%2/g, editModeModuleLink);
-    
+
     dialog = cx.ui.dialog({
         dialogClass: 'edit-mode',
         title: title,
@@ -2607,7 +2817,7 @@ cx.cm.showEditModeWindow = function(cmdName, pageId) {
         modal: true
     });
     cx.jQuery('.ui-dialog #edit_mode a').blur();
-    
+
     dialog.bind("close", function() {
         cx.variables.set("editmodedialog", null, "contentmanager");
     });
@@ -2626,7 +2836,7 @@ cx.cm.loadHistory = function(id, pos) {
     if (!pos) {
         pos = 0;
     }
-    
+
     var hideDrafts = "";
     if (cx.jQuery("#hideDrafts").length) {
         if (cx.jQuery("#hideDrafts").is(":checked")) {
@@ -2635,13 +2845,13 @@ cx.cm.loadHistory = function(id, pos) {
             hideDrafts = "&hideDrafts=off";
         }
     }
-    
-    cx.jQuery("#page_history").html("<div class=\"historyInit\"><img src=\"../lib/javascript/jquery/jstree/themes/default/throbber.gif\" alt=\"Loading...\" /></div>");
+
+    cx.jQuery("#page_history").html("<div class=\"historyInit\"><img src=\"" + cx.variables.get('basePath', 'contrexx') + "lib/javascript/jquery/jstree/themes/default/throbber.gif\" alt=\"Loading...\" /></div>");
     pageId = (id != undefined) ? parseInt(id) : parseInt(cx.jQuery('#pageId').val());
     if (isNaN(pageId) || (pageId == 0)) {
         return;
     }
-    
+
     cx.jQuery('#page_history').load('index.php?cmd=JsonData&object=page&act=getHistoryTable&page='+pageId+'&pos='+pos+hideDrafts, function() {
         cx.jQuery("#history_paging").find("a").each(function(index, el) {
             el = cx.jQuery(el);
@@ -2672,11 +2882,11 @@ cx.cm.loadPage = function(pageId, nodeId, historyId, selectTab, reloadHistory) {
     if (historyId) {
         url += '&history=' + historyId;
     }
-    
+
     if (reloadHistory == undefined) {
         reloadHistory = true;
     }
-    
+
     cx.trigger("loadingStart", "contentmanager", {});
     cx.jQuery.ajax({
         url : url,
@@ -2697,10 +2907,11 @@ cx.cm.loadPage = function(pageId, nodeId, historyId, selectTab, reloadHistory) {
 };
 cx.cm.pageLoaded = function(page, selectTab, reloadHistory, historyId) {
     cx.cm.showEditView();
-    
+    cx.cm.page = page;
+
     // make sure history tab is shown
     cx.jQuery('.tab.page_history').show();
-    
+
     if (cx.jQuery('#page input[name="page[lang]"]').val() != page.lang) {
         // lang has changed, preselect correct entry in lang select an reload tree
         cx.jQuery("#site-tree").jstree("set_lang", page.lang);
@@ -2718,12 +2929,12 @@ cx.cm.pageLoaded = function(page, selectTab, reloadHistory, historyId) {
     } else {
         cx.jQuery('.hidable_nofallback').hide();
     }
-    
+
     // set toggle statuses
     var toggleElements = new Array(
         ['toggleTitles', '#titles_container'],
         ['toggleType', '#type_container'],
-        ['toggleNavigation', '#navigation_container'], 
+        ['toggleNavigation', '#navigation_container'],
         ['toggleBlocks', '#blocks_container'],
         ['toggleApplication', '#application_container'],
         ['toggleThemes', '#themes_container']
@@ -2769,6 +2980,7 @@ cx.cm.pageLoaded = function(page, selectTab, reloadHistory, historyId) {
     cx.jQuery('#page input[name="page[metatitle]"]').val(page.metatitle);
     cx.jQuery('#page textarea[name="page[metadesc]"]').val(page.metadesc);
     cx.jQuery('#page textarea[name="page[metakeys]"]').val(page.metakeys);
+    cx.jQuery('#page input[name="page[metaimage]"]').val(page.metaimage);
 
     // tab access protection
     cx.jQuery('#page input[name="page[protection_frontend]"]').prop('checked', page.frontend_protection);
@@ -2782,37 +2994,16 @@ cx.cm.pageLoaded = function(page, selectTab, reloadHistory, historyId) {
     cx.jQuery('#page input[name="page[start]"]').val(page.start);
     cx.jQuery('#page input[name="page[end]"]').val(page.end);
 
-    cx.jQuery('#page select[name="page[skin]"]').val(page.skin);    
+    cx.jQuery('#page select[name="page[skin]"]').val(page.skin);
     cx.cm.pageSkin = page.skin;
-    
+
     if (page.useSkinForAllChannels == '1') {
         cx.jQuery('#page input[name="page[useSkinForAllChannels]"]').attr('checked', 'checked');
     } else {
         cx.jQuery('#page input[name="page[useSkinForAllChannels]"]').removeAttr('checked');
     }
     cx.jQuery('#page select[name="page[skin]"]').trigger('change');
-    
-    cx.jQuery('#page select[name="page[customContent]"]').val(page.customContent);
-    cx.cm.pageContentTemplate = page.customContent;
-    
-    if (page.useCustomContentForAllChannels == '1') {
-        cx.jQuery('#page input[name="page[useCustomContentForAllChannels]"]').attr('checked', 'checked');
-    } else {
-        cx.jQuery('#page input[name="page[useCustomContentForAllChannels]"]').removeAttr('checked');
-    }
-    cx.jQuery('#page select[name="page[customContent]"]').trigger('change');
-    
-    
-    cx.jQuery('#page select[name="page[applicationTemplate]"]').val(page.applicationTemplate);
-    cx.cm.pageApplicationTemplate = page.applicationTemplate;
-    
-    if (page.useCustomApplicationTemplateForAllChannels == '1') {
-        cx.jQuery('#page input[name="page[useCustomApplicationTemplateForAllChannels]"]').attr('checked', 'checked');
-    } else {
-        cx.jQuery('#page input[name="page[useCustomApplicationTemplateForAllChannels]"]').removeAttr('checked');
-    }
-    cx.jQuery('#page select[name="page[applicationTemplate]"]').trigger('change');
-        
+
     cx.jQuery('#page input[name="page[cssName]"]').val(page.cssName);
 
     if (page.module === 'Home') {
@@ -2820,13 +3011,13 @@ cx.cm.pageLoaded = function(page, selectTab, reloadHistory, historyId) {
     } else {
         cx.jQuery(".content_template_info").html('content.html');
     }
-    
+
     cx.jQuery('#page input[name="page[caching]"]').prop('checked', page.caching);
 
     cx.jQuery('#page select[name="page[link_target]"]').val(page.linkTarget);
     cx.jQuery('#page input[name="page[slug]"]').val(page.slug);
     cx.jQuery('#page input[name="page[cssNavName]"]').val(page.cssNavName);
-    
+
     cx.jQuery("#page span#page_slug_breadcrumb").html(cx.jQuery("#site-tree").jstree("get_lang") + '/' + page.parentPath);
 
     cx.jQuery('#page input[name="page[sourceMode]"]').prop('checked', page.sourceMode);
@@ -2839,20 +3030,19 @@ cx.cm.pageLoaded = function(page, selectTab, reloadHistory, historyId) {
 
     if (reloadHistory) {
         cx.jQuery('#page_history').empty();
-        cx.cm.loadHistory(page.id);
     }
-    
+
     if (page.editingStatus == 'hasDraftWaiting') {
         cx.jQuery('#page input#refuse').show();
     } else {
         cx.jQuery('#page input#refuse').hide();
     }
-    
-    if (page.type == 'redirect') {
+
+    if (page.type == 'redirect' || page.type == 'symlink') {
         cx.jQuery('#preview').hide();
     }
     cx.jQuery('#page #preview').attr('href', cx.variables.get('basePath', 'contrexx') + page.lang + '/' + page.parentPath + page.slug + '?pagePreview=1');
-    
+
     cx.cm.loadAccess(page.accessData);
 
     var data = {"groups": cx.jQuery.parseJSON(cx.variables.get('availableBlocks', 'contentmanager')).data,"assignedGroups": page.assignedBlocks};
@@ -2861,7 +3051,7 @@ cx.cm.pageLoaded = function(page, selectTab, reloadHistory, historyId) {
     /*                'editingStatus' =>  $page->getEditingStatus(),
                 'display'       =>  $page->getDisplay(),
                 'active'        =>  $page->getActive(),*/
-    
+
     var container = cx.jQuery("div.page_alias").first().parent();
     var field = cx.jQuery("div.page_alias").first();
     if (cx.jQuery("div.page_alias").length > 1) {
@@ -2879,17 +3069,19 @@ cx.cm.pageLoaded = function(page, selectTab, reloadHistory, historyId) {
         myField.children("span.noedit").html(alias);
         field.before(myField);
     });
-    if (!publishAllowed) {
-        cx.jQuery("div.page_alias").each(function (index, field) {
-            field = cx.jQuery(field);
-            field.removeClass("empty");
-            if (field.children("span.noedit").html() == "") {
-                field.addClass("empty");
-            }
-        });
-        cx.jQuery(".empty").hide();
+
+    // If alias management is forbidden
+    if (!aliasManagementAllowed) {
+        // never show the "new alias" field
+        jQuery("div.page_alias").show().last().hide();
+
+        // show alias title if there are any aliases
+        jQuery("label[for=page_alias]").parent().toggle(!!page.aliases.length);
+
+        // show if aliases
+        jQuery("#page_alias_container").toggle(!!page.aliases.length);
     }
-    
+
     if (selectTab != undefined) {
         cx.cm.selectTab(selectTab);
     } else {
@@ -2898,13 +3090,35 @@ cx.cm.pageLoaded = function(page, selectTab, reloadHistory, historyId) {
     }
     cx.jQuery("#node_" + page.node).children(".jstree-wrapper").addClass("active");
     cx.jQuery('html, body').animate({scrollTop:0}, 'slow');
+
+    // store page's locale in last used locales
+    var lastUsedLocales = '';
+    if (!!Cookies.get('lastUsedLocales')) {
+        lastUsedLocales = Cookies.get('lastUsedLocales');
+    }
+    if (lastUsedLocales.length) {
+        lastUsedLocales = lastUsedLocales.split(",");
+    } else {
+        lastUsedLocales = [];
+    }
+    // push used lang to begin of array
+    lastUsedLocales.unshift(page.lang);
+    // drop dublicate entries
+    lastUsedLocales = lastUsedLocales.filter(function(el, index, arr) {
+        return index === arr.indexOf(el);
+    });
+    // convert to string and store last used locales in cookie
+    lastUsedLocales = lastUsedLocales.join(",");
+    Cookies.set('lastUsedLocales', lastUsedLocales);
+
+    cx.cm.updateLocaleSelect();
 };
 
 cx.cm.setPageTarget = function(pageTarget, pageTargetPath) {
     if (pageTarget == null) {
         pageTarget = "";
     }
-    cx.jQuery('#page_target_backup').val(pageTarget);
+    cx.jQuery('.page_target_backup').val(pageTarget);
     cx.jQuery('#page_target_protocol > option').removeAttr("selected");
 
     var matchesPageTarget = regExpUriProtocol.exec(pageTarget);
@@ -2919,7 +3133,7 @@ cx.cm.setPageTarget = function(pageTarget, pageTargetPath) {
         cx.jQuery('#page_target_protocol > option[value="' + pageTargetOptionValue + '"]').attr("selected", "selected");
     }
     if (pageTarget != "") {
-        cx.jQuery('#page_target_text').text(pageTargetPath).attr('href', function() {return cx.jQuery(this).text()});
+        cx.jQuery('.page_target_text').text(pageTargetPath).attr('href', function() {return cx.jQuery(this).text()});
         cx.jQuery('#page_target_wrapper').hide().next().show();
     }
     cx.jQuery('#page_target').val(pageTarget);
@@ -2951,7 +3165,7 @@ cx.cm.pushHistory = function(source) {
     }
     cx.cm.historyAdjusting = true;
     var History = window.History;
-    
+
     // get state
     var activeTabName = cx.jQuery("#cm-tabs li.ui-tabs-selected").children('a').attr('href');
     activeTabName = activeTabName.split("_")[1];
@@ -2970,7 +3184,7 @@ cx.cm.pushHistory = function(source) {
     try {
         oldVersion = /[?&]version=(\d+)/.exec(window.location)[1];
     } catch (e) {}
-    
+
     // prevent state from being written twice
     if (activeTabName == oldTabName && oldPageId == activePageId && oldVersion == activeVersion) {
         cx.cm.historyAdjusting = false;
@@ -3014,11 +3228,11 @@ cx.cm.hashChangeEvent = function(pageId, nodeId, lang, version, activeTab) {
     }
 
     cx.cm.historyAdjusting = true;
-    
+
     if (lang != undefined) {
         cx.jQuery("#site-tree").jstree("set_lang", lang);
     }
-    
+
     // load leaf if necessary
     if (pageId != undefined) {
         if (pageId != cx.jQuery("#pageId").val() || version != cx.jQuery("#historyId").val()) {
@@ -3035,7 +3249,7 @@ cx.cm.hashChangeEvent = function(pageId, nodeId, lang, version, activeTab) {
         cx.cm.hideEditView();
     }
     cx.cm.selectTab(activeTab, false);
-    
+
     cx.cm.historyAdjusting = false;
 }
 
@@ -3085,13 +3299,13 @@ cx.cm.updateHistoryTableHighlighting = function() {
 }
 
 cx.cm.slugify = function(string) {
+    // replace international characters
+    cx.jQuery.each(cx.variables.get("charReplaceList"), function(search, replace) {
+        string = string.replace(search, replace);
+    });
+    // replace spaces
     string = string.replace(/\s+/g, '-');
-    string = string.replace(/ä/g, 'ae');
-    string = string.replace(/ö/g, 'oe');
-    string = string.replace(/ü/g, 'ue');
-    string = string.replace(/Ä/g, 'Ae');
-    string = string.replace(/Ö/g, 'Oe');
-    string = string.replace(/Ü/g, 'Ue');
+    // replace all non-url characters
     string = string.replace(/[^a-zA-Z0-9-_]/g, '');
     return string;
 }
@@ -3142,4 +3356,156 @@ cx.cm.getPagePath = function(pageId) {
         pageId = cx.cm.getParentPageId(pageId);
     }
     return path;
+}
+
+/**
+ * Sets new meta image from media browser callback
+ * @param data
+ */
+cx.cm.setSelectedMetaimage = function (data) {
+    if (data.type == 'file') {
+        var url = data.data[0].datainfo;
+        document.getElementById('page_metaimage').value = url.filepath;
+    }
+}
+
+/**
+ * Places the last used locales (stored in cookie) on top of the select
+ */
+cx.cm.updateLocaleSelect = function() {
+    // place last used locales on top of select
+    if (!!Cookies.get("lastUsedLocales")) {
+        var lastUsedLocales = Cookies.get("lastUsedLocales").split(",");
+        // loop over last used locales backwards
+        for (var i = lastUsedLocales.length - 1; i >= 0; --i) {
+            // place option on top of select
+            cx.jQuery(".chzn-select").prepend(cx.jQuery(".chzn-select option[value="+ lastUsedLocales[i] + "]"));
+            cx.jQuery(".translations-expanded ul").each(function() {
+               jQuery(this).prepend(cx.jQuery(this).find("li." + lastUsedLocales[i]));
+            });
+        }
+        cx.jQuery(".chzn-select").trigger("chosen:updated");
+    }
+}
+
+/**
+ * Expands/contracts site structure when locale tags are shown/hidden
+ */
+cx.cm.expandSiteStructure = function() {
+    var translations = cx.jQuery("#site-tree .translations");
+    // expand site-structure according to translations column width
+    var difference = translations.width() - cx.jQuery("th.translation").width();
+    var cols = cx.cm.getSiteStructureCols();
+
+    if (difference >= 0) {
+        var parentWidth = cx.jQuery("table.adminlist").outerWidth();
+        var parentExpandedWidth = parentWidth + difference;
+        var expandFactor = parentWidth / parentExpandedWidth;
+        cx.jQuery("table.adminlist").width(parentExpandedWidth);
+
+        // adjust cols
+        cols.css("left", function() {
+            var oldLeft = cx.jQuery(this).position().left;
+            if (cx.jQuery(this).hasClass("translations")) {
+                var newLeft = oldLeft * expandFactor;
+            } else {
+                var newLeft = oldLeft * expandFactor + difference;
+            }
+            // adjust table headers
+            var thEl = null;
+            switch (true) {
+                case cx.jQuery(this).hasClass('translations'):
+                    thEl = cx.jQuery("th.translation");
+                    break;
+                case cx.jQuery(this).hasClass('module'):
+                    thEl = cx.jQuery("th.module");
+                    break;
+                case cx.jQuery(this).hasClass('preview'):
+                    thEl = cx.jQuery("th.preview");
+                    break;
+                case cx.jQuery(this).hasClass('actions'):
+                    thEl = cx.jQuery("th.actions");
+                    break;
+            }
+            if (thEl) {
+                thEl.css({
+                    "position": "absolute",
+                    "left": newLeft + "px",
+                });
+            }
+            return newLeft + "px";
+        });
+    } else {
+        cx.cm.resetExpandedTable();
+    }
+}
+
+/**
+ * Resets the expanded tables width and the positions of its headers and cols
+ */
+cx.cm.resetExpandedTable = function() {
+    // table headers
+    tableHeaders = cx.cm.getSiteStructureHeaders();
+    tableHeaders.removeAttr("style");
+    // cols
+    cols = cx.cm.getSiteStructureCols();
+    cols.removeAttr("style");
+    // table
+    cx.jQuery("table.adminlist").removeAttr("style");
+}
+
+/**
+ * Gets the headers of the site structure table
+ * @returns {jQuery} The selected ths
+ */
+cx.cm.getSiteStructureHeaders = function() {
+    return cx.jQuery("th.page," +
+      "th.translation," +
+      "th.module," +
+      "th.preview," +
+      "th.actions," +
+      "th.lastupdate"
+    );
+}
+
+/**
+ * Gets the (shown) cols of the site structure table
+ * @returns {jQuery} The selected cols
+ */
+cx.cm.getSiteStructureCols = function() {
+    return cx.jQuery("#site-tree .translations," +
+      "#site-tree .module," +
+      "#site-tree .preview," +
+      "#site-tree .actions," +
+      "#site-tree .lastupdate"
+    ).not(".hide");
+}
+
+/**
+ * Handles the switching between the locale tags and the dropdown
+ * @param toggle Wether to switch or not
+ */
+cx.cm.switchTagDropdown = function(toggle) {
+    // do not render locale-selection-dropdown in single-locale-mode
+    if (cx.jQuery('#content-manager').hasClass('cm-single-locale')) {
+        return;
+    }
+    var switchTagDropdown = cx.jQuery(".switch-tag-dropdown");
+    var translations = cx.jQuery("#site-tree .translations");
+
+    if (toggle) {
+        // toggle open class
+        cx.jQuery(switchTagDropdown).toggleClass("open");
+    }
+    if (switchTagDropdown.hasClass("open")) { // tags
+      // show tags
+      translations.removeClass("dropdown");
+      translations.find(".translations-expanded").hide();
+      translations.children(".translation").show();
+    } else {
+      // show dropdown
+      translations.addClass("dropdown");
+      translations.children(".translation").hide();
+    }
+    cx.cm.expandSiteStructure();
 }

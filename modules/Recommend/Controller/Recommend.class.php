@@ -119,10 +119,12 @@ class Recommend extends RecommendLibrary
             'RECOM_TXT_PREVIEW'                => $_ARRAYLANG['TXT_PREVIEW_FRONTEND'],
             'RECOM_TXT_FEMALE'                => $_ARRAYLANG['TXT_FEMALE_FRONTEND'],
             'RECOM_TXT_MALE'                => $_ARRAYLANG['TXT_MALE_FRONTEND'],
+            'TXT_RECOMMEND_SEND'            => $_ARRAYLANG['TXT_RECOMMEND_SEND'],
+            'TXT_RECOMMEND_DELETE'          => $_ARRAYLANG['TXT_RECOMMEND_DELETE'],
         ));
 
         $this->_objTpl->setVariable(array(
-            'RECOM_REFERER'                    => $_SERVER['HTTP_REFERER'],
+            'RECOM_REFERER'                    => '$(HTTP_REFERER)',
             'RECOM_FEMALE_CHECKED'          => 'checked',
             'RECOM_SCRIPT'                    => $this->getJs(),
             'RECOM_PREVIEW'                    => $this->getMessageBody($_LANGID),
@@ -212,6 +214,8 @@ class Recommend extends RecommendLibrary
                 'RECOM_TXT_FEMALE'                => $_ARRAYLANG['TXT_FEMALE_FRONTEND'],
                 'RECOM_TXT_MALE'                => $_ARRAYLANG['TXT_MALE_FRONTEND'],
                 'RECOM_TEXT'                    => $_ARRAYLANG['TXT_INTRODUCTION'],
+                'TXT_RECOMMEND_SEND'            => $_ARRAYLANG['TXT_RECOMMEND_SEND'],
+                'TXT_RECOMMEND_DELETE'          => $_ARRAYLANG['TXT_RECOMMEND_DELETE'],
             ));
 
             $this->_objTpl->setVariable(array(
@@ -261,33 +265,16 @@ class Recommend extends RecommendLibrary
             $subject = preg_replace('/<COMMENT>/', $comment, $subject);
             $subject = preg_replace('/<SALUTATION>/', $salutation, $subject);
 
-            if (@include_once ASCMS_LIBRARY_PATH.'/phpmailer/class.phpmailer.php') {
-                $objMail = new \phpmailer();
+            $objMail = new \Cx\Core\MailTemplate\Model\Entity\Mail();
 
-                if ($_CONFIG['coreSmtpServer'] > 0) {
-                    if (($arrSmtp = \SmtpSettings::getSmtpAccount($_CONFIG['coreSmtpServer'])) !== false) {
-                        $objMail->IsSMTP();
-                        $objMail->Host = $arrSmtp['hostname'];
-                        $objMail->Port = $arrSmtp['port'];
-                        $objMail->SMTPAuth = true;
-                        $objMail->Username = $arrSmtp['username'];
-                        $objMail->Password = $arrSmtp['password'];
-                    }
-                }
+            $objMail->SetFrom($sendermail, $sendername);
+            $objMail->AddReplyTo($sendermail);
+            $objMail->Subject = $subject;
+            $objMail->IsHTML(false);
+            $objMail->Body = $body;
+            $objMail->AddAddress($receivermail);
+            $objMail->Send();
 
-                $objMail->CharSet = CONTREXX_CHARSET;
-                $objMail->From = $sendermail;
-                $objMail->FromName = $sendername;
-                $objMail->AddReplyTo($sendermail);
-                $objMail->Subject = $subject;
-                $objMail->IsHTML(false);
-                $objMail->Body = $body;
-                $objMail->AddAddress($receivermail);
-                $objMail->Send();
-                $objMail->ClearAddresses();
-                $objMail->AddAddress($_CONFIG['contactFormEmail']);
-                $objMail->Send();
-            }
             $this->_objTpl->setVariable('RECOM_STATUS', $_ARRAYLANG['TXT_SENT_OK']);
             $this->_objTpl->parse();
         }
@@ -302,14 +289,7 @@ class Recommend extends RecommendLibrary
      */
     function isEmail($string)
     {
-        if (eregi('^' . '[a-z0-9]+([_\\.-][a-z0-9]+)*' .    //user
-            '@' . '([a-z0-9]+([\.-][a-z0-9]+)*)+' .            //domain
-            '\\.[a-z]{2,4}' .                                 //sld, tld
-            '$', $string)) {
-            return true;
-        } else {
-            return false;
-        }
+        return \FWValidator::isEmail($string);
     }
 
 

@@ -260,11 +260,11 @@ class Products
                     AND (`product`.`stock_visible`=0 OR `product`.`stock`>0)
                     '.($category_id ? '' : 'AND `category`.`active`=1' )/*only check if active when not in category view*/.'
                     AND (
-                        `product`.`date_start` < CURRENT_DATE()
+                        `product`.`date_start` <= CURRENT_DATE()
                      OR `product`.`date_start` = 0
                     )
                     AND (
-                        `product`.`date_end` > CURRENT_DATE()
+                        `product`.`date_end` >= CURRENT_DATE()
                      OR `product`.`date_end` = 0
                     )'
             ).
@@ -373,24 +373,79 @@ class Products
                         'uri' => Product::TEXT_URI,
                     )
                 );
+
+                // whether or not we have to lookup for HTML entities as well.
+                $lookupEscaped = false;
+
+                // check if search-term contains any text that can be
+                // represented by HTML entities
+                $patternHtmlEscaped = contrexx_raw2xhtml($pattern);
+                if ($pattern != $patternHtmlEscaped) {
+                    // search-term contains text with HTML entities
+                    // so we have to perform two lookups,
+                    // 1. raw lookup, 2. HTML encoded lookup
+                    $lookupEscaped = true;
+                    $patternHtmlEscaped = contrexx_raw2db($patternHtmlEscaped);
+                }
+
                 $pattern = contrexx_raw2db($pattern);
 // TODO: This is prolly somewhat slow.  Could we use an "index" of sorts?
-                $querySelect .=
-                    ', '.$arrSqlPattern['field'].
-                    ', MATCH ('.$arrSql['alias']['name'].')'.
-                    " AGAINST ('%$pattern%') AS `score1`".
-                    ', MATCH ('.$arrSqlPattern['alias']['short'].')'.
-                    " AGAINST ('%$pattern%') AS `score2`".
-                    ', MATCH ('.$arrSqlPattern['alias']['long'].')'.
-                    " AGAINST ('%$pattern%') AS `score3`";
+
+                // set fields to join
+                $querySelectParts = array($arrSqlPattern['field']);
+                $querySelectParts[] = 'MATCH ('.$arrSql['alias']['name'].')' .
+                    " AGAINST ('%$pattern%') AS `score1`";
+
+                // if we have to lookup for HTML encoded search-term too,
+                // then we will combine the match-score if the non-HTML-encoded
+                // match with the HTML-encoded match
+                if ($lookupEscaped) {
+                    $querySelectParts[] = '(' .
+                        'MATCH ('.$arrSqlPattern['alias']['short'].')' .
+                            " AGAINST ('%$pattern%')" .
+                        '+ MATCH ('.$arrSqlPattern['alias']['short'].')' .
+                            " AGAINST ('%" . $patternHtmlEscaped ."%')" .
+                        ') AS `score2`';
+                    $querySelectParts[] = '(' .
+                        'MATCH ('.$arrSqlPattern['alias']['long'].')' .
+                            " AGAINST ('%$pattern%')" .
+                        '+ MATCH ('.$arrSqlPattern['alias']['long'].')' .
+                            " AGAINST ('%" . $patternHtmlEscaped ."%')" .
+                        ') AS `score3`';
+                } else {
+                    $querySelectParts[] =
+                        'MATCH ('.$arrSqlPattern['alias']['short'].')' .
+                            " AGAINST ('%$pattern%')" .
+                        ' AS `score2`';
+                    $querySelectParts[] =
+                        'MATCH ('.$arrSqlPattern['alias']['long'].')' .
+                            " AGAINST ('%$pattern%')" .
+                        ' AS `score3`';
+                }
+                $querySelect .= ', ' . join(', ', $querySelectParts);
+
+                // join text tables
                 $queryJoin .= $arrSqlPattern['join'];
-                $queryWhere .= "
-                    AND (   `product`.`id` LIKE '%$pattern%'
-                         OR ".$arrSql['alias']['name']." LIKE '%$pattern%'
-                         OR ".$arrSql['alias']['code']." LIKE '%$pattern%'
-                         OR ".$arrSqlPattern['alias']['long']." LIKE '%$pattern%'
-                         OR ".$arrSqlPattern['alias']['short']." LIKE '%$pattern%'
-                         OR ".$arrSqlPattern['alias']['keys']." LIKE '%$pattern%')";
+
+                // filter results by search-term
+                $queryWhereParts = array(
+                    "`product`.`id` LIKE '%$pattern%'",
+                    $arrSql['alias']['name']." LIKE '%$pattern%'",
+                    $arrSql['alias']['code']." LIKE '%$pattern%'",
+                    $arrSqlPattern['alias']['long']." LIKE '%$pattern%'",
+                    $arrSqlPattern['alias']['short']." LIKE '%$pattern%'",
+                    $arrSqlPattern['alias']['keys']." LIKE '%$pattern%'",
+                );
+
+                // also lookup short and long description by HTML encoded
+                // search-term
+                if ($lookupEscaped) {
+                    $queryWhereParts[] =
+                        $arrSqlPattern['alias']['long']." LIKE '%$patternHtmlEscaped%'";
+                    $queryWhereParts[] =
+                        $arrSqlPattern['alias']['short']." LIKE '%$patternHtmlEscaped%'";
+                }
+                $queryWhere .= ' AND (' . join(' OR ', $queryWhereParts) . ')';
             }
         }
 //\DBG::log("querySelect $querySelect");//\DBG::log("queryCount $queryCount");\DBG::log("queryJoin $queryJoin");\DBG::log("queryWhere $queryWhere");//\DBG::log("querySpecialOffer $querySpecialOffer");\DBG::log("queryOrder $queryOrder");
@@ -1148,7 +1203,9 @@ class Products
         if ($selected && !$showAllOptions) {
             $arrName = array();
             $product = Product::getById($selected);
-            $arrName[$product->id()] = $product->name();
+            if ($product) {
+                $arrName[$product->id()] = $product->name();
+            }
         }
         return \Html::getOptions($arrName, $selected);
     }
@@ -1223,29 +1280,6 @@ class Products
 //\DBG::log("Products::getNameArray(): Made ".var_export($arrName, true));
         return $arrName;
     }
-
-
-    /**
-     * Deactivate Products that are no longer available
-     *
-     * Affects Product records with stock_visible enabled and zero (or less,
-     * which may happen, unfortunately) stock
-     * @return  boolean                 True on success, false otherwise
-     * @since   3.0.0
-     * @static
-     */
-    static function deactivate_soldout()
-    {
-        global $objDatabase;
-
-        return (boolean)$objDatabase->Execute("
-            UPDATE `".DBPREFIX."module_shop".MODULE_INDEX."_products`
-               SET `active`=0
-             WHERE `active`=1
-               AND `stock_visible`=1
-               AND `stock`<=0");
-    }
-
 
     /**
      * Returns -1, 0, or 1 if the first Product title is smaller, equal to,

@@ -27,7 +27,7 @@
 
 /**
  * Main controller for Sitemap
- * 
+ *
  * @copyright   Cloudrexx AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @package     cloudrexx
@@ -38,7 +38,7 @@ namespace Cx\Core_Modules\Sitemap\Controller;
 
 /**
  * Main controller for Sitemap
- * 
+ *
  * @copyright   Cloudrexx AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @package     cloudrexx
@@ -53,15 +53,14 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
 
      /**
      * Load your component.
-     * 
+     *
      * @param \Cx\Core\ContentManager\Model\Entity\Page $page       The resolved page
      */
     public function load(\Cx\Core\ContentManager\Model\Entity\Page $page) {
         switch ($this->cx->getMode()) {
             case \Cx\Core\Core\Controller\Cx::MODE_FRONTEND:
                 $objSitemap = new \Cx\Core_Modules\Sitemap\Controller\Sitemap(\Env::get('cx')->getPage()->getContent(), \Env::get('cx')->getLicense());
-                $pageTitle = \Env::get('cx')->getPage()->getTitle();
-                \Env::get('cx')->getPage()->setContent($objSitemap->getSitemapContent());
+                $page->setContent($objSitemap->getSitemapContent());
                 break;
 
             default:

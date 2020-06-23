@@ -80,15 +80,15 @@ class StatsLibrary
     public $arrProxy = array();
     public $md5Id = 0;
     public $currentTime = 0;
-    
+
     /**
      * Instance of cloudrexx
-     * 
+     *
      * @var object \Cx\Core\Core\Controller\Cx
      */
     protected $cx;
-            
-    function __construct() {        
+
+    function __construct() {
         $this->cx = \Cx\Core\Core\Controller\Cx::instanciate();
         $this->_initConfiguration();
     }
@@ -133,15 +133,11 @@ class StatsLibrary
             //JS::activate('jquery');
             $searchTerm = '';
             $searchTermPlain = '';
+            $searchTermNoScript = '';
             if (isset($_REQUEST['term']) && !empty($_REQUEST['term']) && $_REQUEST['section'] == "Search") {
                 $searchTerm = "&amp;searchTerm=".urlencode($_REQUEST['term'])."' + '";
+                $searchTermNoScript = "&amp;searchTerm=".urlencode($_REQUEST['term']);
                 $searchTermPlain = contrexx_addslashes($_REQUEST['term']);
-            }
-
-            if (isset($_SERVER['HTTP_REFERER'])) {
-                $referer = urlencode($_SERVER['HTTP_REFERER']);
-            } else {
-                $referer = "";
             }
 
             $ascms_core_module_web_path = $this->cx->getCodeBaseCoreModuleWebPath();
@@ -150,8 +146,9 @@ class StatsLibrary
                 '[CORE_MODULE_URL]' => $ascms_core_module_web_path,
                 '[PAGEID]'          => $pageId,
                 '[SEARCHTERM]'      => $searchTerm,
+                '[SEARCHTERM_NOSCRIPT]'=> $searchTermNoScript,
                 '[SEARCHTERM_PLAIN]'=> $searchTermPlain,
-                '[REFERER]'         => $referer,
+                '[REFERER]'         => '$url_encode($(HTTP_REFERER))',
             );
             foreach ($replaces as $from => $to) {
                 $counterTag = str_replace($from, $to, $counterTag);
@@ -167,12 +164,12 @@ class StatsLibrary
     function checkForSpider()
     {
         global $arrRobots;
-        
+
         if ($this->arrConfig['count_spiders']['status']) {
             $arrRobots = array();
-            $this->cx->getClassLoader()->loadFile($this->cx->getCoreModuleFolderName().'/Stats/Data/spiders.inc.php');            
+            $this->cx->getClassLoader()->loadFile($this->cx->getCoreModuleFolderName().'/Stats/Data/spiders.inc.php');
             $useragent =  htmlspecialchars($_SERVER['HTTP_USER_AGENT'], ENT_QUOTES, CONTREXX_CHARSET);
-            $spiderAgent = false;                        
+            $spiderAgent = false;
             foreach ($arrRobots as $spider) {
                 $spiderName = trim($spider);
                 if (preg_match("=".$spiderName."=",$useragent)) {
@@ -211,7 +208,8 @@ class StatsLibrary
             $spiderIp = $_SERVER['REMOTE_ADDR'];
         }
 
-        $spiderHost = @gethostbyaddr($spiderIp);
+        $net = $this->cx->getComponent('Net');
+        $spiderHost = $net->getHostByAddr($spiderIp);
         if ($spiderHost == $spiderIp) {
            $spiderHost = '';
         }
@@ -268,9 +266,9 @@ class StatsLibrary
     function _getRequestedUrl()
     {
         global $arrBannedWords;
-        
+
         $arrBannedWords = array();
-        $this->cx->getClassLoader()->loadFile($this->cx->getCoreModuleFolderName().'/Stats/Data/banned.inc.php');        
+        $this->cx->getClassLoader()->loadFile($this->cx->getCoreModuleFolderName().'/Stats/Data/banned.inc.php');
         $uriString="";
 
         $completeUriString = substr(strstr($_SERVER['REQUEST_URI'], "?"),1);
@@ -299,7 +297,7 @@ class StatsLibrary
         if ($uriString == "") { // only uninteresting vars in uri (faked?)
             return "/index.php";
         } else {
-            return "/index.php?".mysql_escape_string(stripslashes(substr($uriString,1)));
+            return "/index.php?" . contrexx_input2db(substr($uriString, 1));
         }
     }
 
@@ -709,8 +707,28 @@ class StatsLibrary
 
         return $this->md5Id;
     }
-    
-    
+
+    /**
+     * Get the HTTP client's IP address
+     *
+     * IMPORTANT: Do not store the return value of this method in order to
+     * comply with the data privacy act GDPR!
+     * In case the client is connecting through a proxy,
+     * this method will try the fetch the client's original
+     * IP address and will return that one instead of the
+     * proxy's IP address.
+     *
+     * @return  string  IP address of client
+     */
+    public function getClientIp()
+    {
+        if (!isset($this->arrClient['ip'])) {
+            $this->_getClientInfos();
+        }
+
+        return $this->arrClient['ip'];
+    }
+
     /**
     * Get client informations
     *
@@ -726,7 +744,7 @@ class StatsLibrary
             $this->arrClient['useragent'] = "<b>p_h_p_i_n_f_o() Possible Hacking Attack</b>";
         }
 
-        $this->arrClient['language'] = isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) 
+        $this->arrClient['language'] = isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])
                                         ? htmlspecialchars($_SERVER['HTTP_ACCEPT_LANGUAGE'], ENT_QUOTES, CONTREXX_CHARSET) : '';
         $this->_getProxyInformations(); // get also the client ip
 
@@ -742,7 +760,8 @@ class StatsLibrary
     function _getProxyInformations() {
         if (isset($_SERVER['HTTP_VIA']) && $_SERVER['HTTP_VIA']) { // client does use a proxy
             $this->arrProxy['ip'] = $_SERVER['REMOTE_ADDR'];
-            $this->arrProxy['host'] = @gethostbyaddr($this->arrProxy['ip']);
+            $net = $this->cx->getComponent('Net');
+            $this->arrProxy['host'] = $net->getHostByAddr($this->arrProxy['ip']);
             $proxyUseragent = trim(addslashes(urldecode(strstr($_SERVER['HTTP_VIA'],' '))));
             $startPos = strpos($proxyUseragent,"(");
             $this->arrProxy['useragent'] = substr($proxyUseragent,$startPos+1);
@@ -1037,7 +1056,7 @@ class StatsLibrary
             $countResolution = (boolean) isset($_POST['options']['count_screen_resolution']) ? $_POST['options']['count_screen_resolution'] : 0;
             $countColour = (boolean) isset($_POST['options']['count_colour_depth']) ? $_POST['options']['count_colour_depth'] : 0;
             $countJavascript = (boolean) isset($_POST['options']['count_javascript']) ? $_POST['options']['count_javascript'] : 0;
-			$excludeIdentifyingInfo = (boolean) isset($_POST['options']['exclude_identifying_info']) ? $_POST['options']['exclude_identifying_info'] : 0;
+            $excludeIdentifyingInfo = (boolean) isset($_POST['options']['exclude_identifying_info']) ? $_POST['options']['exclude_identifying_info'] : 0;
             $onlineTimeoutStatus = (boolean) isset($_POST['options']['online_timeout_status']) ? $_POST['options']['online_timeout_status'] : 0;
             $countVisitorNumber = (boolean) isset($_POST['options']['count_visitor_number']) ? $_POST['options']['count_visitor_number'] : 0;
             $onlineTimeout = (int) isset($_POST['options']['online_timeout']) ? $_POST['options']['online_timeout'] : $this->arrConfig['online_timeout']['value'];
@@ -1168,7 +1187,7 @@ class StatsLibrary
                 $query = "UPDATE `".DBPREFIX."stats_config` SET `status` = ".$countJavascript." WHERE `name` = 'count_javascript'";
                 $objDatabase->Execute($query);
             }
-			if ($excludeIdentifyingInfo != $this->arrConfig['exclude_identifying_info']['status']) {
+            if ($excludeIdentifyingInfo != $this->arrConfig['exclude_identifying_info']['status']) {
                 $query = "UPDATE `".DBPREFIX."stats_config` SET `status` = ".$excludeIdentifyingInfo." WHERE `name` = 'exclude_identifying_info'";
                 $objDatabase->Execute($query);
             }
@@ -1332,7 +1351,7 @@ class StatsLibrary
 
     /**
      * Get javascript code for the jqplot chart.
-     * 
+     *
      * @param   string  $id
      * @param   array   $data
      * @return  string  $code
@@ -1340,14 +1359,14 @@ class StatsLibrary
     protected function getChartJavascriptBy($id, $data, $renderer = '')
     {
         global $_ARRAYLANG;
-        
+
         \JS::activate('jquery-jqplot');
-        
+
         $ticks    = json_encode($data['ticks']);
         $dates    = json_encode($data['dates']);
         $visitors = json_encode($data['visitors']);
         $requests = json_encode($data['requests']);
-        
+
         if ($renderer == 'bar') {
             $seriesDefault = '
                 stackSeries: true,
@@ -1368,8 +1387,8 @@ class StatsLibrary
                 },
             ';
         }
-        
-        
+
+
         $code = '
             <!--[if lt IE 9]>
             <script type="text/javascript" src="../lib/javascript/jquery/plugins/jqplot/excanvas.min.js"></script>
@@ -1384,7 +1403,7 @@ class StatsLibrary
                 var data         = new Array();
                 data[\'dates\']  = dates;
                 data[\'labels\'] = labels;
-                
+
                 var plot = $J.jqplot(\''.$id.'\', [visitors, requests], {
                     '.$seriesDefault.'
                     seriesColors: [\'#4EAA09\', \'#0C90D0\'],
@@ -1422,14 +1441,14 @@ class StatsLibrary
             });
             </script>
         ';
-        
+
         return $code;
     }
 
 
     /**
      * Get hourly statistics data.
-     * 
+     *
      * @param   string  $param  (hour, day, month or year)
      * @return  array(
      *              ticks,
@@ -1441,27 +1460,27 @@ class StatsLibrary
     protected function getStatsDataBy($param)
     {
         global $_CORELANG, $objDatabase;
-        
+
         $arrRange = $this->getStatsRangeBy($param);
-        
+
         $arrMonths   = explode(',', $_CORELANG['TXT_MONTH_ARRAY']);
         $arrDays     = explode(',', $_CORELANG['TXT_DAY_ARRAY']);
         $arrDays[7]  = $arrDays[0];
         unset($arrDays[0]);
-        
+
         $statsData   = $this->getStatsDataSummaryBy($param);
         $arrVisitors = $statsData['visitors'];
         $arrRequests = $statsData['requests'];
-        
+
         $ticks       = array();
         $visitors    = array();
         $requests    = array();
         $i = 1;
-        
+
         foreach ($arrRange as $unit => $date) {
             $ticks[]   = $date['tick'];
             $timestamp = $date['timestamp'];
-            
+
             switch ($param) {
                 case 'day':
                     $dates[$i]  = $arrDays[date('N', $timestamp)].', '.date('j', $timestamp).'. '.$arrMonths[date('n', $timestamp) - 1].' '.date('Y', $timestamp);
@@ -1477,13 +1496,13 @@ class StatsLibrary
                     $dates[$i]  = date('H', $timestamp).':00';
                     break;
             }
-            
+
             $visitors[] = isset($arrVisitors[$unit]) ? intval($arrVisitors[$unit]) : 0;
             $requests[] = isset($arrRequests[$unit]) ? intval($arrRequests[$unit]) : 0;
-            
+
             $i++;
         }
-        
+
         return array(
             'ticks'    => $ticks,
             'dates'    => $dates,
@@ -1495,45 +1514,51 @@ class StatsLibrary
 
     /**
      * Get statistics range by parameter.
-     * 
+     *
      * @param   string  $param  (hour, day, month or year)
      * @return  array   $arrRange
      */
     private function getStatsRangeBy($param)
     {
         global $objDatabase;
-        
+
         switch ($param) {
             case 'day':
                 $rangeStart = date('j', strtotime('last month')) + 1;
                 $rangeStart = $rangeStart > 31 ? 1 : $rangeStart;
                 $rangeEnd   = date('j');
                 $arrRange   = array();
-                
+
                 if ($rangeStart >= $rangeEnd) {
                     $timestamp = strtotime('last month');
                     $first     = range($rangeStart, date('t', $timestamp));
                     $month     = date('M', $timestamp);
                     $year      = date('Y', $timestamp);
                     foreach ($first as $day) {
-                        $arrRange[$day]['tick'] = $day.' '.$month;
-                        $arrRange[$day]['timestamp'] = strtotime($day.' '.$month.' '.$year);
+                        $arrRange[$day] = array(
+                            'tick'      => $day . ' ' . $month,
+                            'timestamp' => strtotime($day . ' ' . $month . ' ' . $year),
+                        );
                     }
-                    
+
                     $second = range(1, $rangeEnd);
                     $month  = date('M');
                     $year   = date('Y');
                     foreach ($second as $day) {
-                        $arrRange[$day]['tick']      = $day.' '.$month;
-                        $arrRange[$day]['timestamp'] = strtotime($day.' '.$month.' '.$year);
+                        $arrRange[$day] = array(
+                            'tick'      => $day . ' ' . $month,
+                            'timestamp' => strtotime($day . ' ' . $month . ' ' . $year),
+                        );
                     }
                 } else {
                     $arrDays = range($rangeStart, $rangeEnd);
                     $month = date('M');
                     $year  = date('Y');
                     foreach ($arrDays as $day) {
-                        $arrRange[$day]['tick']      = $day.' '.$month;
-                        $arrRange[$day]['timestamp'] = strtotime($day.' '.$month.' '.$year);
+                        $arrRange[$day] = array(
+                            'tick'      => $day . ' ' . $month,
+                            'timestamp' => strtotime($day . ' ' . $month . ' ' . $year),
+                        );
                     }
                 }
                 break;
@@ -1541,34 +1566,40 @@ class StatsLibrary
                 $rangeStart = date('n', strtotime('-23 months'));
                 $rangeEnd   = date('n');
                 $arrRange   = array();
-                
+
                 if ($rangeStart != 1) { // Range starts 2 years ago
                     $first = range($rangeStart, 12);
                     $year  = date('Y', strtotime('-2 years'));
                     foreach ($first as $month) {
-                        $monthName = date('M', mktime(0, 0, 0, $month));
-                        $month     = date('m', mktime(0, 0, 0, $month));
-                        $arrRange[$month.'-'.$year]['tick']      = $monthName.' '.$year;
-                        $arrRange[$month.'-'.$year]['timestamp'] = strtotime($monthName.' '.$year);
+                        $monthName = date('M', mktime(0, 0, 0, $month, 1, $year));
+                        $month     = date('m', mktime(0, 0, 0, $month, 1, $year));
+                        $arrRange[$month . '-' . $year] = array(
+                            'tick'      => $monthName . ' ' . $year,
+                            'timestamp' => strtotime($monthName . ' ' . $year),
+                        );
                     }
                 }
-                
+
                 $second = range(1, 12);
                 $year   = date('Y', strtotime('last year'));
                 foreach ($second as $month) {
-                    $monthName = date('M', mktime(0, 0, 0, $month));
-                    $month     = date('m', mktime(0, 0, 0, $month));
-                    $arrRange[$month.'-'.$year]['tick']      = $monthName.' '.$year;
-                    $arrRange[$month.'-'.$year]['timestamp'] = strtotime($monthName.' '.$year);
+                    $monthName = date('M', mktime(0, 0, 0, $month, 1, $year));
+                    $month     = date('m', mktime(0, 0, 0, $month, 1, $year));
+                    $arrRange[$month . '-' . $year] = array(
+                        'tick'      => $monthName . ' ' . $year,
+                        'timestamp' => strtotime($monthName . ' ' . $year),
+                    );
                 }
-                
+
                 $third = range(1, $rangeEnd);
                 $year  = date('Y');
                 foreach ($third as $month) {
-                    $monthName = date('M', mktime(0, 0, 0, $month));
-                    $month     = date('m', mktime(0, 0, 0, $month));
-                    $arrRange[$month.'-'.$year]['tick']      = $monthName.' '.$year;
-                    $arrRange[$month.'-'.$year]['timestamp'] = strtotime($monthName.' '.$year);
+                    $monthName = date('M', mktime(0, 0, 0, $month, 1, $year));
+                    $month     = date('m', mktime(0, 0, 0, $month, 1, $year));
+                    $arrRange[$month . '-' . $year] = array(
+                        'tick'      => $monthName . ' ' . $year,
+                        'timestamp' => strtotime($monthName . ' ' . $year),
+                    );
                 }
                 break;
             case 'year':
@@ -1579,21 +1610,25 @@ class StatsLibrary
                 ';
                 $objResult = $objDatabase->Execute($query);
                 $arrRange = array();
-                
+
                 if ($objResult !== false) {
                     while (!$objResult->EOF) {
                         $year = date('Y', $objResult->fields['timestamp']);
-                        $arrRange[$year]['tick']      = $year;
-                        $arrRange[$year]['timestamp'] = $objResult->fields['timestamp'];
+                        $arrRange[$year] = array(
+                            'tick'      => $year,
+                            'timestamp' => $objResult->fields['timestamp'],
+                        );
                         $objResult->MoveNext();
                     }
                     ksort($arrRange);
                 }
-                
+
                 if (empty($arrRange)) {
                     $year = date('Y');
-                    $arrRange[$year]['tick']      = $year;
-                    $arrRange[$year]['timestamp'] = strtotime('now');
+                    $arrRange[$year] = array(
+                        'tick'      => $year,
+                        'timestamp' => strtotime('now'),
+                    );
                 }
                 break;
             case 'hour':
@@ -1601,7 +1636,7 @@ class StatsLibrary
                 $rangeStart = date('G', strtotime('-23 hours'));
                 $rangeEnd   = date('G');
                 $arrRange   = array();
-                
+
                 if ($rangeStart != 0) {
                     $first     = range($rangeStart, 23);
                     $timestamp = strtotime('-1 day');
@@ -1610,18 +1645,26 @@ class StatsLibrary
                     $year      = date('Y', $timestamp);
                     foreach ($first as $hour) {
                         $hour = date('H', mktime($hour));
-                        $arrRange[$hour]['tick']      = $hour.':00';
-                        $arrRange[$hour]['timestamp'] = strtotime($day.' '.$month.' '.$year.' '.$hour.':00');
+                        $arrRange[$hour] = array(
+                            'tick'      => $hour . ':00',
+                            'timestamp' => strtotime(
+                                $day . ' ' . $month . ' ' . $year . ' ' . $hour . ':00'
+                            ),
+                        );
                     }
-                    
+
                     $second = range(0, $rangeEnd);
                     $day    = date('j');
                     $month  = date('M');
                     $year   = date('Y');
                     foreach ($second as $hour) {
                         $hour = date('H', mktime($hour));
-                        $arrRange[$hour]['tick']      = $hour.':00';
-                        $arrRange[$hour]['timestamp'] = strtotime($day.' '.$month.' '.$year.' '.$hour.':00');
+                        $arrRange[$hour] = array(
+                            'tick'      => $hour.':00',
+                            'timestamp' => strtotime(
+                                $day . ' ' . $month . ' ' . $year .' '. $hour . ':00'
+                            ),
+                        );
                     }
                 } else {
                     $arrHours = range($rangeStart, $rangeEnd);
@@ -1630,20 +1673,24 @@ class StatsLibrary
                     $year     = date('Y');
                     foreach ($arrHours as $hour) {
                         $hour = date('H', mktime($hour));
-                        $arrRange[$hour]['tick']      = $hour.':00';
-                        $arrRange[$hour]['timestamp'] = strtotime($day.' '.$month.' '.$year.' '.$hour.':00');
+                        $arrRange[$hour] = array(
+                            'tick'      => $hour.':00',
+                            'timestamp' => strtotime(
+                                $day . ' ' . $month . ' ' . $year . ' ' . $hour . ':00'
+                            ),
+                        );
                     }
                 }
                 break;
         }
-        
+
         return $arrRange;
     }
 
 
     /**
      * Get visitors and requests data.
-     * 
+     *
      * @param   string  $param  (hour, day, month or year)
      * @return  array(
      *              visitors,
@@ -1653,10 +1700,10 @@ class StatsLibrary
     private function getStatsDataSummaryBy($param)
     {
         global $objDatabase;
-        
+
         $select    = '';
         $timestamp = '';
-        
+
         switch ($param) {
             case 'day':
                 $format = 'j';
@@ -1689,7 +1736,7 @@ class StatsLibrary
                 ';
                 break;
         }
-        
+
         $query = '
             SELECT `timestamp`, `count`
             FROM `'.DBPREFIX.'stats_visitors_summary`
@@ -1697,8 +1744,8 @@ class StatsLibrary
             '.$timestamp.'
         ';
         $objResult = $objDatabase->Execute($query);
-        
-        $arrVisitory = array();
+
+        $arrVisitors = array();
         if ($objResult !== false) {
             if ($param == 'month') {
                 while (!$objResult->EOF) {
@@ -1715,7 +1762,7 @@ class StatsLibrary
                 }
             }
         }
-        
+
         $query = '
             SELECT `timestamp`, `count`
             FROM `'.DBPREFIX.'stats_requests_summary`
@@ -1723,7 +1770,7 @@ class StatsLibrary
             '.$timestamp.'
         ';
         $objResult = $objDatabase->Execute($query);
-        
+
         $arrRequests = array();
         if ($objResult !== false) {
             if ($param == 'month') {
@@ -1741,11 +1788,10 @@ class StatsLibrary
                 }
             }
         }
-        
+
         return array(
             'visitors' => $arrVisitors,
             'requests' => $arrRequests,
         );
     }
 }
-?>

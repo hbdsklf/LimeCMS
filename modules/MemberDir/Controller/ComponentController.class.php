@@ -27,7 +27,7 @@
 
 /**
  * Main controller for MemberDir
- * 
+ *
  * @copyright   Cloudrexx AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @package     cloudrexx
@@ -38,7 +38,7 @@ namespace Cx\Modules\MemberDir\Controller;
 
 /**
  * Main controller for MemberDir
- * 
+ *
  * @copyright   Cloudrexx AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @package     cloudrexx
@@ -54,7 +54,7 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
 
     /**
      * Load your component.
-     * 
+     *
      * @param \Cx\Core\ContentManager\Model\Entity\Page $page       The resolved page
      */
     public function load(\Cx\Core\ContentManager\Model\Entity\Page $page) {
@@ -86,11 +86,12 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
     }
 
     /**
-     * Do something for search the content
-     * 
-     * @param \Cx\Core\ContentManager\Model\Entity\Page $page       The resolved page
+     * {@inheritDoc}
      */
-    public function preContentParse(\Cx\Core\ContentManager\Model\Entity\Page $page) {
-        $this->cx->getEvents()->addEventListener('SearchFindContent', new \Cx\Modules\Directory\Model\Event\DirectoryEventListener());
-   }
+    public function registerEventListeners()
+    {
+        $evm               = $this->cx->getEvents();
+        $memberDirListener = new \Cx\Modules\MemberDir\Model\Event\MemberDirEventListener();
+        $evm->addEventListener('SearchFindContent', $memberDirListener);
+    }
 }

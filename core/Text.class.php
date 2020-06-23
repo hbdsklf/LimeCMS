@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * Text (core version)
  *
@@ -718,7 +718,9 @@ DBG::log("Text::getSqlSnippets(): ERROR: Empty keys");
         if (!is_array($keys)) $keys = array($keys);
         $query_field = '';
         $query_join = '';
-        $arrSql = array();
+        $arrSql = array(
+            'alias' => array(),
+        );
         foreach ($keys as $alias => $key) {
             $table_alias = 'text_'.++$table_alias_index;
             $field_id_alias = $table_alias.'_id';

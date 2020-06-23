@@ -47,12 +47,19 @@ function calendar(
     global $HTTP_POST_VARS, $HTTP_GET_VARS;
     global $calendar_txt;
 
+    if (!isset($calendar_txt)) {
+        $calendar_txt = array();
+    }
+    if (!isset($calendar_txt['german'])) {
+        $calendar_txt['german'] = array();
+    }
     $calendar_txt['german']['monthes'] = array('', 'Januar', 'Februar', 'M&auml;rz', 'April', 'Mai', 'Juni', 'Juli',
                                             'August', 'September', 'Oktober','November', 'Dezember');
     $calendar_txt['german']['days'] = array('Montag', 'Dienstag', 'Mittwoch', 'Donnerstag','Freitag','Samstag', 'Sonntag');
     $calendar_txt['german']['first_day'] = 0;
     $calendar_txt['german']['misc'] = array('Vorhergehender Monat', 'Folgender Monat', 'Vorhergehender Tag', 'Folgender Tag');
 
+    $param_d = array();
     $param_d['calendar_id'] = 1;
     $param_d['calendar_columns'] = 5;
     $param_d['show_day'] = 1;
@@ -376,7 +383,7 @@ function calendar(
                   ? '?cmd=Egov&amp;act=detail'
                   : '?section=Egov&amp;cmd=detail'
                 ).
-                '&amp;id='.$_REQUEST["id"].'&amp;date='.$next_day.
+                '&amp;id='.intval($_REQUEST["id"]).'&amp;date='.$next_day.
                 '" title="'.$calendar_txt[$param['lang']]['misc'][3].
                 '">'.$d.'</a>'."\n";
         }
@@ -392,7 +399,7 @@ function calendar(
                   ? '?cmd=Egov&amp;act=detail'
                   : '?section=Egov&amp;cmd=detail'
                 ).
-                '&amp;id='.$_REQUEST["id"].'&amp;date='.$previous_day.
+                '&amp;id='.intval($_REQUEST["id"]).'&amp;date='.$previous_day.
                 '" title="'.$calendar_txt[$param['lang']]['misc'][2].
                 '">'.$g.'</a>'."\n";
         }
@@ -408,7 +415,7 @@ function calendar(
                   ? '?cmd=Egov&amp;act=detail'
                   : '?section=Egov&amp;cmd=detail'
                 ).
-                '&amp;id='.$_REQUEST["id"].'&amp;date='.$next_month.
+                '&amp;id='.intval($_REQUEST["id"]).'&amp;date='.$next_month.
                 '" title="'.$calendar_txt[$param['lang']]['misc'][1].
                 '">'.$dd.'</a>'."\n";
         }
@@ -424,7 +431,7 @@ function calendar(
                   ? '?cmd=Egov&amp;act=detail'
                   : '?section=Egov&amp;cmd=detail'
                 ).
-                '&amp;id='.$_REQUEST["id"].'&amp;date='.$previous_month.
+                '&amp;id='.intval($_REQUEST["id"]).'&amp;date='.$previous_month.
                 '" title="'.$calendar_txt[$param['lang']]['misc'][0].
                 '">'.$gg.'</a>'."\n";
         }

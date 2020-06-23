@@ -204,7 +204,7 @@ class Livecam extends LivecamLibrary
             \LinkGenerator::parseTemplate($applicationTemplate);
             $this->_objTpl->addBlock('APPLICATION_DATA', 'application_data', $applicationTemplate);
         }
-        
+
         $this->_objTpl->setVariable(array(
             "CMD"                   => $this->cam
         ));
@@ -248,11 +248,16 @@ class Livecam extends LivecamLibrary
 
         \JS::activate("shadowbox", array('players' => array('img')));
         \JS::activate('jqueryui');
-        \JS::registerCode("
-            cx.ready(function() {
-                cx.jQuery('input[name=date]').datepicker({dateFormat: 'yy-mm-dd'});
-            });
-        ");
+        $jsCode = <<<JSCODE
+cx.ready(function() {
+    cx.jQuery('input[name=date]').datepicker({dateFormat: 'yy-mm-dd'});
+});
+liveCamPageReload = function() {
+    window.location.reload(true);
+};
+setTimeout(liveCamPageReload, 60000);
+JSCODE;
+        \JS::registerCode($jsCode);
 
         if ($this->camSettings['shadowboxActivate'] == 1) {
             $imageLink = $this->camSettings['currentImagePath'];
@@ -279,7 +284,7 @@ class Livecam extends LivecamLibrary
             'LIVECAM_IMAGE_TEXT'        => isset($_GET['file']) ? contrexx_strip_tags($_GET['file']) : 'Aktuelles Webcam Bild',
             'LIVECAM_IMAGE_SHADOWBOX'   => $this->camSettings['shadowboxActivate'] == 1 ? 'shadowboxgallery' : '',
             'LIVECAM_IMAGE_LINK'        => $imageLink,
-            'LIVECAM_IMAGE_SIZE'        => $this->camSettings['currentMaxSize'],
+            'LIVECAM_IMAGE_SIZE'        => $this->camSettings['maxImageWidth'],
         ));
     }
 
@@ -311,7 +316,7 @@ class Livecam extends LivecamLibrary
      */
     function _showArchive($date)
     {
-		global $_ARRAYLANG;
+        global $_ARRAYLANG;
 
         \JS::activate("shadowbox", array('players' => array('img')));
         \JS::activate('jqueryui');

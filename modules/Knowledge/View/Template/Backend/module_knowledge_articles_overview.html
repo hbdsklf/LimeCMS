@@ -1,10 +1,10 @@
 <!-- START module_knowledge_articles_overview.html -->
 
-<script type="text/javascript" src="../modules/Knowledge/View/Script/functions.js"></script>
-<script type="text/javascript" src="../modules/Knowledge/View/Script/rating.js"></script>
+<script type="text/javascript" src="/modules/Knowledge/View/Script/functions.js"></script>
+<script type="text/javascript" src="/modules/Knowledge/View/Script/rating.js"></script>
 
 <script type="text/javascript">
-/* <![CDATA[ */ 
+/* <![CDATA[ */
 
 var lastDragged = 0;
 
@@ -12,21 +12,21 @@ var editAllowed = {EDIT_ALLOWED};
 var notAllowedMsg = "{NOT_ALLOWED_MSG}";
 
 var Articles = function() {
-   // constructor 
+   // constructor
 }
 
 /**
  * Get the categorie's articles
  */
 Articles.prototype.getCategory = function(id) {
-    
+
     this.setLoading();
     new Ajax.Request('index.php', {
         method : "get",
         parameters : {
             cmd     : "Knowledge",
-            section : "articles",
-            act     : "getArticles",
+            act     : "articles",
+            tpl     : "getArticles",
             id      : id
         },
         onSuccess : function(transport) {
@@ -42,7 +42,7 @@ Articles.prototype.getCategory = function(id) {
             });
         }
     })
-     
+
 }
 
 /**
@@ -55,24 +55,24 @@ Articles.prototype.setLoading = function()
     if (loading) {
         return;
     }
-    
+
     /*
     if ($('inner_right')) {
         $('articles').removeChild($('inner_right'));
     }
     */
-    
+
     //var overlay = document.createElement("div");
     //overlay.id = "overlay";
     //$('articles').appendChild(overlay);
     //$('articles').update('<div id="loading">&nbsp;</div>');
-    $('articles').update('<center><img src="../modules/Knowledge/View/Media/loading.gif" alt="" id="loading"  /></center>');
-    
+    $('articles').update('<center><img src="/modules/Knowledge/View/Media/loading.gif" alt="" id="loading"  /></center>');
+
     var loading = document.createElement("div");
     var text = document.createTextNode(" ");
     loading.appendChild(text);
     loading.id = "loading";
-    
+
     $('articles').appendChild(loading);
     this.loading = true;
 }
@@ -80,16 +80,16 @@ Articles.prototype.setLoading = function()
 Articles.prototype.deleteRow = function(id)
 {
     new Effect.Highlight('article_'+id, {
-        startcolor  : '#ff9898', 
+        startcolor  : '#ff9898',
         endcolor    : '#ffffff',
         duration    : 1
     });
-    
+
     var obj = $('article_'+id);
     window.setTimeout(function() {
         obj.parentNode.removeChild(obj);
     }, 1000);
-    
+
     delete obj;
 }
 
@@ -118,12 +118,12 @@ var setRows = function()
 }
 
 var initSortableArea = function()
-{  
+{
     if (editAllowed) {
         Sortable.create("articlelist", {
            onUpdate: function() {
                 setRows();
-                new Ajax.Request("index.php?cmd=Knowledge{MODULE_INDEX}&section=articles&act=sort", {
+                new Ajax.Request("index.php?cmd=Knowledge{MODULE_INDEX}&act=articles&tpl=sort", {
                     method : "post",
                     parameters : Sortable.serialize("articlelist"),
                     onSuccess : function(transport) {
@@ -131,7 +131,7 @@ var initSortableArea = function()
                             new Effect.Highlight('article_'+lastDragged, {duration: 1.5});
                         }
                     }
-                }); 
+                });
            },
            handle : "drag_handle"
         });
@@ -161,8 +161,8 @@ var catTree = {
         if (obj.select == undefined) {
             Element.extend(obj);
         }
-        obj.select('.openClosePicture')[0].src = "../core/Core/View/Media/icons/minuslink.gif";
-        obj.nextSibling.src = "../modules/Knowledge/View/Media/folder-open.small.png";
+        obj.select('.openClosePicture')[0].src = "/core/Core/View/Media/icons/minuslink.gif";
+        obj.nextSibling.src = "/modules/Knowledge/View/Media/folder-open.small.png";
         obj.onclick = function() { catTree.closePart(obj); }
     },
     /**
@@ -182,8 +182,8 @@ var catTree = {
         if (obj.select == undefined) {
             Element.extend(obj);
         }
-        obj.select('.openClosePicture')[0].src = "../core/Core/View/Media/icons/pluslink.gif";
-        obj.nextSibling.src = "../modules/Knowledge/View/Media/folder.small.png";
+        obj.select('.openClosePicture')[0].src = "/core/Core/View/Media/icons/pluslink.gif";
+        obj.nextSibling.src = "/modules/Knowledge/View/Media/folder.small.png";
         obj.onclick = function() { catTree.openPart(obj); }
     }
 }
@@ -195,15 +195,15 @@ var switchActive = function(id, obj, action)
 {
     new Ajax.Request('index.php', {
         method: 'get',
-        parameters: {cmd : "knowledge{MODULE_INDEX}", section : "articles", act : "switchState", id : id, switchTo : action},
+        parameters: {cmd : "knowledge{MODULE_INDEX}", act : "articles", tpl : "switchState", id : id, switchTo : action},
         onSuccess: function(transport) {
             if (statusMsg(transport.responseText)) {
                 var img = obj.getElementsByTagName("img")[0];
                 if (action == 0) {
-                    img.src = "../core/Core/View/Media/icons/led_red.gif";
+                    img.src = "/core/Core/View/Media/icons/led_red.gif";
                     obj.onclick = function() { switchActive(id, obj, 1); }
                 } else {
-                    img.src = "../core/Core/View/Media/icons/led_green.gif";
+                    img.src = "/core/Core/View/Media/icons/led_green.gif";
                     obj.onclick = function() { switchActive(id, obj, 0); }
                 }
                 new Effect.Highlight('article_'+id);
@@ -217,7 +217,7 @@ var deleteArticle = function(id)
     if (confirm("{TXT_CONFIRM_ARTICLE_DELETION}")) {
         new Ajax.Request('index.php', {
             method: 'get',
-            parameters: {cmd : "knowledge{MODULE_INDEX}", section : "articles", act : "delete", id : id},
+            parameters: {cmd : "knowledge{MODULE_INDEX}", act : "articles", tpl : "delete", id : id},
             onSuccess: function() {
                 articles.deleteRow(id);
             }
@@ -231,10 +231,11 @@ var deleteArticle = function(id)
     <table style="float: left; width: 100%;">
         <tr>
             <td style="float: left; width: 230px;  margin-right: 15px; vertical-align: top;">
-                <form action="index.php?cmd=Knowledge{MODULE_INDEX}&amp;section=articles&amp;act=edit&amp;id=18" method="get" style="margin-bottom: 5px;">
+                <form action="index.php?cmd=Knowledge{MODULE_INDEX}&amp;act=articles&amp;tpl=edit&amp;id=18" method="get" style="margin-bottom: 5px;">
                     {TXT_JUMP_TO_ARTICLE}
-                    <input type="hidden" name="cmd" value="Knowledge" /> <input type="hidden" name="section" value="articles" />
-                    <input type="hidden" name="act" value="edit" />
+                    <input type="hidden" name="cmd" value="Knowledge" />
+                    <input type="hidden" name="act" value="articles" />
+                    <input type="hidden" name="tpl" value="edit" />
                     <input type="text" style="width: 30px;" name="id" />
                     <input type="submit" value="Go" style="margin: 0;"/>
                 </form>
@@ -250,7 +251,7 @@ var deleteArticle = function(id)
                         <!-- BEGIN row -->
                         <li style="clear: both; width: 95%;">
                             <div style="float: left; ">
-                                <img src="../core/Core/View/Media/icons/sub_arrow.gif" class="sub_arrow" style="border: none;" /><a href="javascript: void(0);" onclick="catTree.openPart(this);" style="visibility: {CATEGORY_PLUS_VISIBLITY};"><img alt="" class="openClosePicture" src="../core/Core/View/Media/icons/pluslink.gif" style="border: none; margin: 2px;" /></a><img src="../modules/Knowledge/View/Media/folder.small.png" style="margin-right:8px;" id="folder_{CATEGORY_ID}" />
+                                <img src="/core/Core/View/Media/icons/sub_arrow.gif" class="sub_arrow" style="border: none;" /><a href="javascript: void(0);" onclick="catTree.openPart(this);" style="visibility: {CATEGORY_PLUS_VISIBLITY};"><img alt="" class="openClosePicture" src="/core/Core/View/Media/icons/pluslink.gif" style="border: none; margin: 2px;" /></a><img src="/modules/Knowledge/View/Media/folder.small.png" style="margin-right:8px;" id="folder_{CATEGORY_ID}" />
                             </div>
                             <div><a href="javascript: void(0);" onclick="articles.getCategory({ID})">{NAME}</a> ({ENTRY_COUNT})</div>
                             {SUB}
@@ -258,11 +259,11 @@ var deleteArticle = function(id)
                         <!-- END row -->
                         {ROWS}
                     </ul>
-                    <!-- END list -->   
+                    <!-- END list -->
                     <!-- END remove_area -->
                     {CATLIST}
                 </div>
-            </td>   
+            </td>
             <td style="width: 100%; vertical-align: top; padding-top: 34px;">
                 <div id="articles">
                     <table class="adminlist" style="width: 100%; border-collapse: collapse;">
@@ -280,7 +281,7 @@ var deleteArticle = function(id)
             </td>
         </tr>
     </table>
-    
+
     <div style="position: relative; width: 232px;">
         <div class="alertbox" id="error_box" style="display: none; position: absolute; top: 22px; left: 240px; z-index: 10; right: 0px; padding: 0px;">
             <div id="error_box_content" style="padding: 4px;"></div>

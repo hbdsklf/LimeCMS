@@ -159,26 +159,11 @@ class Mail
 die("Mail::send(): Obsolete method called!");
         global $_CONFIG;
 
-        if (!@include_once \Cx\Core\Core\Controller\Cx::instanciate()->getCodeBaseLibraryPath() . '/phpmailer/class.phpmailer.php') {
-            return false;
-        }
-        $objMail = new \phpmailer();
-        if (   isset($_CONFIG['coreSmtpServer'])
-            && $_CONFIG['coreSmtpServer'] > 0
-            && @include_once \Cx\Core\Core\Controller\Cx::instanciate()->getCodeBaseCorePath() . '/SmtpSettings.class.php') {
-            if (($arrSmtp = \SmtpSettings::getSmtpAccount($_CONFIG['coreSmtpServer'])) !== false) {
-                $objMail->IsSMTP();
-                $objMail->Host = $arrSmtp['hostname'];
-                $objMail->Port = $arrSmtp['port'];
-                $objMail->SMTPAuth = true;
-                $objMail->Username = $arrSmtp['username'];
-                $objMail->Password = $arrSmtp['password'];
-            }
-        }
-        $objMail->CharSet = CONTREXX_CHARSET;
-        $objMail->From = preg_replace('/\015\012/', '', $mailFrom);
-        $objMail->FromName = preg_replace('/\015\012/', '', $mailSender);
-        //$objMail->AddReplyTo($_CONFIG['coreAdminEmail']);
+        $objMail = new \Cx\Core\MailTemplate\Model\Entity\Mail();
+
+        $from = preg_replace('/\015\012/', '', $mailFrom);
+        $fromName = preg_replace('/\015\012/', '', $mailSender);
+        $objMail->SetFrom($from, $fromName);
         $objMail->Subject = $mailSubject;
         $objMail->IsHTML(false);
         $objMail->Body = preg_replace('/\015\012/', "\012", $mailBody);
@@ -287,8 +272,7 @@ die("Mail::deleteTemplate(): Obsolete method called!");
             DELETE FROM ".DBPREFIX."module_shop".MODULE_INDEX."_mail_content
              WHERE tpl_id=$template_id");
         if (!$objResult) return false;
-        $objDatabase->Execute("OPTIMIZE TABLE ".DBPREFIX."module_shop".MODULE_INDEX."_mail");
-        $objDatabase->Execute("OPTIMIZE TABLE ".DBPREFIX."module_shop".MODULE_INDEX."_mail_content");
+
         return true;
     }
 

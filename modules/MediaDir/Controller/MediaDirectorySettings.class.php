@@ -56,8 +56,8 @@ class MediaDirectorySettings extends MediaDirectoryLibrary
         parent::getCommunityGroups();
         parent::getFrontendLanguages();
     }
-    
-    
+
+
     function settings_masks($objTpl)
     {
         global $_ARRAYLANG, $_CORELANG, $objDatabase;
@@ -75,7 +75,7 @@ class MediaDirectorySettings extends MediaDirectoryLibrary
                     }
                 }
                 break;
-        }  
+        }
 
         $objTpl->setGlobalVariable(array(
             'TXT_'.$this->moduleLangVar.'_NEW_EXPORT_MASK' => $_ARRAYLANG['TXT_MEDIADIR_NEW_EXPORT_MASK'],
@@ -83,16 +83,16 @@ class MediaDirectorySettings extends MediaDirectoryLibrary
             'TXT_'.$this->moduleLangVar.'_TITLE' => $_ARRAYLANG['TXT_MEDIADIR_TITLE'],
             'TXT_'.$this->moduleLangVar.'_ACTION' => $_CORELANG['TXT_HISTORY_ACTION'],
             'TXT_'.$this->moduleLangVar.'_FORM_TEMPLATE' => $_ARRAYLANG['TXT_MEDIADIR_FORM_TEMPLATE'],
-            'TXT_'.$this->moduleLangVar.'_LANG' => $_CORELANG['TXT_ACCESS_LANGUAGE'],      
+            'TXT_'.$this->moduleLangVar.'_LANG' => $_CORELANG['TXT_ACCESS_LANGUAGE'],
             'TXT_'.$this->moduleLangVar.'_CONFIRM_DELETE_DATA' => $_ARRAYLANG['TXT_MEDIADIR_CONFIRM_DELETE_DATA'],
             'TXT_'.$this->moduleLangVar.'_ACTION_IS_IRREVERSIBLE' => $_ARRAYLANG['TXT_MEDIADIR_ACTION_IS_IRREVERSIBLE'],
             'TXT_EDIT' => $_ARRAYLANG['TXT_MEDIADIR_EDIT'],
             'TXT_DELETE' => $_ARRAYLANG['TXT_MEDIADIR_DELETE'],
         ));
-                                 
+
         $objMasks = $objDatabase->Execute("
             SELECT
-                `id`,`title`,`active`,form_id 
+                `id`,`title`,`active`,form_id
             FROM
                 ".DBPREFIX."module_".$this->moduleTablePrefix."_masks
             ORDER BY
@@ -102,44 +102,44 @@ class MediaDirectorySettings extends MediaDirectoryLibrary
         if ($objMasks !== false) {
             $i = 0;
             while (!$objMasks->EOF) {
-                $strMaskTitle = htmlspecialchars($objMasks->fields['title'], ENT_QUOTES, CONTREXX_CHARSET);  
+                $strMaskTitle = htmlspecialchars($objMasks->fields['title'], ENT_QUOTES, CONTREXX_CHARSET);
                 $intStatus = intval($objMasks->fields['active']);
                 $intMaskId = intval($objMasks->fields['id']);
-                                                                             
+
                 if($intStatus == 1) {
                     $strStatus = '../core/Core/View/Media/icons/status_green.gif';
                     $intStatus = 0;
                 } else {
                     $strStatus = '../core/Core/View/Media/icons/status_red.gif';
                     $intStatus = 1;
-                }  
-                
-                $objForm = new MediaDirectoryForm($objMasks->fields['form_id'], $this->moduleName);  
-                       
+                }
+
+                $objForm = new MediaDirectoryForm($objMasks->fields['form_id'], $this->moduleName);
+
                 //parse data variables
                 $objTpl->setVariable(array(
                     $this->moduleLangVar.'_MASK_ROW_CLASS' => $i%2==0 ? 'row1' : 'row2',
                     $this->moduleLangVar.'_MASK_ID' => $intMaskId,
                     $this->moduleLangVar.'_MASK_STATUS' => $strStatus,
-                    $this->moduleLangVar.'_MASK_SWITCH_STATUS' => $intStatus,  
-                    $this->moduleLangVar.'_MASK_TITLE' => $strMaskTitle,                                 
-                    $this->moduleLangVar.'_MASK_FORM' => $objForm->arrForms[$objMasks->fields['form_id']]['formName'][0],                                 
+                    $this->moduleLangVar.'_MASK_SWITCH_STATUS' => $intStatus,
+                    $this->moduleLangVar.'_MASK_TITLE' => $strMaskTitle,
+                    $this->moduleLangVar.'_MASK_FORM' => $objForm->arrForms[$objMasks->fields['form_id']]['formName'][0],
                 ));
 
                 $i++;
 
-                $objTpl->parse($this->moduleNameLC.'MaskList');  
+                $objTpl->parse($this->moduleNameLC.'MaskList');
                 $objMasks->MoveNext();
             }
-        }    
-                                
+        }
+
         if($objMasks->RecordCount() == 0) {
              $objTpl->setVariable(array(
                 'TXT_'.$this->moduleLangVar.'_NO_ENTRIES_FOUND' => $_ARRAYLANG['TXT_MEDIADIR_NO_ENTRIES_FOUND']
             ));
 
             $objTpl->parse($this->moduleNameLC.'MaskNoEntries');
-        } 
+        }
 
         $objTpl->parse('settings_content');
     }
@@ -154,68 +154,68 @@ class MediaDirectorySettings extends MediaDirectoryLibrary
 
         //load teplate data
         if(isset($_GET['id']) && $_GET['id'] != 0) {
-            $objTpl->hideBlock($this->moduleNameLC.'FormList'); 
-            
+            $objTpl->hideBlock($this->moduleNameLC.'FormList');
+
             $pageTitle = $_ARRAYLANG['TXT_MEDIADIR_EDIT_EXPORT_MASK'];
             $intMaskId = intval($_GET['id']);
             $i = 0;
-            
+
             $objMask = $objDatabase->Execute("
                 SELECT
-                    title,fields,form_id  
+                    title,fields,form_id
                 FROM
                     ".DBPREFIX."module_".$this->moduleTablePrefix."_masks
                 WHERE
                     id='".$intMaskId."'
                 LIMIT 1
             ");
-                
+
             if ($objMask !== false) {
                 while (!$objMask->EOF) {
                     $strMaskTitle = htmlspecialchars($objMask->fields['title'], ENT_QUOTES, CONTREXX_CHARSET);
-                    $arrMaskInputfields = explode(',', $objMask->fields['fields']); 
-                    $intFormId = $objMask->fields['form_id']; 
+                    $arrMaskInputfields = explode(',', $objMask->fields['fields']);
+                    $intFormId = $objMask->fields['form_id'];
                     $objMask->MoveNext();
                 }
             }
 
             //parse data variables
             $objTpl->setGlobalVariable(array(
-                $this->moduleLangVar.'_MASK_ID' => $intMaskId,     
-                $this->moduleLangVar.'_MASK_TITLE' => $strMaskTitle,              
-            ));    
-            
+                $this->moduleLangVar.'_MASK_ID' => $intMaskId,
+                $this->moduleLangVar.'_MASK_TITLE' => $strMaskTitle,
+            ));
+
             //List Inputfields
-            $objInputfields = new MediaDirectoryInputfield($intFormId, false, null, $this->moduleName); 
+            $objInputfields = new MediaDirectoryInputfield($intFormId, false, null, $this->moduleName);
             foreach($objInputfields->arrInputfields as $intFieldId => $arrField) {
                 $objTpl->setVariable(array(
-                    $this->moduleLangVar.'_INPUTFIELD_ROW_CLASS' => $i%2==0 ? 'row1' : 'row2',   
-                    $this->moduleLangVar.'_INPUTFIELD_ID' => $intFieldId,              
-                    $this->moduleLangVar.'_INPUTFIELD_NAME' => $arrField['name'][0],              
-                    $this->moduleLangVar.'_INPUTFIELD_CHECKED' => in_array($intFieldId, $arrMaskInputfields) ? 'checked="checked"' : '',              
+                    $this->moduleLangVar.'_INPUTFIELD_ROW_CLASS' => $i%2==0 ? 'row1' : 'row2',
+                    $this->moduleLangVar.'_INPUTFIELD_ID' => $intFieldId,
+                    $this->moduleLangVar.'_INPUTFIELD_NAME' => $arrField['name'][0],
+                    $this->moduleLangVar.'_INPUTFIELD_CHECKED' => in_array($intFieldId, $arrMaskInputfields) ? 'checked="checked"' : '',
                 ));
-        
-                $i++;   
-                $objTpl->parse($this->moduleNameLC.'Inputfield');    
-            }    
+
+                $i++;
+                $objTpl->parse($this->moduleNameLC.'Inputfield');
+            }
         } else {
-            $pageTitle = $_ARRAYLANG['TXT_MEDIADIR_NEW_EXPORT_MASK']; 
-              
+            $pageTitle = $_ARRAYLANG['TXT_MEDIADIR_NEW_EXPORT_MASK'];
+
             $objForms = new MediaDirectoryForm(null, $this->moduleName);
             $strForms = $objForms->listForms($objTpl, 4);
-            
-            $objTpl->setVariable(array(                                                                       
-                $this->moduleLangVar.'_MASK_FORMS' => $strForms,         
-            ));  
-            
-            $objTpl->hideBlock($this->moduleNameLC.'InputfieldList');    
-        }           
+
+            $objTpl->setVariable(array(
+                $this->moduleLangVar.'_MASK_FORMS' => $strForms,
+            ));
+
+            $objTpl->hideBlock($this->moduleNameLC.'InputfieldList');
+        }
 
         $objTpl->setVariable(array(
-            'TXT_'.$this->moduleLangVar.'_PAGE_TITLE' => $pageTitle,   
+            'TXT_'.$this->moduleLangVar.'_PAGE_TITLE' => $pageTitle,
             'TXT_'.$this->moduleLangVar.'_TITLE' => $_ARRAYLANG['TXT_MEDIADIR_TITLE'],
-            'TXT_'.$this->moduleLangVar.'_INPUTFIELD' => $_ARRAYLANG['TXT_MEDIADIR_INPUTFIELDS'],   
-            'TXT_'.$this->moduleLangVar.'_STATUS' => $_CORELANG['TXT_STATUS'],   
+            'TXT_'.$this->moduleLangVar.'_INPUTFIELD' => $_ARRAYLANG['TXT_MEDIADIR_INPUTFIELDS'],
+            'TXT_'.$this->moduleLangVar.'_STATUS' => $_CORELANG['TXT_STATUS'],
             'TXT_'.$this->moduleLangVar.'_FORM_TEMPLATE' => $_ARRAYLANG['TXT_MEDIADIR_FORM_TEMPLATE'],
         ));
 
@@ -228,9 +228,9 @@ class MediaDirectorySettings extends MediaDirectoryLibrary
     {
         global $_ARRAYLANG, $_CORELANG, $objDatabase;
 
-        $intMaskId = intval($arrData['maskId']);   
+        $intMaskId = intval($arrData['maskId']);
         $strMaskTitle = contrexx_addslashes($arrData['maskTitle']);
-        
+
         if(!empty($intMaskId) && $intMaskId != 0) {
             $strMaskInputfields = isset($arrData['maskInputfields']) ? contrexx_addslashes(join(',', $arrData['maskInputfields'])) : '';
             $objEditMask = $objDatabase->Execute("
@@ -238,13 +238,13 @@ class MediaDirectorySettings extends MediaDirectoryLibrary
                     ".DBPREFIX."module_".$this->moduleTablePrefix."_masks
                 SET
                     title='".$strMaskTitle."',
-                    fields='".$strMaskInputfields."'   
+                    fields='".$strMaskInputfields."'
                 WHERE
                     id='".$intMaskId."'
                 ");
             if ($objEditMask === false) {
                 return false;
-            }            
+            }
         } else {
             $intMaskFormId = contrexx_input2int($arrData['maskForm']);
             $objAddMask = $objDatabase->Execute("
@@ -258,7 +258,7 @@ class MediaDirectorySettings extends MediaDirectoryLibrary
             if ($objAddMask === false) {
                 return false;
             }
-        }        
+        }
 
         return true;
     }
@@ -422,7 +422,7 @@ class MediaDirectorySettings extends MediaDirectoryLibrary
         $strGoogleMap .= '<tr><td style="border: 0px;">'.$_ARRAYLANG['TXT_MEDIADIR_GOOGLE_MAP_ZOOM'].':&nbsp;&nbsp;</td><td style="border: 0px; padding-bottom: 2px;"><input type="text" name="settingsGoogleMap[zoom]" id="'.$strZoomId.'" class="'.$this->moduleNameLC.'InputfieldGoogleMapSmall" value="'.$strValueZoom.'" onfocus="this.select();" /></td></tr>';
         $strGoogleMap .= '</table><br />';
         $strGoogleMap .= '<div id="'.$strMapId.'" style="border: solid 1px #0A50A1; width: 418px; height: 300px;"></div>';
-        
+
         $strGoogleMap .= <<<EOF
 <script src="https://maps.googleapis.com/maps/api/js?key=$strKey&sensor=false&v=3"></script>
 <script>
@@ -475,7 +475,7 @@ function searchAddress() {
         });
     }
 }
-                        
+
 function setPosition(position) {
     if (!marker) {
         marker = new google.maps.Marker({
@@ -564,10 +564,8 @@ EOF;
         $objTpl->setVariable(array(
             'TXT_'.$this->moduleLangVar.'_SETTINGS_PICS_AND_FILES' => $_ARRAYLANG['TXT_MEDIADIR_PICS_AND_FILES'],
             'TXT_'.$this->moduleLangVar.'_SETTINGS_THUMB_SIZE' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_THUMB_SIZE'],
-            'TXT_'.$this->moduleLangVar.'_SETTINGS_NUM_PICS_PER_GALLERY' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_NUM_PICS_PER_GALLERY'],
             'TXT_'.$this->moduleLangVar.'_SETTINGS_ENCRYPT_FILENAME' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_ENCRYPT_FILENAME'],
             'TXT_'.$this->moduleLangVar.'_SETTINGS_THUMB_SIZE_INFO' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_THUMB_SIZE_INFO'],
-            'TXT_'.$this->moduleLangVar.'_SETTINGS_NUM_PICS_PER_GALLERY_INFO' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_NUM_PICS_PER_GALLERY_INFO'],
             'TXT_'.$this->moduleLangVar.'_SETTINGS_ENCRYPT_FILENAME_INFO' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_ENCRYPT_FILENAME_INFO'],
             'TXT_'.$this->moduleLangVar.'_SETTINGS_IMAGE_FILESIZE' => $_ARRAYLANG['TXT_MARKETPLACE_SETTINGS_IMAGE_FILESIZE'],
             'TXT_'.$this->moduleLangVar.'_SETTINGS_IMAGE_FILESIZE_INFO' => $_ARRAYLANG['TXT_MARKETPLACE_SETTINGS_IMAGE_FILESIZE_INFO'],
@@ -584,7 +582,6 @@ EOF;
 
         $objTpl->setVariable(array(
             $this->moduleLangVar.'_SETTINGS_THUMB_SIZE' => intval($this->arrSettings['settingsThumbSize']),
-            $this->moduleLangVar.'_SETTINGS_NUM_PICS_PER_GALLERY' => $this->arrSettings['settingsNumGalleryPics'],
             $this->moduleLangVar.'_SETTINGS_ENCRYPT_FILENAMES_ON' => $strEncryptFilenamesOn,
             $this->moduleLangVar.'_SETTINGS_ENCRYPT_FILENAMES_OFF' => $strEncryptFilenamesOff,
             $this->moduleLangVar.'_SETTINGS_IMAGE_FILESIZE' => intval($this->arrSettings['settingsImageFilesize']),
@@ -598,7 +595,24 @@ EOF;
         global $objDatabase, $_ARRAYLANG, $_CORELANG;
 
         $objTpl->addBlockfile($this->moduleLangVar.'_SETTINGS_CONTENT', 'settings_content', 'module_'.$this->moduleNameLC.'_settings_entries.html');
-        
+
+        $textElement = new \Cx\Core\Html\Model\Entity\TextElement($_ARRAYLANG['TXT_MEDIADIR_CMD']);
+        $italicElement = new \Cx\Core\Html\Model\Entity\HtmlElement('i');
+        $italicElement->addChild($textElement);
+
+        $legacyBehaviorChanges = array(
+            $_ARRAYLANG['TXT_MEDIADIR_LEGACY_BEHAVIOR_SEARCH_ON_CATEGORY_VIEW'],
+            $_ARRAYLANG['TXT_MEDIADIR_LEGACY_BEHAVIOR_SEARCH_ALL_FORMS'],
+            $_ARRAYLANG['TXT_MEDIADIR_LEGACY_PAGE_TITLE'],
+            $_ARRAYLANG['TXT_MEDIADIR_LEGACY_BEHAVIOR_CATEGORY_LIST'],
+            $_ARRAYLANG['TXT_MEDIADIR_LEGACY_BEHAVIOR_NOT_LATEST'],
+            $_ARRAYLANG['TXT_MEDIADIR_LEGACY_BEHAVIOR_LATEST_PARSING'],
+            $_ARRAYLANG['TXT_MEDIADIR_LEGACY_BEHAVIOR_LATEST_HIDING'],
+            sprintf($_ARRAYLANG['TXT_MEDIADIR_LEGACY_BEHAVIOR_FORM_PAGE'], $italicElement),
+            $_ARRAYLANG['TXT_MEDIADIR_LEGACY_BEHAVIOR_ENTRIES_OF_FORMS'],
+            $_ARRAYLANG['TXT_MEDIADIR_LEGACY_BEHAVIOR_SORT_CATEGORY_LIST'],
+        );
+
         $objTpl->setGlobalVariable(array(
             'TXT_'.$this->moduleLangVar.'_SETTINGS_CONFIRM_NEW_ENTRIES' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_CONFIRM_NEW_ENTRIES'],
             'TXT_'.$this->moduleLangVar.'_SETTINGS_CONFIRM_NEW_ENTRIES_INFO' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_CONFIRM_NEW_ENTRIES_INFO'],
@@ -623,14 +637,20 @@ EOF;
             'TXT_'.$this->moduleLangVar.'_LATEST_ENTRIES' => $_ARRAYLANG['TXT_MEDIADIR_LATEST_ENTRIES'],
             'TXT_'.$this->moduleLangVar.'_POPULAR_HITS' => $_ARRAYLANG['TXT_MEDIADIR_POPULAR_HITS'],
             'TXT_'.$this->moduleLangVar.'_SETTINGS_LATEST_NUM_XML' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_LATEST_NUM_XML'],
-            'TXT_'.$this->moduleLangVar.'_SETTINGS_LATEST_NUM_OVERVIEW' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_LATEST_NUM_OVERVIEW'],
+            'TXT_'.$this->moduleLangVar.'_SETTINGS_LIST_LATEST_ENTRIES_IN_WEBDESIGN_TEMPLATE' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_LIST_LATEST_ENTRIES_IN_WEBDESIGN_TEMPLATE'],
+            'TXT_'.$this->moduleLangVar.'_SETTINGS_LIST_LATEST_ENTRIES_IN_OVERVIEW_SECTION' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_LIST_LATEST_ENTRIES_IN_OVERVIEW_SECTION'],
             'TXT_'.$this->moduleLangVar.'_SETTINGS_LATEST_NUM_BACKEND' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_LATEST_NUM_BACKEND'],
             'TXT_'.$this->moduleLangVar.'_SETTINGS_LATEST_NUM_FRONTEND' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_LATEST_NUM_FRONTEND'],
             'TXT_'.$this->moduleLangVar.'_SETTINGS_POPULAR_NUM_FRONTEND' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_POPULAR_NUM_FRONTEND'],
             'TXT_'.$this->moduleLangVar.'_SETTINGS_POPULAR_NUM_RESTORE' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_POPULAR_NUM_RESTORE'],
-            'TXT_'.$this->moduleLangVar.'_SETTINGS_LATEST_NUM_HEADLINES' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_LATEST_NUM_HEADLINES'],
+            'TXT_'.$this->moduleLangVar.'_BEHAVIOR' => $_ARRAYLANG['TXT_MEDIADIR_BEHAVIOR'],
+            'TXT_'.$this->moduleLangVar.'_PRETTY_URLS' => $_ARRAYLANG['TXT_MEDIADIR_PRETTY_URLS'],
+            'TXT_'.$this->moduleLangVar.'_PRETTY_URLS_INFO' => sprintf($_ARRAYLANG['TXT_MEDIADIR_PRETTY_URLS_INFO'], 'https://support.cloudrexx.com/support/solutions/articles/13000031545'),
+            'TXT_'.$this->moduleLangVar.'_LEGACY_BEHAVIOR' => $_ARRAYLANG['TXT_MEDIADIR_LEGACY_BEHAVIOR'],
+            'TXT_'.$this->moduleLangVar.'_LEGACY_BEHAVIOR_INFO' => sprintf($_ARRAYLANG['TXT_MEDIADIR_LEGACY_BEHAVIOR_INFO'], '<ul><li>' . implode('</li><li>', $legacyBehaviorChanges) . '</li></ul>'),
+            'TXT_'.$this->moduleLangVar.'_SETTINGS_NUM_ENTRIES_TO_LIST' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_NUM_ENTRIES_TO_LIST'],
             'TXT_'.$this->moduleLangVar.'_SETTINGS_SHOW_ENTRIES_IN_ALL_LANG' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_SHOW_ENTRIES_IN_ALL_LANG'],
-            'TXT_'.$this->moduleLangVar.'_SETTINGS_SHOW_ENTRIES_IN_ALL_LANG_INFO' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_SHOW_ENTRIES_IN_ALL_LANG_INFO'],
+            'TXT_'.$this->moduleLangVar.'_SETTINGS_SHOW_ENTRIES_IN_ALL_LANG_INFO' => sprintf($_ARRAYLANG['TXT_MEDIADIR_SETTINGS_SHOW_ENTRIES_IN_ALL_LANG_INFO'], '<em>' . $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_TRANSLATION_STATUS'] . '</em>'),
             'TXT_'.$this->moduleLangVar.'_SETTINGS_PAGING_NUM_ENTRIES' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_PAGING_NUM_ENTRIES'],
             'TXT_'.$this->moduleLangVar.'_SETTINGS_PAGING_NUM_ENTRIES_INFO' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_PAGING_NUM_ENTRIES_INFO'],
             'TXT_'.$this->moduleLangVar.'_SETTINGS_DISPLAYDURATION' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_DEFAULT_DISPLAYDURATION'],
@@ -644,7 +664,7 @@ EOF;
             'TXT_'.$this->moduleLangVar.'_SETTINGS_DISPLAYDURATION_VALUE_TYPE_MONTH' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_DISPLAYDURATION_VALUE_TYPE_MONTH'],
             'TXT_'.$this->moduleLangVar.'_SETTINGS_DISPLAYDURATION_VALUE_TYPE_YEAR' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_DISPLAYDURATION_VALUE_TYPE_YEAR'],
             'TXT_'.$this->moduleLangVar.'_SETTINGS_TRANSLATION_STATUS' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_TRANSLATION_STATUS'],
-            'TXT_'.$this->moduleLangVar.'_SETTINGS_TRANSLATION_STATUS_INFO' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_TRANSLATION_STATUS_INFO'],
+            'TXT_'.$this->moduleLangVar.'_SETTINGS_TRANSLATION_STATUS_INFO' => sprintf($_ARRAYLANG['TXT_MEDIADIR_SETTINGS_TRANSLATION_STATUS_INFO'], '<em>' . $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_SHOW_ENTRIES_IN_ALL_LANG'] . '</em>'),
             'TXT_'.$this->moduleLangVar.'_SETTINGS_READY_TO_CONFIRM' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_READY_TO_CONFIRM'],
             'TXT_'.$this->moduleLangVar.'_SETTINGS_READY_TO_CONFIRM_INFO' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_READY_TO_CONFIRM_INFO'],
             'TXT_'.$this->moduleLangVar.'_LANGUAGES' => $_ARRAYLANG['TXT_MEDIADIR_LANGUAGES'],
@@ -652,6 +672,8 @@ EOF;
             'TXT_'.$this->moduleLangVar.'_SETTINGS_MULTILANG_FRONTEND' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_MULTILANG_FRONTEND'],
             'TXT_'.$this->moduleLangVar.'_SETTINGS_MULTILANG_FRONTEND_INFO' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_MULTILANG_FRONTEND_INFO'],
             'TXT_'.$this->moduleLangVar.'_SETTINGS_ENTRIEY_INDIVIDUAL_ORDER' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_ENTRIEY_INDIVIDUAL_ORDER'],
+            'TXT_'.$this->moduleLangVar.'_SETTINGS_FRONTEND' => $_ARRAYLANG['TXT_FRONTEND'],
+            'TXT_'.$this->moduleLangVar.'_SETTINGS_BACKEND' => $_ARRAYLANG['TXT_LANGUAGE_BACKEND'],
         ));
 
         if($this->arrSettings['settingsConfirmNewEntries'] == 1) {
@@ -725,7 +747,7 @@ EOF;
             $strTransStatusOn = '';
             $strTransStatusOff = 'checked="checked"';
         }
-        
+
         if($this->arrSettings['settingsReadyToConfirm'] == 1) {
             $strReadyToConfirmOn = 'checked="checked"';
             $strReadyToConfirmOff = '';
@@ -733,7 +755,7 @@ EOF;
             $strReadyToConfirmOn = '';
             $strReadyToConfirmOff = 'checked="checked"';
         }
-        
+
         if($this->arrSettings['settingsFrontendUseMultilang'] == 1) {
             $strMultilangFrontendOn = 'checked="checked"';
             $strMultilangFrontendOff = '';
@@ -741,7 +763,7 @@ EOF;
             $strMultilangFrontendOn = '';
             $strMultilangFrontendOff = 'checked="checked"';
         }
-        
+
         if($this->arrSettings['settingsIndividualEntryOrder'] == 1) {
             $strIndividualOrderOn = 'checked="checked"';
             $strIndividualOrderOff = '';
@@ -764,9 +786,9 @@ EOF;
             $strDisplaydurationPeriod = 'selected="selected"';
             $strDisplaydurationShowPeriod = 'inline';
             $intDisplaydurationValue = intval($this->arrSettings['settingsEntryDisplaydurationValue']);
-            
+
             switch (intval($this->arrSettings['settingsEntryDisplaydurationValueType'])) {
-            	case 1:
+                case 1:
                     $strDisplaydurationValueTypeDay = 'selected="selected"';
                     break;
                 case 2:
@@ -789,7 +811,14 @@ EOF;
             $strDisplaydurationNotificationValue = intval($this->arrSettings['settingsEntryDisplaydurationNotification']);
             $strDisplaydurationNotificationShowDaybefore = 'inline';
         }
-
+        $listEntriesOverviewOn  = ($this->arrSettings['showLatestEntriesInOverview'] == 1)
+                                    ? 'checked="checked"' : '';
+        $listEntriesOverviewOff = ($this->arrSettings['showLatestEntriesInOverview'] == 0)
+                                    ? 'checked="checked"' : '';
+        $listEntriesWebdesignTplOn  = ($this->arrSettings['showLatestEntriesInWebdesignTmpl'] == 1)
+                                    ? 'checked="checked"' : '';
+        $listEntriesWebdesignTplOff = ($this->arrSettings['showLatestEntriesInWebdesignTmpl'] == 0)
+                                    ? 'checked="checked"' : '';
         $objTpl->setVariable(array(
             $this->moduleLangVar.'_SETTINGS_CONFIRM_NEW_ENTRIES_ON' => $strConfirmEntriesOn,
             $this->moduleLangVar.'_SETTINGS_CONFIRM_NEW_ENTRIES_OFF' => $strConfirmEntriesOff,
@@ -813,15 +842,19 @@ EOF;
             $this->moduleLangVar.'_SETTINGS_LATEST_NUM_FRONTEND' => intval($this->arrSettings['settingsLatestNumFrontend']),
             $this->moduleLangVar.'_SETTINGS_POPULAR_NUM_FRONTEND' => intval($this->arrSettings['settingsPopularNumFrontend']),
             $this->moduleLangVar.'_SETTINGS_POPULAR_NUM_RESTORE' => intval($this->arrSettings['settingsPopularNumRestore']),
+            $this->moduleLangVar.'_SETTINGS_PRETTY_URLS_ON' => $this->arrSettings['usePrettyUrls'] ? 'checked="checked"' : '',
+            $this->moduleLangVar.'_SETTINGS_PRETTY_URLS_OFF' => $this->arrSettings['usePrettyUrls'] ? '' : 'checked="checked"',
+            $this->moduleLangVar.'_SETTINGS_LEGACY_BEHAVIOR_ON' => $this->arrSettings['legacyBehavior'] ? 'checked="checked"' : '',
+            $this->moduleLangVar.'_SETTINGS_LEGACY_BEHAVIOR_OFF' => $this->arrSettings['legacyBehavior'] ? '' : 'checked="checked"',
             $this->moduleLangVar.'_SETTINGS_LATEST_NUM_HEADLINES' => intval($this->arrSettings['settingsLatestNumHeadlines']),
             $this->moduleLangVar.'_SETTINGS_PAGING_NUM_ENTRIES' => intval($this->arrSettings['settingsPagingNumEntries']),
             $this->moduleLangVar.'_SETTINGS_DISPLAYDURATION_SELECT_ALWAYS' => $strDisplaydurationAlways,
             $this->moduleLangVar.'_SETTINGS_DISPLAYDURATION_SELECT_PERIOD' => $strDisplaydurationPeriod,
             $this->moduleLangVar.'_SETTINGS_DISPLAYDURATION_SHOW_PERIOD' => $strDisplaydurationShowPeriod,
             $this->moduleLangVar.'_SETTINGS_DISPLAYDURATION_VALUE' => $intDisplaydurationValue,
-            $this->moduleLangVar.'_SETTINGS_DISPLAYDURATION_VALUE_TYPE_DAY' => $strDisplaydurationValueTypeDay, 
-            $this->moduleLangVar.'_SETTINGS_DISPLAYDURATION_VALUE_TYPE_MONTH' => $strDisplaydurationValueTypeMonth, 
-            $this->moduleLangVar.'_SETTINGS_DISPLAYDURATION_VALUE_TYPE_YEAR' => $strDisplaydurationValueTypeYear, 
+            $this->moduleLangVar.'_SETTINGS_DISPLAYDURATION_VALUE_TYPE_DAY' => $strDisplaydurationValueTypeDay,
+            $this->moduleLangVar.'_SETTINGS_DISPLAYDURATION_VALUE_TYPE_MONTH' => $strDisplaydurationValueTypeMonth,
+            $this->moduleLangVar.'_SETTINGS_DISPLAYDURATION_VALUE_TYPE_YEAR' => $strDisplaydurationValueTypeYear,
             $this->moduleLangVar.'_SETTINGS_DISPLAYDURATION_NOTIFICATION_OFF' => $strDisplaydurationNotificationOff,
             $this->moduleLangVar.'_SETTINGS_DISPLAYDURATION_NOTIFICATION_ON' => $strDisplaydurationNotificationOn,
             $this->moduleLangVar.'_SETTINGS_DISPLAYDURATION_NOTIFIVATION_SHOW_DAYBEFORE' => $strDisplaydurationNotificationShowDaybefore,
@@ -834,6 +867,10 @@ EOF;
             $this->moduleLangVar.'_SETTINGS_MULTILANG_FRONTEND_OFF' => $strMultilangFrontendOff,
             $this->moduleLangVar.'_SETTINGS_ENTRIEY_INDIVIDUAL_ORDER_ON' => $strIndividualOrderOn,
             $this->moduleLangVar.'_SETTINGS_ENTRIEY_INDIVIDUAL_ORDER_OFF' => $strIndividualOrderOff,
+            $this->moduleLangVar.'_SETTINGS_LIST_ENTRIES_OVERVIEW_ON' => $listEntriesOverviewOn,
+            $this->moduleLangVar.'_SETTINGS_LIST_ENTRIES_OVERVIEW_OFF' => $listEntriesOverviewOff,
+            $this->moduleLangVar.'_SETTINGS_LIST_ENTRIES_WEBDESIGN_TEMPLATE_ON' => $listEntriesWebdesignTplOn,
+            $this->moduleLangVar.'_SETTINGS_LIST_ENTRIES_WEBDESIGN_TEMPLATE_OFF' => $listEntriesWebdesignTplOff,
         ));
 
         if(empty($this->arrCommunityGroups)) {
@@ -853,26 +890,22 @@ EOF;
                 }
             }
         }
-        
-        $objLanguages = $objDatabase->Execute("SELECT id,lang,name,frontend,is_default FROM ".DBPREFIX."languages ORDER BY is_default ASC");
+
         $arrActiveLangs = array();
         $arrActiveLangs = explode(",",$this->arrSettings['settingsActiveLanguages']);
-        if ($objLanguages !== false) {
-            while (!$objLanguages->EOF) {
-            	if(in_array($objLanguages->fields['id'], $arrActiveLangs)) {
-            		$strLangStatus = 'checked="checked"';
-            	} else {
-            	   $strLangStatus = '';
-                }
-            	$objTpl->setVariable(array(
-                    $this->moduleLangVar.'_SETTINGS_ACTIVE_LANG_ID' => intval($objLanguages->fields['id']),
-                    $this->moduleLangVar.'_SETTINGS_ACTIVE_LANG_NAME' => htmlspecialchars($objLanguages->fields['name'], ENT_QUOTES, CONTREXX_CHARSET),
-                    $this->moduleLangVar.'_SETTINGS_ACTIVE_LANG_STATUS' => $strLangStatus,
-                ));
-                
-                $objTpl->parse('activeLanguageList');
-                $objLanguages->MoveNext();
+        foreach (\FWLanguage::getActiveFrontendLanguages() as $frontendLanguage) {
+            if(in_array($frontendLanguage['id'], $arrActiveLangs)) {
+                $strLangStatus = 'checked="checked"';
+            } else {
+               $strLangStatus = '';
             }
+            $objTpl->setVariable(array(
+                $this->moduleLangVar.'_SETTINGS_ACTIVE_LANG_ID' => intval($frontendLanguage['id']),
+                $this->moduleLangVar.'_SETTINGS_ACTIVE_LANG_NAME' => htmlspecialchars($frontendLanguage['name'], ENT_QUOTES, CONTREXX_CHARSET),
+                $this->moduleLangVar.'_SETTINGS_ACTIVE_LANG_STATUS' => $strLangStatus,
+            ));
+
+            $objTpl->parse('activeLanguageList');
         }
 
         $objTpl->parse('settings_content');
@@ -1125,10 +1158,10 @@ EOF;
         global $_ARRAYLANG, $_CORELANG, $objDatabase;
 
         $objTpl->addBlockfile($this->moduleLangVar.'_SETTINGS_CONTENT', 'settings_content', 'module_'.$this->moduleNameLC.'_settings_modify_mail.html');
-        
+
         $intTemplateActionId = null;
         $intTemplateLangId = null;
-        
+
         //load teplate data
         if(isset($_GET['id']) && $_GET['id'] != 0) {
             $pageTitle = $_ARRAYLANG['TXT_MEDIADIR_EDIT_MAIL_TEMPLATE'];
@@ -1143,7 +1176,7 @@ EOF;
                     id='".$intTemplateId."'
                 LIMIT 1
                 ");
-    		if ($objTemplate !== false) {
+            if ($objTemplate !== false) {
                     while (!$objTemplate->EOF) {
                         $strTemplateTitle = htmlspecialchars($objTemplate->fields['title'], ENT_QUOTES, CONTREXX_CHARSET);
                         $strTemplateContent = htmlspecialchars($objTemplate->fields['content'], ENT_QUOTES, CONTREXX_CHARSET);
@@ -1153,7 +1186,7 @@ EOF;
                         $intStatus = intval($objTemplate->fields['active']);
                         $objTemplate->MoveNext();
                     }
-    		}
+            }
 
             //parse data variables
             $objTpl->setGlobalVariable(array(
@@ -1170,18 +1203,18 @@ EOF;
         //get actions
         $arrActions = array();
         $objActions = $objDatabase->Execute("SELECT id, name FROM ".DBPREFIX."module_".$this->moduleTablePrefix."_mail_actions");
-		if ($objActions !== false) {
-			while (!$objActions->EOF) {
-				$arrActions[$objActions->fields['id']] = $_ARRAYLANG['TXT_MEDIADIR_MAIL_ACTION_'.strtoupper($objActions->fields['name'])];
-				$objActions->MoveNext();
-			}
-		}
+        if ($objActions !== false) {
+            while (!$objActions->EOF) {
+                $arrActions[$objActions->fields['id']] = $_ARRAYLANG['TXT_MEDIADIR_MAIL_ACTION_'.strtoupper($objActions->fields['name'])];
+                $objActions->MoveNext();
+            }
+        }
 
-		//get languages
-		$arrLanguages = array();
-		foreach ($this->arrFrontendLanguages as $key => $arrLang) {
-		    $arrLanguages[$arrLang['id']] = $arrLang['name'];
-		}
+        //get languages
+        $arrLanguages = array();
+        foreach ($this->arrFrontendLanguages as $key => $arrLang) {
+            $arrLanguages[$arrLang['id']] = $arrLang['name'];
+        }
 
         $objTpl->setVariable(array(
             'TXT_'.$this->moduleLangVar.'_PAGE_TITLE' => $pageTitle,
@@ -1262,7 +1295,7 @@ EOF;
 
     function settings_forms($objTpl)
     {
-        global $_ARRAYLANG, $_CORELANG, $objDatabase, $_LANGID;
+        global $_ARRAYLANG, $_CORELANG, $objDatabase;
 
         switch ($_GET['tpl']) {
             case 'delete_form':
@@ -1307,10 +1340,15 @@ EOF;
 
     function settings_modify_form($objTpl)
     {
-        global $_ARRAYLANG, $_CORELANG, $_LANGID, $objDatabase;
+        global $_ARRAYLANG, $_CORELANG, $objDatabase;
 
         $objTpl->addBlockfile($this->moduleLangVar.'_SETTINGS_CONTENT', 'settings_content', 'module_'.$this->moduleNameLC.'_settings_modify_form.html');
 
+        $langId = static::getOutputLocale()->getId();
+        $intFormId = 0;
+        if (!empty($_GET['id'])) {
+            $intFormId = intval($_GET['id']);
+        }
         $objTpl->setGlobalVariable(array(
             'TXT_'.$this->moduleLangVar.'_SETTINGS_INPUTFIELDS' => $_ARRAYLANG['TXT_MEDIADIR_INPUTFIELDS'],
             'TXT_'.$this->moduleLangVar.'_SETTINGS_FORM' => $_ARRAYLANG['TXT_MEDIADIR_FORM'],
@@ -1332,8 +1370,8 @@ EOF;
             'TXT_'.$this->moduleLangVar.'_SETTINGS_INPUTFIELD_SYSTEM_FIELD_CANT_DELETE' => $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_INPUTFIELD_SYSTEM_FIELD_CANT_DELETE'],
             'TXT_'.$this->moduleLangVar.'_DELETE' => $_ARRAYLANG['TXT_MEDIADIR_DELETE'],
             'TXT_'.$this->moduleLangVar.'_SETTINGS_INPUTFIELDS_EXP_SEARCH' => $_ARRAYLANG['TXT_MEDIADIR_EXP_SEARCH'],
-            $this->moduleLangVar.'_SETTINGS_INPUTFIELDS_DEFAULT_LANG_ID' => $_LANGID,
-            $this->moduleLangVar.'_SETTINGS_FORM_DEFAULT_LANG_ID' => $_LANGID,
+            $this->moduleLangVar.'_SETTINGS_INPUTFIELDS_DEFAULT_LANG_ID' => $langId,
+            $this->moduleLangVar.'_SETTINGS_FORM_DEFAULT_LANG_ID' => $langId,
             'TXT_'.$this->moduleLangVar.'_NAME' =>  $_CORELANG['TXT_NAME'],
             'TXT_'.$this->moduleLangVar.'_DESCRIPTION' =>  $_CORELANG['TXT_DESCRIPTION'],
             'TXT_'.$this->moduleLangVar.'_PICTURE' =>  $_CORELANG['TXT_IMAGE'],
@@ -1354,6 +1392,18 @@ EOF;
             $this->moduleLangVar.'_USE_READY_TO_CONFIRM_ON' => 'checked="checked"',
             'TXT_'.$this->moduleLangVar.'_USE_READY_TO_CONFIRM' =>  $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_READY_TO_CONFIRM'],
             'TXT_'.$this->moduleLangVar.'_FORM_ENTRIES_PER_PAGE' =>  $_ARRAYLANG['TXT_MEDIADIR_SETTINGS_PAGING_NUM_ENTRIES'],
+            'TXT_' . $this->moduleLangVar . '_USE_ASSOCIATED_ENTRIES' =>
+                $_ARRAYLANG['TXT_MEDIADIR_USE_ASSOCIATED_ENTRIES'],
+            'TXT_' . $this->moduleLangVar . '_USE_ASSOCIATED_ENTRIES_INFO' =>
+                $_ARRAYLANG['TXT_MEDIADIR_USE_ASSOCIATED_ENTRIES_INFO'],
+            'TXT_' . $this->moduleLangVar . '_ASSOCIATED_FORMS' =>
+                $_ARRAYLANG['TXT_MEDIADIR_ASSOCIATED_FORMS'],
+            'TXT_' . $this->moduleLangVar . '_ASSOCIATED_FORMS_INFO' =>
+                $_ARRAYLANG['TXT_MEDIADIR_ASSOCIATED_FORMS_INFO'],
+            'TXT_' . $this->moduleLangVar . '_PLEASE_CHOOSE' =>
+                $_ARRAYLANG['TXT_MEDIADIR_PLEASE_CHOOSE'],
+            'TXT_' . $this->moduleLangVar . '_SELECT_NO_MATCH' =>
+                $_ARRAYLANG['TXT_MEDIADIR_SELECT_NO_MATCH'],
         ));
 
         if(isset($_GET['ajax'])) {
@@ -1367,14 +1417,14 @@ EOF;
         //ajax functions
         switch ($ajax) {
             case 'add':
-                $objInputfields = new MediaDirectoryInputfield(intval($_GET['id']), false, null, $this->moduleName);
+                $objInputfields = new MediaDirectoryInputfield($intFormId, false, null, $this->moduleName);
                 $intInsertId = $objInputfields->addInputfield();
 
                 die($intInsertId);
                 break;
 
             case 'delete':
-                $objInputfields = new MediaDirectoryInputfield(intval($_GET['id']), false, null, $this->moduleName);
+                $objInputfields = new MediaDirectoryInputfield($intFormId, false, null, $this->moduleName);
                 $intInsertId = $objInputfields->deleteInputfield($_GET['field']);
 
                 die('1');
@@ -1388,14 +1438,14 @@ EOF;
                 break;
 
             case 'move':
-                $objInputfields = new MediaDirectoryInputfield(intval($_GET['id']), false, null, $this->moduleName);
+                $objInputfields = new MediaDirectoryInputfield($intFormId, false, null, $this->moduleName);
                 $strInputfields = $objInputfields->moveInputfield($_GET['field'], $_GET['direction']);
 
                 die('1');
                 break;
 
             case 'refresh':
-                $objInputfields = new MediaDirectoryInputfield(intval($_GET['id']), false, null, $this->moduleName);
+                $objInputfields = new MediaDirectoryInputfield($intFormId, false, null, $this->moduleName);
                 $strInputfields = $objInputfields->refreshInputfields($objTpl);
 
                 //return
@@ -1405,12 +1455,12 @@ EOF;
                 break;
         }
 
-        //load form data
-        if(!empty($_GET['id'])) {
-            $pageTitle = $_ARRAYLANG['TXT_MEDIADIR_EDIT_FORM_TEMPLATE'];
-            $intFormId = intval($_GET['id']);
+        \JS::activate('chosen-sortable');
+        $objForm = new MediaDirectoryForm($intFormId, $this->moduleName);
 
-            $objForm = new MediaDirectoryForm($intFormId, $this->moduleName);
+        //load form data
+        if($intFormId) {
+            $pageTitle = $_ARRAYLANG['TXT_MEDIADIR_EDIT_FORM_TEMPLATE'];
 
             //parse data variables
             $objTpl->setGlobalVariable(array(
@@ -1426,6 +1476,14 @@ EOF;
                 $this->moduleLangVar.'_USE_READY_TO_CONFIRM_ON' => $objForm->arrForms[$intFormId]['formUseReadyToConfirm'] == 1 ? 'checked="checked"' : '',
                 $this->moduleLangVar.'_USE_READY_TO_CONFIRM_OFF' => $objForm->arrForms[$intFormId]['formUseReadyToConfirm'] == 0 ? 'checked="checked"' : '',
                 $this->moduleLangVar.'_FORM_ENTRIES_PER_PAGE' => contrexx_raw2xhtml($objForm->arrForms[$intFormId]['formEntriesPerPage']),
+                $this->moduleLangVar.'_USE_ASSOCIATED_ENTRIES_ON' =>
+                    $objForm->arrForms[$intFormId]['use_associated_entries']
+                        ? \Html::ATTRIBUTE_CHECKED : '',
+                $this->moduleLangVar.'_USE_ASSOCIATED_ENTRIES_OFF' =>
+                    $objForm->arrForms[$intFormId]['use_associated_entries']
+                        ? '' : \Html::ATTRIBUTE_CHECKED,
+                $this->moduleLangVar.'_ASSOCIATED_FORMS_OPTIONS' =>
+                    $objForm->getAssociatedFormsOptions($intFormId),
             ));
 
             parent::getCommunityGroups();
@@ -1466,23 +1524,29 @@ EOF;
             $pageTitle = $_ARRAYLANG['TXT_MEDIADIR_NEW_FORM_TEMPLATE'];
 
             $objTpl->hideBlock($this->moduleNameLC.'InputfieldsForm');
+            $objTpl->setGlobalVariable(array(
+                $this->moduleLangVar.'_USE_ASSOCIATED_ENTRIES_OFF' =>
+                    \Html::ATTRIBUTE_CHECKED,
+                $this->moduleLangVar.'_ASSOCIATED_FORMS_OPTIONS' =>
+                    $objForm->getAssociatedFormsOptions(null),
+            ));
         }
         $objTpl->setGlobalVariable(array(
             $this->moduleLangVar.'_FORM_IMAGE_BROWSE' => $this->getMediaBrowserButton(
                 $_ARRAYLANG['TXT_BROWSE'],
                 array(
-                    'data-cx-mb-views' => 'filebrowser',
-                    'data-cx-mb-startmediatype' => $this->moduleNameLC,
+                    'views' => 'filebrowser',
+                    'startmediatype' => $this->moduleNameLC,
                     'type' => 'button',
                     'data-input-id' => 'formImage2'
                 ),
                 'mediaBrowserCallback'
             ),
         ));
-        
+
         $strFormName = '';
         $strFormDescription = '';
-        
+
         //form name language block
         foreach ($this->arrFrontendLanguages as $key => $arrLang) {
             if(!empty($intFormId)){
@@ -1530,14 +1594,14 @@ EOF;
 
             $objTpl->parse($this->moduleNameLC.'FormDescriptionList');
         }
-        
+
         //use level block
         if($this->arrSettings['settingsShowLevels'] == 1) {
             $objTpl->touchBlock($this->moduleNameLC.'FormUseLevel');
         } else {
             $objTpl->hideBlock($this->moduleNameLC.'FormUseLevel');
         }
-        
+
         //use ready to confirm block
         if($this->arrSettings['settingsReadyToConfirm'] == 1) {
             $objTpl->touchBlock($this->moduleNameLC.'FormUseReadyToConfirm');
@@ -1558,6 +1622,7 @@ EOF;
     {
         global $_ARRAYLANG, $_CORELANG, $objDatabase;
 
+        $oldActiveLanguage = array();
         foreach ($arrSettings as $strName => $varValue) {
             switch ($strName) {
                 case 'settingsNumEntries':
@@ -1611,20 +1676,39 @@ EOF;
                         }
                     }
                     break;
-                case 'settingsActiveLanguages':
-                	$varValue = join(",",$varValue);
-                        $oldActiveLanguage = explode(',', $this->arrSettings['settingsActiveLanguages']);
-                default:
-                    $objSaveSettings = $objDatabase->Execute("
-                        UPDATE
-                            ".DBPREFIX."module_".$this->moduleTablePrefix."_settings
-                        SET
-                            `value`='".contrexx_addslashes($varValue)."'
+                case 'usePrettyUrls':
+                    // check if setting changed
+                    $objUsePrettyUrls = $objDatabase->Execute("
+                        SELECT
+                            `value`
+                        FROM
+                          ".DBPREFIX."module_".$this->moduleTablePrefix."_settings
                         WHERE
-                            `name`='".contrexx_addslashes($strName)."'
+                            `name` = 'usePrettyUrls'
+                        LIMIT 1
                     ");
-
-                    if ($objSaveSettings === false) {
+                    if (
+                        $objUsePrettyUrls->fields['value'] == $varValue
+                    ) {
+                        break;
+                    } elseif (!$objUsePrettyUrls->fields['value']) {
+                        if (!$this->saveSetting($strName, $varValue)) {
+                            return false;
+                        }
+                        // pretty urls is getting activated,
+                        // make sure each entry gets a slug
+                        $this->generateEntrySlugs();
+                        break;
+                    }
+                    if (!$this->saveSetting($strName, $varValue)) {
+                        return false;
+                    }
+                    break;
+                case 'settingsActiveLanguages':
+                    $varValue = join(",",$varValue);
+                    $oldActiveLanguage = explode(',', $this->arrSettings['settingsActiveLanguages']);
+                default:
+                    if (!$this->saveSetting($strName, $varValue)) {
                         return false;
                     }
                     break;
@@ -1636,7 +1720,21 @@ EOF;
 
         $newActiveLanguage = explode(',', $this->arrSettings['settingsActiveLanguages']);
         if ($newActiveLanguage != $oldActiveLanguage) {
-            $this->updateFormsAndEntries();
+            // identify locales that have existed all along
+            $existingLocaleIds = array_intersect($oldActiveLanguage, $newActiveLanguage);
+
+            // load output locale before reloading the new locales
+            static::initOutputLocale();
+
+            // reload locales
+            $this->getFrontendLanguages();
+            $this->updateFormLocales($existingLocaleIds);
+            $this->updateEntryLocales($existingLocaleIds);
+            $this->updateCategoryLocales($existingLocaleIds);
+            $this->updateLevelLocales($existingLocaleIds);
+
+            // load output locale after reloading the new locales
+            static::initOutputLocale();
         }
         return true;
     }
@@ -1647,42 +1745,277 @@ EOF;
      *
      * @return null
      */
-    public function updateFormsAndEntries()
+    protected function updateFormLocales($existingLocaleIds)
     {
-        global $objDatabase;
-
         foreach ($this->arrFrontendLanguages as $lang) {
             $activeLang[] = $lang['id'];
         }
+        $db = $this->cx->getDb()->getAdoDb();
         $objForms = new MediaDirectoryForm(null, $this->moduleName);
         foreach ($objForms->arrForms as $objForm) {
             $formId          = $objForm['formId'];
             $formName        = $objForm['formName'];
             $formDescription = $objForm['formDescription'];
+
             //update form values
-            $objForms->updateFormLocale($formName, $formDescription, $formId); 
+            $objForms->updateFormLocale($formName, $formDescription, $formId, $existingLocaleIds);
 
             $objInputField = new MediaDirectoryInputfield($formId, false, null, $this->moduleName);
             $inputFields   = $objInputField->getInputfields();
             //Before updating the form InputFields names, remove the corresponding InputFields names from db.
-            $objDatabase->Execute('DELETE FROM '.DBPREFIX.'module_'.$this->moduleTablePrefix.'_inputfield_names WHERE form_id="'.$formId.'" AND lang_id IN("'.  implode('","', $activeLang).'")');
+            $db->Execute('DELETE FROM '.DBPREFIX.'module_'.$this->moduleTablePrefix.'_inputfield_names WHERE form_id='.$formId);
 
             foreach ($inputFields as $inputField) {
                 // skip '1' => categories, '2' => levels
                 if (in_array($inputField['id'], array(1, 2))) {
                     continue;
                 }
+
                 $intFieldId            = intval($inputField['id']);
                 $arrFieldNames         = $inputField['name'];
                 $arrFieldDefaultValues = $inputField['default_value'];
                 $arrFieldInfos         = $inputField['info'];
+
                 //update form inputfields
                 $objInputField->updateInputFields($intFieldId, $arrFieldNames, $arrFieldDefaultValues, $arrFieldInfos);
             }
         }
+    }
 
+    /**
+     * Add missing localized versions of all entries
+     * and drop orphaned localized versions of all entries
+     */
+    protected function updateEntryLocales($existingLocaleIds) {
         $objEntries = new MediaDirectoryEntry($this->moduleName);
-        //update entries
-        $objEntries->updateEntries();
+        $objEntries->updateEntries($existingLocaleIds);
+    }
+
+    /**
+     * Add missing localized versions of all categories
+     * and drop orphaned localized versions of all categories
+     */
+    protected function updateCategoryLocales($existingLocaleIds) {
+        $db = $this->cx->getDb()->getAdoDb();
+        $arrCategories = $this->getCategoryData();
+        foreach ($this->arrFrontendLanguages as $lang) {
+            $sourceLocaleId = $this->getSourceLocaleIdForTargetLocale($lang['id'], $existingLocaleIds);
+            foreach ($arrCategories as $arrCategory) {
+                $query = '
+                    INSERT IGNORE INTO
+                        '.DBPREFIX.'module_'.$this->moduleTablePrefix.'_categories_names
+                    SET
+                        `lang_id`=' . $lang['id'] . ',
+                        `category_id`=' . $arrCategory['catId'] . ',
+                        `category_name`=\'' . contrexx_raw2db(contrexx_xhtml2raw($arrCategory['catName'][$sourceLocaleId])) . '\',
+                        `category_description`=\'' . contrexx_raw2db(contrexx_xhtml2raw($arrCategory['catDescription'][$sourceLocaleId])) . '\',
+                        `category_metadesc`= \'' . contrexx_raw2db(contrexx_xhtml2raw($arrCategory['catMetaDesc'][$sourceLocaleId])) . '\'
+                ';
+                $db->Execute($query);
+            }
+        }
+        $query = '
+            DELETE
+            FROM '.DBPREFIX.'module_'.$this->moduleTablePrefix.'_categories_names
+            WHERE `lang_id` NOT IN (' . join(',', array_keys($this->arrFrontendLanguages)) . ')';
+        $db->Execute($query);
+    }
+
+    /**
+     * Add missing localized versions of all levels
+     * and drop orphaned localized versions of all levels
+     */
+    protected function updateLevelLocales($existingLocaleIds) {
+        $db = $this->cx->getDb()->getAdoDb();
+        $arrLevels = $this->getLevelData();
+        foreach ($this->arrFrontendLanguages as $lang) {
+            $sourceLocaleId = $this->getSourceLocaleIdForTargetLocale($lang['id'], $existingLocaleIds);
+            foreach ($arrLevels as $arrLevel) {
+                $query = '
+                    INSERT IGNORE INTO
+                        '.DBPREFIX.'module_'.$this->moduleTablePrefix.'_level_names
+                    SET
+                        `lang_id`=' . $lang['id'] . ',
+                        `level_id`=' . $arrLevel['levelId'] . ',
+                        `level_name`=\'' . contrexx_raw2db(contrexx_xhtml2raw($arrLevel['levelName'][$sourceLocaleId])) . '\',
+                        `level_description`=\'' . contrexx_raw2db(contrexx_xhtml2raw($arrLevel['levelDescription'][$sourceLocaleId])) . '\',
+                        `level_metadesc`= \'' . contrexx_raw2db(contrexx_xhtml2raw($arrLevel['levelMetaDesc'][$sourceLocaleId])) . '\'
+                ';
+                $db->Execute($query);
+            }
+        }
+        $query = '
+            DELETE
+            FROM '.DBPREFIX.'module_'.$this->moduleTablePrefix.'_level_names
+            WHERE `lang_id` NOT IN (' . join(',', array_keys($this->arrFrontendLanguages)) . ')';
+        $db->Execute($query);
+    }
+
+    /**
+     * Stores a single mediadir setting
+     * @param $strName The setting's name
+     * @param $varValue The setting's value
+     * @return bool Wether the storing process was successful or not
+     */
+    protected function saveSetting($strName, $varValue) {
+        $db = $this->cx->getDb()->getAdoDb();
+
+        $objSaveSettings = $db->Execute("
+            UPDATE
+                ".DBPREFIX."module_".$this->moduleTablePrefix."_settings
+            SET
+                `value`='".contrexx_addslashes($varValue)."'
+            WHERE
+                `name`='".contrexx_addslashes($strName)."'
+        ");
+
+        if ($objSaveSettings === false) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Provides each entry (and the form it is based on)
+     * with a slug field and a slug value,
+     * both only if the entry/form doesn't already have it
+     *
+     * Is called when usePrettyUrls is activated, to make sure the resolving
+     * of the entries works correctly
+     */
+    public function generateEntrySlugs() {
+        global $_ARRAYLANG;
+
+        $this->arrSettings['usePrettyUrls'] = 1;
+        $db = $this->cx->getDb()->getAdoDb();
+
+        // get all entries
+        $objEntries = new MediaDirectoryEntry($this->moduleName);
+        $objEntries->getEntries();
+
+        $formsWithFieldAlreadyCreated = array();
+        $langCount = count(explode(',',$this->arrSettings['settingsActiveLanguages']));
+        foreach($objEntries->arrEntries as $arrEntry) {
+
+            if (!empty($arrEntry['slug_field_id']) && !empty($arrEntry['slug'])) {
+                // slug exists and has a value, nothing to do with this entry
+                continue;
+            }
+
+            // check if the entry's slug field is set
+            if (empty($arrEntry['slug_field_id'])) {
+
+                // get form definition of the entry
+                $arrForm = $objEntries->getFormDefinitionOfEntry(
+                    $arrEntry['entryId']
+                );
+
+                // check if form's slug field already exists
+                if (!empty($arrForm['slug_field_id'])) {
+                    $arrEntry['slug_field_id'] = $arrForm['slug_field_id'];
+                } else {
+
+                    // check if form's slug field was already created
+                    if (isset($formsWithFieldAlreadyCreated[$arrForm['formId']])) {
+                        $arrEntry['slug_field_id'] = $formsWithFieldAlreadyCreated[$arrForm['formId']];
+                    } else { // create slug field for form
+                        $objInputfields = new MediaDirectoryInputfield(
+                            $arrForm['formId'], false, null, $this->moduleName
+                        );
+                        $arrEntry['slug_field_id'] = $objInputfields->addInputfield();
+
+                        // set context_type to slug
+                        $updateSlugField = $db->Execute("
+                            UPDATE
+                                ".DBPREFIX."module_".$this->moduleTablePrefix."_inputfields
+                            SET
+                                `context_type` = 'slug'
+                            WHERE
+                                `id` = " . $arrEntry['slug_field_id'] ."
+                        ");
+                        if (!$updateSlugField) {
+                            \Message::error(sprintf(
+                                $_ARRAYLANG['TXT_MEDIADIR_SET_SLUG_FIELD_ERROR'],
+                                $arrEntry['entryFormId']
+                            ));
+                        }
+
+                        // set slug field name
+                        $updateSlugFieldName = $db->Execute("
+                            UPDATE
+                                ".DBPREFIX."module_".$this->moduleTablePrefix."_inputfield_names
+                            SET
+                                `field_name` = 'Slug'
+                            WHERE
+                                `field_id` = " . $arrEntry['slug_field_id'] . "
+                                AND `form_id` = " . $arrForm['formId'] . "
+                        ");
+                        if (!$updateSlugFieldName) {
+                            \Message::error(sprintf(
+                                $_ARRAYLANG['TXT_MEDIADIR_SET_SLUG_FIELD_NAME_ERROR'],
+                                $arrEntry['entryFormId']
+                            ));
+                        }
+
+                        // store slug field id in array, to make sure that in
+                        // next loop with an entry based on the same form,
+                        // the slug field id will be gotten directly
+                        $formsWithFieldAlreadyCreated[$arrForm['formId']] = $arrEntry['slug_field_id'];
+                    }
+
+                }
+
+            }
+
+            // check if entry already has a slug value set
+            if (empty($arrEntry['slug'])) {
+
+                // get primary field value of each lang
+                $firstFieldQuery = "
+                    SELECT
+                        r.`lang_id` AS `lang_id`,
+                        r.value AS `value`
+                    FROM
+                        ".DBPREFIX."module_".$this->moduleTablePrefix."_rel_entry_inputfields AS r
+                    WHERE
+                        r.entry_id = ".$arrEntry['entryId']."
+                        AND r.form_id = ".$arrEntry['entryFormId']."
+                        AND r.field_id = ".$arrEntry['field_id']."
+                    LIMIT " . $langCount;
+                $firstField = $db->Execute($firstFieldQuery);
+
+                if ($firstField) {
+                    while (!$firstField->EOF) {
+                        $langId = $firstField->fields['lang_id'];
+                        $slugFromFirstField = $firstField->fields['value'];
+                        $this->slugify($arrEntry['entryId'], $slugFromFirstField, $langId);
+
+                        // store slug value for entry in db
+                        $query = "
+                            INSERT INTO
+                                ".DBPREFIX."module_".$this->moduleTablePrefix."_rel_entry_inputfields
+                            VALUES
+                                (
+                                    ".$arrEntry['entryId'].",
+                                    ".$langId.",
+                                    ".$arrEntry['entryFormId'].",
+                                    ".$arrEntry['slug_field_id'].",
+                                    '".$slugFromFirstField."'
+                                )
+                        ";
+                        $storeSlug = $db->Execute($query);
+                        if (!$storeSlug) {
+                            \Message::error(sprintf(
+                                $_ARRAYLANG['TXT_MEDIADIR_SET_SLUG_FIELD_VALUE_ERROR'],
+                                $arrEntry['entryId'],
+                                $langId
+                            ));
+                        }
+
+                        $firstField->MoveNext();
+                    }
+                }
+            }
+        }
     }
 }

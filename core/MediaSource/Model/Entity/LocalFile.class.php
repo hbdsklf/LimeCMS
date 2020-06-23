@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * @copyright   Cloudrexx AG
  * @author      Robin Glauser <robin.glauser@comvation.com>
@@ -37,12 +37,30 @@ namespace Cx\Core\MediaSource\Model\Entity;
 class LocalFile implements File
 {
     /**
+     * The path of the file with a leading directory separator
      * @var string
      */
-    private $file;
+    protected $file;
 
-    function __construct($file) {
-        $this->file = $file;
+    /**
+     * The file system instance this file belongs to
+     *
+     * @var \Cx\Core\MediaSource\Model\Entity\LocalFileSystem
+     */
+    protected $fileSystem;
+
+    public function __construct($file, $fileSystem) {
+        if (strpos($file, '/') === 0) {
+            $this->file = $file;
+        } else {
+            \DBG::msg(__METHOD__.": $file without leading slash supplied!");
+            $this->file = '/' . $file;
+        }
+        $this->fileSystem = $fileSystem;
+    }
+
+    public function getFileSystem() {
+        return $this->fileSystem;
     }
 
     public function getPath() {

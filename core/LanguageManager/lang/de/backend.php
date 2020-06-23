@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,15 +24,15 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
-/** 
+
+/**
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
  * @author      Cloudrexx Development Team <info@cloudrexx.com>
- * @access      public 
+ * @access      public
  * @package     cloudrexx
  * @subpackage  core_languagemanager
- */ 
-global $_ARRAYLANG; 
+ */
+global $_ARRAYLANG;
 $_ARRAYLANG['TXT_LANGUAGE_LIST'] = 'Überblick';
 $_ARRAYLANG['TXT_VARIABLE_LIST'] = 'Sprachvariablen Liste';
 $_ARRAYLANG['TXT_ADD_LANGUAGE_VARIABLES'] = 'Sprachvariable hinzufügen';
@@ -96,3 +96,6 @@ $_ARRAYLANG['TXT_LANGUAGE_ACTION_COPY'] = 'Inhalte der Fallbacksprache in diese 
 $_ARRAYLANG['TXT_LANGUAGE_ACTION_LINK'] = 'Inhalte der Fallbacksprache in diese Sprache verknüpfen';
 $_ARRAYLANG['TXT_COULD_NOT_WRITE_TO_FILE'] = 'Konnte nicht in Datei schreiben';
 $_ARRAYLANG['TXT_SUCCESSFULLY_EXPORTED_TO_FILES'] = 'Sprachvariablen wurden erfolgreich in Dateien exportiert.';
+$_ARRAYLANG['TXT_LANGUAGE_MANAGER_OK'] = 'Ok';
+$_ARRAYLANG['TXT_LANGUAGE_MANAGER_LABEL_LANG_REMOVAL'] = 'Bitte bestätigen Sie das Entfernen der Sprachdaten!';
+$_ARRAYLANG['TXT_LANGUAGE_MANAGER_LANG_REMOVAL_CONTENT'] = 'Sprachbezogene Daten der deaktivieren Sprachen in allen Anwendungen löschen.';

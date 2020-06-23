@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * Block
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
@@ -87,11 +87,18 @@ class BlockLibrary
      */
     var $_categoryNames = array();
 
+    protected $availableTargeting = array(
+        'country',
+    );
+
     /**
      * Constructor
      */
     function __construct()
     {
+        if (\Cx\Core\Core\Controller\Cx::instanciate()->getMode() != \Cx\Core\Core\Controller\Cx::MODE_COMMAND) {
+            return;
+        }
     }
 
 
@@ -128,7 +135,8 @@ class BlockLibrary
                                 `random_3`,
                                 `random_4`,
                                 `global`,
-                                `active`
+                                `active`,
+                                `direct`
                         FROM `%1$s`
                         # WHERE
                         %2$s
@@ -137,14 +145,14 @@ class BlockLibrary
             $objResult = $objDatabase->Execute(sprintf($query, DBPREFIX.'module_block_blocks',
                                                                $where));
             if ($objResult !== false) {
-                $this->_arrBlocks = array();                
-                
-                while (!$objResult->EOF) {  
+                $this->_arrBlocks = array();
+
+                while (!$objResult->EOF) {
                     $langArr          = array();
                     $objBlockLang = $objDatabase->Execute("SELECT lang_id FROM ".DBPREFIX."module_block_rel_lang_content WHERE block_id=".$objResult->fields['id']." AND `active` = 1 ORDER BY lang_id ASC");
-                    
+
                     if ($objBlockLang) {
-                        while (!$objBlockLang->EOF) {                        
+                        while (!$objBlockLang->EOF) {
                             $langArr[] = $objBlockLang->fields['lang_id'];
                             $objBlockLang->MoveNext();
 
@@ -161,6 +169,7 @@ class BlockLibrary
                         'random4'   => $objResult->fields['random_4'],
                         'global'    => $objResult->fields['global'],
                         'active'    => $objResult->fields['active'],
+                        'direct'    => $objResult->fields['direct'],
                         'name'      => $objResult->fields['name'],
                         'lang'      => array_unique($langArr),
                     );
@@ -255,9 +264,9 @@ class BlockLibrary
                         `end`               = ".intval($end).",
                         `random`            = ".intval($blockRandom).",
                         `random_2`          = ".intval($blockRandom2).",
-                        `random_3`          = ".intval($blockRandom3).", 
+                        `random_3`          = ".intval($blockRandom3).",
                         `random_4`          = ".intval($blockRandom4).",
-                        `wysiwyg_editor`    = ".intval($blockWysiwygEditor)." 
+                        `wysiwyg_editor`    = ".intval($blockWysiwygEditor)."
                   WHERE `id` = ".intval($id);
         if ($objDatabase->Execute($query) === false) {
             return false;
@@ -320,7 +329,7 @@ class BlockLibrary
     private function storeBlockContent($blockId, $arrContent, $arrLangActive)
     {
         global $objDatabase;
-        
+
         $arrPresentLang = array();
         $objResult = $objDatabase->Execute('SELECT lang_id FROM '.DBPREFIX.'module_block_rel_lang_content WHERE block_id='.$blockId);
         if ($objResult) {
@@ -330,7 +339,7 @@ class BlockLibrary
             }
         }
 
-        foreach ($arrContent as $langId => $content) {            
+        foreach ($arrContent as $langId => $content) {
             if (in_array($langId, $arrPresentLang)) {
                 $query = 'UPDATE `%1$s` SET %2$s WHERE `block_id` = %3$s AND `lang_id`='.intval($langId);
             } else {
@@ -343,11 +352,139 @@ class BlockLibrary
                                                    content='".contrexx_raw2db($content)."',
                                                    active='".intval((isset($arrLangActive[$langId]) ? $arrLangActive[$langId] : 0))."'",
                                                   $blockId));
-        }        
-        
+        }
+            \Cx\Core\Core\Controller\Cx::instanciate()->getComponent('Cache')->clearSsiCachePage(
+                'Block',
+                'getBlockContent',
+                array(
+                    'block' => $blockId,
+                )
+            );
+
         $objDatabase->Execute("DELETE FROM ".DBPREFIX."module_block_rel_lang_content WHERE block_id=".$blockId." AND lang_id NOT IN (".join(',', array_map('intval', array_keys($arrLangActive))).")");
     }
 
+    /**
+     * Get GeoIp component controller
+     *
+     * @return \Cx\Core_Modules\GeoIp\Controller\ComponentController
+     */
+    public function getGeoIpComponent()
+    {
+        $componentRepo = \Cx\Core\Core\Controller\Cx::instanciate()
+                            ->getDb()
+                            ->getEntityManager()
+                            ->getRepository('Cx\Core\Core\Model\Entity\SystemComponent');
+        $geoIpComponent = $componentRepo->findOneBy(array('name' => 'GeoIp'));
+        if (!$geoIpComponent) {
+            return null;
+        }
+        $geoIpComponentController = $geoIpComponent->getSystemComponentController();
+        if (!$geoIpComponentController) {
+            return null;
+        }
+
+        return $geoIpComponentController;
+    }
+
+    /**
+     * Verify targeting options for the given block Id
+     *
+     * @param integer $blockId Block id
+     *
+     * @return boolean True when all targeting options vaild, false otherwise
+     */
+    public function checkTargetingOptions($blockId)
+    {
+        $targeting = $this->loadTargetingSettings($blockId);
+
+        if (empty($targeting)) {
+            return true;
+        }
+
+        foreach ($targeting as $targetingType => $targetingSetting) {
+            switch ($targetingType) {
+                case 'country':
+                    if (!$this->checkTargetingCountry($targetingSetting['filter'], $targetingSetting['value'])) {
+                        return false;
+                    }
+                    break;
+                default :
+                    break;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Check Country targeting option
+     *
+     * @param string $filter      include => client country should exists in given country ids
+     *                            exclude => client country should not exists in given country ids
+     * @param array  $countryIds  Country ids to match
+     *
+     * @return boolean True when targeting country option matching to client country
+     *                 False otherwise
+     */
+    public function checkTargetingCountry($filter, $countryIds)
+    {
+        // getClient country using GeoIp component
+        $geoIpComponentController = $this->getGeoIpComponent();
+        if (!$geoIpComponentController) {
+            return false;
+        }
+
+        $clientRecord = $geoIpComponentController->getClientRecord();
+        if (!$clientRecord) {
+            return false;
+        }
+        $clientCountryAlpha2 = $clientRecord->country->isoCode;
+        $clientCountryId     = \Cx\Core\Country\Controller\Country::getIdByAlpha2($clientCountryAlpha2);
+
+        $isCountryExists = in_array($clientCountryId, $countryIds);
+        if ($filter == 'include') {
+            return $isCountryExists;
+        } else {
+            return !$isCountryExists;
+        }
+    }
+
+    /**
+     * Load Targeting settings
+     *
+     * @param integer $blockId Content block id
+     *
+     * @return array Settings array
+     */
+    public function loadTargetingSettings($blockId)
+    {
+        global $objDatabase;
+
+        $query = 'SELECT
+                    `filter`,
+                    `type`,
+                    `value`
+                  FROM
+                    `'. DBPREFIX .'module_block_targeting_option`
+                  WHERE
+                    `block_id` = "'. contrexx_raw2db($blockId) .'"
+                 ';
+        $targeting = $objDatabase->Execute($query);
+        if (!$targeting) {
+            return array();
+        }
+
+        $targetingArr = array();
+        while (!$targeting->EOF) {
+            $targetingArr[$targeting->fields['type']] = array(
+                'filter' => $targeting->fields['filter'],
+                'value'  => json_decode($targeting->fields['value'])
+            );
+            $targeting->MoveNext();
+        }
+
+        return $targetingArr;
+    }
 
     /**
     * Get block
@@ -422,11 +559,11 @@ class BlockLibrary
         }
         return $arrPageIds;
     }
-    
+
     function _getBlocksForPageId($pageId)
     {
         global $objDatabase;
-        
+
         $arrBlocks = array();
         $objResult = $objDatabase->Execute('
             SELECT
@@ -476,7 +613,7 @@ class BlockLibrary
         }
         return $arrBlocks;
     }
-    
+
     function _setBlocksForPageId($pageId, $blockIds) {
         global $objDatabase;
 
@@ -530,52 +667,71 @@ class BlockLibrary
     * Parse the block with the id $id
     *
     * @access private
-    * @param integer $id
+    * @param integer $id Block ID
     * @param string &$code
     * @param int $pageId
     * @global ADONewConnection
     * @global integer
     */
-    function _setBlock($id, &$code, $pageId)
+    function _setBlock($id, &$code, $pageId = 0)
     {
-        global $objDatabase;
-
         $now = time();
-        $query = "  SELECT
-                        tblContent.content
-                    FROM
-                        ".DBPREFIX."module_block_blocks AS tblBlock,
-                        ".DBPREFIX."module_block_rel_lang_content AS tblContent
-                    WHERE
-                        tblBlock.id = ".intval($id)."
-                    AND (tblBlock.`direct` = 0 OR
-                        (SELECT count(1) FROM `" . DBPREFIX . "module_block_rel_pages` AS tblRel
-                            WHERE tblRel.`page_id` = " . intval($pageId) . " AND tblRel.`block_id` = tblBlock.`id`
-                                AND tblRel.`placeholder` = 'direct') > 0)
-                    AND
-                        tblContent.block_id = tblBlock.id
-                    AND
-                        (tblContent.lang_id = ".FRONTEND_LANG_ID." AND tblContent.active = 1)
-                    AND (tblBlock.`start` <= $now OR tblBlock.`start` = 0)
-                    AND (tblBlock.`end` >= $now OR tblBlock.end = 0)
-                    AND
-                        tblBlock.active = 1";
 
-        $objRs = $objDatabase->Execute($query);
-
-        if ($objRs !== false) {
-            if ($objRs->RecordCount()) {
-                $content = $objRs->fields['content'];
-                \LinkGenerator::parseTemplate($content);
-                
-                $em = \Env::get('cx')->getDb()->getEntityManager();
-                $systemComponentRepo = $em->getRepository('Cx\Core\Core\Model\Entity\SystemComponent');
-                $frontendEditingComponent = $systemComponentRepo->findOneBy(array('name' => 'FrontendEditing'));
-                
-                $frontendEditingComponent->prepareBlock($id, $content);
-                $code = str_replace("{".$this->blockNamePrefix.$id."}", $content, $code);
-            }
+        $activeFilter = '
+            AND (
+                tblBlock.`start` <= ' . $now . '
+                OR tblBlock.`start` = 0
+            )
+            AND (
+                tblBlock.`end` >= ' . $now . '
+                OR tblBlock.end = 0
+            )
+            AND
+                tblBlock.active = 1
+        ';
+        // Note: This is a workaround as content panes are no real widgets yet.
+        //
+        // In case the frontend editing is not in use
+        // then we can always load the content pane.
+        // The JsonData adapter will then decide if the content pane is active or not.
+        // The check for frontend editing is required, as otherwise the frontend editing
+        // would inject an empty DIV element in  case the content pane is inactive.
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        if (!$cx->getComponent('FrontendEditing')->frontendEditingIsActive(false, false)) {
+            $activeFilter = '';
         }
+        // End of workaround
+
+        $this->replaceBlocks(
+            $this->blockNamePrefix . $id,
+            '
+                SELECT
+                    tblBlock.id
+                FROM
+                    ' . DBPREFIX . 'module_block_blocks AS tblBlock,
+                    ' . DBPREFIX . 'module_block_rel_lang_content AS tblContent
+                WHERE
+                    tblBlock.id = ' . intval($id) . '
+                    AND (
+                        tblBlock.`direct` = 0
+                        OR (
+                            SELECT
+                                count(1)
+                            FROM
+                                `' . DBPREFIX . 'module_block_rel_pages` AS tblRel
+                            WHERE
+                                tblRel.`page_id` = ' . intval($pageId) . '
+                                AND tblRel.`block_id` = tblBlock.`id`
+                                AND tblRel.`placeholder` = "direct") > 0
+                        )
+                    AND tblContent.block_id = tblBlock.id
+                    AND (
+                        tblContent.lang_id = ' . FRONTEND_LANG_ID . '
+                        AND tblContent.active = 1
+                    )' . $activeFilter,
+            $pageId,
+            $code
+        );
     }
 
     /**
@@ -584,54 +740,79 @@ class BlockLibrary
     * Parse the category block with the id $id
     *
     * @access private
-    * @param integer $id
+    * @param integer $id Category ID
     * @param string &$code
     * @param int $pageId
     * @global ADONewConnection
     * @global integer
     */
-    function _setCategoryBlock($id, &$code, $pageId)
+    function _setCategoryBlock($id, &$code, $pageId = 0)
     {
-        global $objDatabase;
-
         $category = $this->_getCategory($id);
-        $seperator = $category['seperator'];
+        $separator = $category['seperator'];
 
         $now = time();
-        $objResult = $objDatabase->Execute("SELECT tblBlock.id, tblContent.content FROM
-                                                `" . DBPREFIX . "module_block_blocks` AS tblBlock
-                                            INNER JOIN `" . DBPREFIX . "module_block_rel_lang_content` AS tblContent
-                                                ON tblBlock.id = tblContent.block_id
-                                            WHERE tblBlock.`cat` = ?
-                                                AND (tblBlock.`category` = 0 OR
-                                                        (SELECT count(1) FROM `" . DBPREFIX . "module_block_rel_pages` AS tblRel
-                                                            WHERE tblRel.`page_id` = " . intval($pageId) . " AND tblRel.`block_id` = tblBlock.`id`
-                                                                AND tblRel.`placeholder` = 'category') > 0)
-                                                AND tblBlock.`active` = 1
-                                                AND (tblBlock.`start` <= $now OR tblBlock.`start` = 0)
-                                                AND (tblBlock.`end` >= $now OR tblBlock.`end` = 0)
-                                                AND (tblContent.lang_id = " . FRONTEND_LANG_ID . " AND tblContent.active = 1)
-                                            ORDER BY tblBlock.`order`", array($id));
 
-        $content = array();
-        
-        $em = \Env::get('cx')->getDb()->getEntityManager();
-        $systemComponentRepo = $em->getRepository('Cx\Core\Core\Model\Entity\SystemComponent');
-        $frontendEditingComponent = $systemComponentRepo->findOneBy(array('name' => 'FrontendEditing'));
-        
-        if ($objResult !== false && $objResult->RecordCount() > 0) {
-            while(!$objResult->EOF) {
-                $blockContent = $objResult->fields['content'];
-                $frontendEditingComponent->prepareBlock($objResult->fields['id'], $blockContent);
-                $content[] = $blockContent;
-                $objResult->MoveNext();
-            }
+        $activeFilter = '
+            AND tblBlock.`active` = 1
+            AND (tblBlock.`start` <= ' . $now . ' OR tblBlock.`start` = 0)
+            AND (tblBlock.`end` >= ' . $now . ' OR tblBlock.`end` = 0)
+        ';
+        // Note: This is a workaround as content panes are no real widgets yet.
+        //
+        // In case the frontend editing is not in use and there
+        // is no content pane separator for the category defined,
+        // then we can load all content panes into the template at once.
+        // The JsonData adapter will then decide which content panes to display and
+        // which not.
+        // The check for frontend editing is required, as otherwise the frontend editing
+        // would inject empty DIV elements for non-active content panes.
+        // The check for the content pane separator is required, as otherwise
+        // the system would output the separator for each non-active content pane.
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        if (
+            !$cx->getComponent('FrontendEditing')->frontendEditingIsActive(false, false) &&
+            $separator == ''
+        ) {
+            $activeFilter = '';
         }
-        $content = implode($seperator, $content);
-        \LinkGenerator::parseTemplate($content);
-        $code = str_replace("{".$this->blockNamePrefix."CAT_".$id."}", $content, $code);
-    }
+        // End of workaround
 
+        $this->replaceBlocks(
+            $this->blockNamePrefix . 'CAT_' . $id,
+            '
+                SELECT
+                    tblBlock.id
+                FROM
+                    `' . DBPREFIX . 'module_block_blocks` AS tblBlock
+                INNER JOIN
+                    `' . DBPREFIX . 'module_block_rel_lang_content` AS tblContent
+                ON
+                    tblBlock.id = tblContent.block_id
+                WHERE
+                    tblBlock.`cat` = ' . $id . '
+                    AND (
+                        tblBlock.`category` = 0
+                        OR (
+                            SELECT
+                                count(1)
+                            FROM
+                                `' . DBPREFIX . 'module_block_rel_pages` AS tblRel
+                            WHERE
+                                tblRel.`page_id` = ' . intval($pageId) . '
+                                AND tblRel.`block_id` = tblBlock.`id`
+                                AND tblRel.`placeholder` = "category") > 0
+                        )
+                    ' . $activeFilter . '
+                    AND (tblContent.lang_id = ' . FRONTEND_LANG_ID . ' AND tblContent.active = 1)
+                ORDER BY
+                    tblBlock.`order`
+            ',
+            $pageId,
+            $code,
+            $separator
+        );
+    }
 
     /**
     * Set block Global
@@ -644,70 +825,108 @@ class BlockLibrary
     * @global ADONewConnection
     * @global integer
     */
-    function _setBlockGlobal(&$code, $pageId)
+    function _setBlockGlobal(&$code, $pageId = 0)
     {
         global $objDatabase;
 
-        $objResult = $objDatabase->Execute("SELECT  value
-                                            FROM    ".DBPREFIX."module_block_settings
-                                            WHERE   name='blockGlobalSeperator'
-                                            LIMIT   1
-                                            ");
+        // fetch separator
+        $separator = '';
+        $objResult = $objDatabase->Execute(
+            '
+                SELECT
+                    `value`
+                FROM
+                    `' . DBPREFIX . 'module_block_settings`
+                WHERE
+                    `name` = "blockGlobalSeperator"
+                LIMIT
+                    1
+            '
+        );
         if ($objResult !== false) {
-            $seperator  = $objResult->fields['value'];
+            $separator = $objResult->fields['value'];
         }
 
         $now = time();
-        $query = "
-                SELECT tblBlock.`id` AS `id`,
-                       tblContent.`content` AS `content`,
-                       tblBlock.`order`
-                  FROM ".DBPREFIX."module_block_blocks AS tblBlock
-            INNER JOIN ".DBPREFIX."module_block_rel_lang_content AS tblContent
-                    ON tblContent.`block_id` = tblBlock.`id` 
-            INNER JOIN ".DBPREFIX."module_block_rel_pages AS tblPage
-                    ON tblPage.`block_id` = tblBlock.`id`
-                 WHERE tblBlock.`global` = 2
-                   AND tblPage.page_id = ".intval($pageId)."
-                   AND tblContent.`lang_id` = ".FRONTEND_LANG_ID."
-                   AND tblContent.`active` = 1
-                   AND tblBlock.active=1
-                   AND tblPage.placeholder = 'global'
-                   AND (tblBlock.`start` <= $now OR tblBlock.`start` = 0)
-                   AND (tblBlock.`end` >= $now OR tblBlock.end = 0)
-        UNION DISTINCT
-                SELECT tblBlock.`id` AS `id`,
-                       tblContent.`content` AS `content`,
-                       tblBlock.`order`
-                  FROM ".DBPREFIX."module_block_blocks AS tblBlock
-            INNER JOIN ".DBPREFIX."module_block_rel_lang_content AS tblContent
-                    ON tblContent.`block_id` = tblBlock.`id` 
-                 WHERE tblBlock.`global` = 1
-                   AND tblContent.`lang_id` = ".FRONTEND_LANG_ID."
-                   AND tblContent.`active` = 1
-                   AND tblBlock.active=1
-                   AND (tblBlock.`start` <= $now OR tblBlock.`start` = 0)
-                   AND (tblBlock.`end` >= $now OR tblBlock.end = 0)
-              ORDER BY `order`";
 
-        $objResult = $objDatabase->Execute($query);
-        $block = '';
-        
-        $em = \Env::get('cx')->getDb()->getEntityManager();
-        $systemComponentRepo = $em->getRepository('Cx\Core\Core\Model\Entity\SystemComponent');
-        $frontendEditingComponent = $systemComponentRepo->findOneBy(array('name' => 'FrontendEditing'));
-        if ($objResult !== false) {
-            while (!$objResult->EOF) {
-                $blockContent = $objResult->fields['content'];
-                $frontendEditingComponent->prepareBlock($objResult->fields['id'], $blockContent);
-                
-                $block .= $blockContent.$seperator;
-                $objResult->MoveNext();
-            }
+        $activeFilter = '
+            AND tblBlock.active = 1
+            AND (
+                tblBlock.`start` <= ' . $now . '
+                OR tblBlock.`start` = 0
+            )
+            AND (
+                tblBlock.`end` >= ' . $now . '
+                OR tblBlock.end = 0
+            )
+        ';
+        // Note: This is a workaround as content panes are no real widgets yet.
+        //
+        // In case the frontend editing is not in use and there
+        // is no content pane separator for the global content pane defined,
+        // then we can load all content panes into the template at once.
+        // The JsonData adapter will then decide which content panes to display and
+        // which not.
+        // The check for frontend editing is required, as otherwise the frontend editing
+        // would inject empty DIV elements for non-active content panes.
+        // The check for the content pane separator is required, as otherwise
+        // the system would output the separator for each non-active content pane.
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        if (
+            !$cx->getComponent('FrontendEditing')->frontendEditingIsActive(false, false) &&
+            $separator == ''
+        ) {
+            $activeFilter = '';
         }
-
-        \LinkGenerator::parseTemplate($block);
-        $code = str_replace("{".$this->blockNamePrefix."GLOBAL}", $block, $code);
+        // End of workaround
+        
+        $this->replaceBlocks(
+            $this->blockNamePrefix . 'GLOBAL',
+            '
+                SELECT
+                    `tblBlock`.`id` AS `id`,
+                    `tblContent`.`content` AS `content`,
+                    `tblBlock`.`order`
+                FROM
+                    ' . DBPREFIX . 'module_block_blocks AS tblBlock
+                INNER JOIN
+                    ' . DBPREFIX . 'module_block_rel_lang_content AS tblContent
+                ON
+                    tblContent.`block_id` = tblBlock.`id` 
+                INNER JOIN
+                    ' . DBPREFIX . 'module_block_rel_pages AS tblPage
+                ON
+                    tblPage.`block_id` = tblBlock.`id`
+                WHERE
+                    tblBlock.`global` = 2
+                    AND tblPage.page_id = ' . intval($pageId) . '
+                    AND tblContent.`lang_id` = ' . FRONTEND_LANG_ID . '
+                    AND tblContent.`active` = 1
+                    AND tblPage.placeholder = "global"
+                    ' . $activeFilter . '
+                UNION DISTINCT
+                    SELECT
+                        tblBlock.`id` AS `id`,
+                        tblContent.`content` AS `content`,
+                        tblBlock.`order`
+                    FROM
+                        ' . DBPREFIX . 'module_block_blocks AS tblBlock
+                    INNER JOIN
+                        ' . DBPREFIX . 'module_block_rel_lang_content AS tblContent
+                    ON
+                        tblContent.`block_id` = tblBlock.`id` 
+                    WHERE
+                        tblBlock.`global` = 1
+                        AND tblContent.`lang_id` = ' . FRONTEND_LANG_ID . '
+                        AND tblContent.`active` = 1
+                        ' . $activeFilter . '
+                ORDER BY
+                    `order`
+            ',
+            $pageId,
+            $code,
+            $separator
+        );
     }
 
     /**
@@ -721,10 +940,15 @@ class BlockLibrary
     * @global ADONewConnection
     * @global integer
     */
-    function _setBlockRandom(&$code, $id)
+    function _setBlockRandom(&$code, $id, $pageId = 0)
     {
         global $objDatabase;
 
+        // Note: known issue:
+        // as content panes are not real widgets, the random block does not properly
+        // take into account if a content page is active or not
+        // Unfortunately, this issue can't be fixed with the current implementation
+        // This issue will be fixed once the content panes have been migrated to widgets
         $now = time();
         $query = "  SELECT
                         tblBlock.id
@@ -741,50 +965,154 @@ class BlockLibrary
                         tblBlock.active = 1 ";
 
         //Get Block Name and Status
-        switch($id) {
+        switch ($id) {
             case '1':
-                $objBlockName   = $objDatabase->Execute($query."AND tblBlock.random=1");
+                $query .= "AND tblBlock.random=1";
                 $blockNr        = "";
                 break;
             case '2':
-                $objBlockName   = $objDatabase->Execute($query."AND tblBlock.random_2=1");
+                $query .= "AND tblBlock.random_2=1";
                 $blockNr        = "_2";
                 break;
             case '3':
-                $objBlockName = $objDatabase->Execute($query."AND tblBlock.random_3=1");
+                $query .= "AND tblBlock.random_3=1";
                 $blockNr        = "_3";
                 break;
             case '4':
-                $objBlockName = $objDatabase->Execute($query."AND tblBlock.random_4=1");
+                $query .= "AND tblBlock.random_4=1";
                 $blockNr        = "_4";
                 break;
         }
 
+        $this->replaceBlocks(
+            $this->blockNamePrefix . 'RANDOMIZER' . $blockNr,
+            $query,
+            $pageId,
+            $code,
+            '',
+            true
+        );
+    }
 
-        if ($objBlockName !== false && $objBlockName->RecordCount() > 0) {
+    /**
+     * Replaces a placeholder with block content
+     * @param string $placeholderName Name of placeholder to replace
+     * @param string $query SQL query used to fetch blocks
+     * @param int $pageId ID of the current page, 0 if no page available
+     * @param string $code (by reference) Code to replace placeholder in
+     * @param string $separator (optional) Separator used to separate the blocks
+     * @param boolean $randomize (optional) Wheter to randomize the blocks or not, default false
+     */
+    protected function replaceBlocks($placeholderName, $query, $pageId, &$code, $separator = '', $randomize = false) {
+        global $objDatabase;
 
-            while (!$objBlockName->EOF) {
-                $arrActiveBlocks[] = $objBlockName->fields['id'];
-                $objBlockName->MoveNext();
+        // find all block IDs to parse
+        $objResult = $objDatabase->Execute($query);
+        $blockIds = array();
+        if ($objResult === false || $objResult->RecordCount() <= 0) {
+            // drop empty placeholders
+            $code = str_replace('{' . $placeholderName . '}', '', $code);
+            return;
+        }
+        while(!$objResult->EOF) {
+            if (!$this->checkTargetingOptions($objResult->fields['id'])) {
+                $objResult->MoveNext();
+                continue;
             }
-
-            $ranId = $arrActiveBlocks[@array_rand($arrActiveBlocks, 1)];
-
-            $objBlock = $objDatabase->SelectLimit("SELECT content FROM ".DBPREFIX."module_block_rel_lang_content WHERE block_id=".$ranId." AND lang_id=".FRONTEND_LANG_ID, 1);
-            if ($objBlock !== false) {
-                $em = \Env::get('cx')->getDb()->getEntityManager();
-                $systemComponentRepo = $em->getRepository('Cx\Core\Core\Model\Entity\SystemComponent');
-                $frontendEditingComponent = $systemComponentRepo->findOneBy(array('name' => 'FrontendEditing'));
-                
-                $content = $objBlock->fields['content'];
-                $frontendEditingComponent->prepareBlock($objBlockName->fields['id'], $content);
-                \LinkGenerator::parseTemplate($content);
-                $code = str_replace("{".$this->blockNamePrefix."RANDOMIZER".$blockNr."}", $content, $code);
-                return true;
-            }
+            $blockIds[] = $objResult->fields['id'];
+            $objResult->MoveNext();
         }
 
-        return false;
+        // parse
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $em = $cx->getDb()->getEntityManager();
+        $systemComponentRepo = $em->getRepository('Cx\Core\Core\Model\Entity\SystemComponent');
+        $frontendEditingComponent = $systemComponentRepo->findOneBy(array('name' => 'FrontendEditing'));
+        $settings = $this->getSettings();
+
+        if ($randomize) {
+            $esiBlockInfos = array();
+            foreach ($blockIds as $blockId) {
+                $esiBlockInfos[] = array(
+                    'Block',
+                    'getBlockContent',
+                    array(
+                        'block' => $blockId,
+                        'lang' => \FWLanguage::getLanguageCodeById(FRONTEND_LANG_ID),
+                        'page' => $pageId,
+                    )
+                );
+            }
+            $blockContent = $cx->getComponent('Cache')->getRandomizedEsiContent(
+                $esiBlockInfos
+            );
+            $frontendEditingComponent->prepareBlock(
+                $blockId,
+                $blockContent
+            );
+            $content = $blockContent;
+        } else {
+            $contentList = array();
+            foreach ($blockIds as $blockId) {
+                $blockContent = $cx->getComponent('Cache')->getEsiContent(
+                    'Block',
+                    'getBlockContent',
+                    array(
+                        'block' => $blockId,
+                        'lang' => \FWLanguage::getLanguageCodeById(FRONTEND_LANG_ID),
+                        'page' => $pageId,
+                    )
+                );
+                $frontendEditingComponent->prepareBlock(
+                    $blockId,
+                    $blockContent
+                );
+                $contentList[] = $blockContent;
+            }
+            $content = implode($separator, $contentList);
+        }
+
+        if (!empty($settings['markParsedBlock'])) {
+            $content = "<!-- start $placeholderName -->$content<!-- end $placeholderName -->";
+        }
+
+        $code = str_replace('{' . $placeholderName . '}', $content, $code);
+    }
+
+    /**
+     * Get the settings from database
+     *
+     * @staticvar array $settings settings array
+     *
+     * @return array settings array
+     */
+    public function getSettings()
+    {
+
+        static $settings = array();
+        if (!empty($settings)) {
+            return $settings;
+        }
+
+        $query = '
+            SELECT
+                `name`,
+                `value`
+            FROM
+                `'. DBPREFIX .'module_block_settings`';
+        $setting = \Cx\Core\Core\Controller\Cx::instanciate()
+                    ->getDb()
+                    ->getAdoDb()
+                    ->Execute($query);
+        if ($setting === false) {
+            return array();
+        }
+        while (!$setting->EOF) {
+            $settings[$setting->fields['name']] = $setting->fields['value'];
+            $setting->MoveNext();
+        }
+
+        return $settings;
     }
 
     /**
@@ -798,7 +1126,7 @@ class BlockLibrary
         \Cx\Core\Setting\Controller\Setting::init('Config', 'component','Yaml');
         if (isset($arrSettings['blockStatus'])) {
             if (!\Cx\Core\Setting\Controller\Setting::isDefined('blockStatus')) {
-                \Cx\Core\Setting\Controller\Setting::add('blockStatus', $arrSettings['blockStatus'], 1, 
+                \Cx\Core\Setting\Controller\Setting::add('blockStatus', $arrSettings['blockStatus'], 1,
                 \Cx\Core\Setting\Controller\Setting::TYPE_RADIO, '1:TXT_ACTIVATED,0:TXT_DEACTIVATED', 'component');
             } else {
                 \Cx\Core\Setting\Controller\Setting::set('blockStatus', $arrSettings['blockStatus']);
@@ -807,7 +1135,7 @@ class BlockLibrary
         }
         if (isset($arrSettings['blockRandom'])) {
             if (!\Cx\Core\Setting\Controller\Setting::isDefined('blockRandom')) {
-                \Cx\Core\Setting\Controller\Setting::add('blockRandom', $arrSettings['blockRandom'], 1, 
+                \Cx\Core\Setting\Controller\Setting::add('blockRandom', $arrSettings['blockRandom'], 1,
                 \Cx\Core\Setting\Controller\Setting::TYPE_RADIO, '1:TXT_ACTIVATED,0:TXT_DEACTIVATED', 'component');
             } else {
                 \Cx\Core\Setting\Controller\Setting::set('blockRandom', $arrSettings['blockRandom']);

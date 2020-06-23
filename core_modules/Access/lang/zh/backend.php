@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
  * @author      Cloudrexx Development Team <info@cloudrexx.com>
@@ -196,7 +196,6 @@ $_ARRAYLANG['TXT_ACCESS_OTHER_PICTURES'] = "Sonstige Bilder";
 $_ARRAYLANG['TXT_ACCESS_OVERVIEW'] = "Übersicht";
 $_ARRAYLANG['TXT_ACCESS_PARENT_ATTRIBUTE'] = "Übergeordnete Eigenschaft";
 $_ARRAYLANG['TXT_ACCESS_PASSWORD_FIELD_EMPTY'] = "Wenn Sie das Kennwortfeld leer lassen, wird das aktuelle Kennwort beibehalten!";
-$_ARRAYLANG['TXT_ACCESS_PASSWORD_MD5_ENCRYPTED'] = "";
 $_ARRAYLANG['TXT_ACCESS_PASSWORD_MINIMAL_CHARACTERS'] = "The password must be at least 6 characters long.<br /><br />The complexity requirement can be enabled in the global configuration.";
 $_ARRAYLANG['TXT_ACCESS_PASSWORD_MINIMAL_CHARACTERS_WITH_COMPLEXITY'] = "The password must be at least 6 characters long as well as contain at least one upper and one lower case character and one number.<br /><br />The complexity requirement can be disabled in the global configuration.";
 $_ARRAYLANG['TXT_ACCESS_PERMISSIONS'] = "Berechtigungen";

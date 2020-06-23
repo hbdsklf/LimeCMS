@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * DoctrineTestCase
  *
@@ -49,15 +49,15 @@ namespace Cx\Core\Test\Model\Entity;
 abstract class DoctrineTestCase extends ContrexxTestCase {
     protected static $em;
 
-    public static function setUpBeforeClass() {        
+    public static function setUpBeforeClass(): void {
         self::$em = \Env::get('em');
     }
 
-    public function setUp() {
+    public function setUp(): void {
         self::$em->getConnection()->beginTransaction();
     }
 
-    public function tearDown() {
-        self::$em->getConnection()->rollback();        
+    public function tearDown(): void {
+        self::$em->getConnection()->rollback();
     }
 }

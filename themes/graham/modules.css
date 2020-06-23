@@ -248,7 +248,7 @@ table tr.marketRow2 {
 table tr.row2,
 table tr.marketRow3 {
     background-color: #F6F6F6;
-    padding: 0;    
+    padding: 0;
 }
 #tagelement td {
     float: left;
@@ -2507,6 +2507,15 @@ td ul {
 #media_div div.message_ok {
     color: #029202;
 }
+#media_div .mediaSearchForm {
+    float: left;
+    width: 100%;
+    padding-bottom: 20px;
+}
+#media_div .mediaSearchForm .mediaButtonSearch {
+    float: left;
+    width: auto !important;
+}
 /***************************************/
 /* CSS DEFINITIONS FOR CHECKOUT MODULE */
 /***************************************/
@@ -2637,7 +2646,7 @@ td ul {
     z-index: 9999;
     color: #25556d;
 }
-.noCaption {   
+.noCaption {
     float: left;
 }
 #news-social-media li {

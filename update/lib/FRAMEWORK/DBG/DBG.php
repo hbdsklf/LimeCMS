@@ -76,7 +76,7 @@ DBG::deactivate();
  * @version     3.0.0
  * @since       2.1.3
  * @package     cloudrexx
- * @subpackage	lib_dbg
+ * @subpackage    lib_dbg
  */
 class DBG
 {
@@ -329,16 +329,17 @@ class DBG
         while (file_exists($file.$suffix)) {
             $suffix = '.'.++$nr;
         }*/
-		if ($file == 'php://output') {
-			self::$dbg_fh = fopen($file, $mode);
+        if ($file == 'php://output') {
+            self::$dbg_fh = fopen($file, $mode);
             if (self::$dbg_fh) {
                 return true;
             } else {
                 return false;
             }
-		} elseif (class_exists('\Cx\Lib\FileSystem\File')) {
+        } elseif (class_exists('\Cx\Lib\FileSystem\File')) {
             try {
                 self::$dbg_fh = new \Cx\Lib\FileSystem\File(ASCMS_DOCUMENT_ROOT.'/update/'.$file.$suffix);
+                self::$dbg_fh->forceAccessMode(\Cx\Lib\FileSystem\File::PHP_ACCESS);
                 self::$dbg_fh->touch();
                 if (self::$dbg_fh->makeWritable()) {
                     return true;
@@ -557,7 +558,7 @@ class DBG
             self::_log('DUMP:   '.$out);
         }
     }
-    
+
     private static function _escapeDoctrineDump(&$val)
     {
         if ($val instanceof \Cx\Model\Base\EntityBase) {
@@ -690,7 +691,7 @@ class DBG
         } elseif (self::$log_file) {
             // this constant might not exist when updating from older versions
             if (defined('ASCMS_DATE_FORMAT_INTERNATIONAL_DATETIME')) {
-                $dateFormat = ASCMS_DATE_FORMAT_INTERNATIONAL_DATETIME;	
+                $dateFormat = ASCMS_DATE_FORMAT_INTERNATIONAL_DATETIME;
             } else {
                 $dateFormat = 'Y-m-d H:i:s';
             }
@@ -788,4 +789,3 @@ function DBG_log_adodb($msg)
     $sql = preg_replace('#^\(mysql\):\s*#', '', $msg);
     DBG::logSQL($sql);
 }
-

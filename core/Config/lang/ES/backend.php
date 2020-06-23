@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,15 +24,15 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
-/** 
+
+/**
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
  * @author      Cloudrexx Development Team <info@cloudrexx.com>
- * @access      public 
+ * @access      public
  * @package     cloudrexx
  * @subpackage  core_config
- */ 
-global $_ARRAYLANG; 
+ */
+global $_ARRAYLANG;
 $_ARRAYLANG['TXT_SETTINGS_MENU_SYSTEM'] = 'Sistema';
 $_ARRAYLANG['TXT_SETTINGS_MENU_CACHE'] = 'Cach&eacute;';
 $_ARRAYLANG['TXT_EMAIL_SERVER'] = 'E-mail server';
@@ -80,7 +80,6 @@ $_ARRAYLANG['TXT_CORE_CONFIG_SESSIONLIFETIME_TOOLTIP_HELP'] = 'Duraci&oacute;n d
 $_ARRAYLANG['TXT_CORE_CONFIG_SESSIONLIFETIMEREMEMBERME'] = 'Session length (remember me)';
 $_ARRAYLANG['TXT_CORE_CONFIG_SESSIONLIFETIMEREMEMBERME_TOOLTIP_HELP'] = 'Session length in seconds for users which have set the checkbox "Remember me" at login.';
 $_ARRAYLANG['TXT_CORE_CONFIG_DNSSERVER'] = 'Servidor DNS';
-$_ARRAYLANG['TXT_CORE_CONFIG_DNSSERVER_TOOLTIP_HELP'] = 'Para poder guardar escaneos MX, se requieren las DNS ((servidor de nombres del dominio).';
 $_ARRAYLANG['TXT_CORE_CONFIG_COREADMINNAME'] = 'Nombre de los Administradores';
 $_ARRAYLANG['TXT_CORE_CONFIG_COREADMINEMAIL'] = 'Email del administrador';
 $_ARRAYLANG['TXT_CORE_CONFIG_CONTACTFORMEMAIL'] = 'Direcci&oacute;n de email para formulario de contacto (predeterminado)';

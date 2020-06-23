@@ -98,7 +98,10 @@ class Egov extends EgovLibrary
 
         $product_id = intval($_REQUEST['id']);
         $datum_db = date('Y-m-d H:i:s');
-        $ip_adress = $_SERVER['REMOTE_ADDR'];
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $ip_adress = $cx->getComponent(
+            'Stats'
+        )->getCounterInstance()->getUniqueUserId();
 
         $arrFields = self::getFormFields($product_id);
         $FormValue = '';
@@ -106,42 +109,51 @@ class Egov extends EgovLibrary
             $FormValue .= $arrField['name'].'::'.strip_tags(contrexx_addslashes($_REQUEST['contactFormField_'.$fieldId])).';;';
         }
 
-        $quantity = (isset ($_REQUEST['contactFormField_Quantity'])
-            ? intval($_REQUEST['contactFormField_Quantity'])
+        $quantity = (isset ($_POST['contactFormField_Quantity'])
+            ? contrexx_input2int($_POST['contactFormField_Quantity'])
             : 0);
         $product_amount = self::GetProduktValue('product_price', $product_id);
+        $reservationDateFormat = '0000-00-00';
         if (self::GetProduktValue('product_per_day', $product_id) == 'yes') {
             if ($quantity <= 0) {
                 return 'alert("'.$_ARRAYLANG['TXT_EGOV_SPECIFY_COUNT'].'");history.go(-1);';
             }
-            $FormValue = self::GetSettings('set_calendar_date_label').'::'.strip_tags(contrexx_addslashes($_REQUEST['contactFormField_1000'])).';;'.$FormValue;
+            $reservationDate = isset($_POST['contactFormField_1000'])? contrexx_input2raw($_POST['contactFormField_1000']): '';
+            $FormValue = self::GetSettings('set_calendar_date_label').'::'.$reservationDate.';;'.$FormValue;
             $FormValue = $_ARRAYLANG['TXT_EGOV_QUANTITY'].'::'.$quantity.';;'.$FormValue;
+            list ($day, $month, $year) = explode('.', $reservationDate);
+            $reservationDateFormat = date('Y-m-d', mktime(0, 0, 0, $month, $day, $year));
         }
 
         $objDatabase->Execute("
             INSERT INTO ".DBPREFIX."module_egov_orders (
-                order_date, order_ip, order_product, order_values
+                order_date, order_ip, order_product, order_values, order_reservation_date, order_quant
             ) VALUES (
-                '$datum_db', '$ip_adress', '$product_id', '$FormValue'
+                '$datum_db', '$ip_adress', '$product_id', '".contrexx_raw2db($FormValue)."', '$reservationDateFormat', '".contrexx_raw2db($quantity)."'
             )");
         $order_id = $objDatabase->Insert_ID();
         if (self::GetProduktValue('product_per_day', $product_id) == 'yes') {
-            list ($calD, $calM, $calY) = explode('[.]', $_REQUEST['contactFormField_1000']);
+            list ($calD, $calM, $calY) = explode('.', contrexx_input2raw($_REQUEST['contactFormField_1000']));
             for($x = 0; $x < $quantity; ++$x) {
                 $objDatabase->Execute("
                     INSERT INTO ".DBPREFIX."module_egov_product_calendar (
                         calendar_product, calendar_order, calendar_day,
                         calendar_month, calendar_year
                     ) VALUES (
-                        '$product_id', '$order_id', '$calD',
-                        '$calM', '$calY'
+                        '$product_id', '$order_id', '".intval($calD)."',
+                        '".intval($calM)."', '".intval($calY)."'
                     )
                 ");
             }
         }
 
         $ReturnValue = '';
-        $newStatus = 1;
+        $autoStatus = self::GetProduktValue('product_autostatus', $product_id);
+        // $autoStatus == MANUAL => ERLEDIGT (Note: updateOrder() will recheck $autoStatus and will not update the order_state in case $autoStatus is set to MANUAL => order_state will be left to NEW)
+        // $autoStatus == AUTOMATIC => ERLEDIG
+        // $autoStatus == ELECTRO => ERLEDIGT
+        // $autoStatus == RESERVATION => RESERVATION
+        $newStatus  = $autoStatus == 3 ? 4 : 1;
         // Handle any kind of payment request
         if (!empty($_REQUEST['handler'])) {
             $ReturnValue = $this->payment($order_id, $product_amount);
@@ -220,34 +232,25 @@ class Egov extends EgovLibrary
             if (empty($replyAddress)) {
                 $replyAddress = self::GetSettings('set_orderentry_sender');
             }
-            if (@include_once ASCMS_LIBRARY_PATH.'/phpmailer/class.phpmailer.php') {
-                $objMail = new \phpmailer();
-                if (!empty($_CONFIG['coreSmtpServer'])) {
-                    if (($arrSmtp = \SmtpSettings::getSmtpAccount($_CONFIG['coreSmtpServer'])) !== false) {
-                        $objMail->IsSMTP();
-                        $objMail->Host = $arrSmtp['hostname'];
-                        $objMail->Port = $arrSmtp['port'];
-                        $objMail->SMTPAuth = true;
-                        $objMail->Username = $arrSmtp['username'];
-                        $objMail->Password = $arrSmtp['password'];
-                    }
-                }
-                $objMail->CharSet = CONTREXX_CHARSET;
-                $objMail->From = self::GetSettings('set_orderentry_sender');
-                $objMail->FromName = self::GetSettings('set_orderentry_name');
-                $objMail->AddReplyTo($replyAddress);
-                $objMail->Subject = $SubjectText;
-                $objMail->Priority = 3;
-                $objMail->IsHTML(false);
-                $objMail->Body = $BodyText;
-                $objMail->AddAddress($recipient);
-                $objMail->Send();
-            }
+
+            $objMail = new \Cx\Core\MailTemplate\Model\Entity\Mail();
+            $from    = self::GetSettings('set_orderentry_sender');
+            $fromName = self::GetSettings('set_orderentry_name');
+            $objMail->AddReplyTo($replyAddress);
+            $objMail->SetFrom($from, $fromName);
+            $objMail->Subject = $SubjectText;
+            $objMail->Priority = 3;
+            $objMail->IsHTML(false);
+            $objMail->Body = $BodyText;
+            $objMail->AddAddress($recipient);
+            $objMail->Send();
+
         }
 
         // Update 29.10.2006 Statusmail automatisch abschicken || Produktdatei
+        $autoStatus = self::GetProduktValue('product_autostatus', $product_id);
         if (   self::GetProduktValue('product_electro', $product_id) == 1
-            || self::GetProduktValue('product_autostatus', $product_id) == 1
+            || in_array($autoStatus, array(1, 2, 3))
         ) {
             self::updateOrderStatus($order_id, $newStatus);
             $TargetMail = self::GetEmailAdress($order_id);
@@ -273,32 +276,19 @@ class Egov extends EgovLibrary
                 $BodyText = str_replace('[[ORDER_VALUE]]', $FormValue4Mail, $BodyDB);
                 $BodyText = str_replace('[[PRODUCT_NAME]]', html_entity_decode(self::GetProduktValue('product_name', $product_id)), $BodyText);
                 $BodyText = html_entity_decode($BodyText);
-                if (@include_once ASCMS_LIBRARY_PATH.'/phpmailer/class.phpmailer.php') {
-                    $objMail = new \phpmailer();
-                    if ($_CONFIG['coreSmtpServer'] > 0) {
-                        if (($arrSmtp = \SmtpSettings::getSmtpAccount($_CONFIG['coreSmtpServer'])) !== false) {
-                            $objMail->IsSMTP();
-                            $objMail->Host = $arrSmtp['hostname'];
-                            $objMail->Port = $arrSmtp['port'];
-                            $objMail->SMTPAuth = true;
-                            $objMail->Username = $arrSmtp['username'];
-                            $objMail->Password = $arrSmtp['password'];
-                        }
-                    }
-                    $objMail->CharSet = CONTREXX_CHARSET;
-                    $objMail->From = $FromEmail;
-                    $objMail->FromName = $FromName;
-                    $objMail->AddReplyTo($FromEmail);
-                    $objMail->Subject = $SubjectText;
-                    $objMail->Priority = 3;
-                    $objMail->IsHTML(false);
-                    $objMail->Body = $BodyText;
-                    $objMail->AddAddress($TargetMail);
-                    if (self::GetProduktValue('product_electro', $product_id) == 1) {
-                        $objMail->AddAttachment(ASCMS_PATH.self::GetProduktValue('product_file', $product_id));
-                    }
-                    $objMail->Send();
+
+                $objMail = new \Cx\Core\MailTemplate\Model\Entity\Mail();
+
+                $objMail->SetFrom($FromEmail, $FromName);
+                $objMail->Subject = $SubjectText;
+                $objMail->Priority = 3;
+                $objMail->IsHTML(false);
+                $objMail->Body = $BodyText;
+                $objMail->AddAddress($TargetMail);
+                if (self::GetProduktValue('product_electro', $product_id) == 1) {
+                    $objMail->AddAttachment(\Cx\Core\Core\Controller\Cx::instanciate()->getWebsiteDocumentRootPath().self::GetProduktValue('product_file', $product_id));
                 }
+                $objMail->Send();
             }
         }
         return '';
@@ -311,7 +301,7 @@ class Egov extends EgovLibrary
         switch ($handler) {
           case 'paypal':
             $order_id =
-                (!empty($_POST['custom']) ? $_POST['custom'] : $order_id);
+                (!empty($_POST['custom']) ? intval($_POST['custom']) : $order_id);
             return $this->paymentPaypal($order_id, $amount);
           // Payment requests
           // The following are all handled by Yellowpay.
@@ -392,14 +382,17 @@ class Egov extends EgovLibrary
         $product_amount = self::GetProduktValue('product_price', $product_id);
         $quantity =
             (self::GetProduktValue('product_per_day', $product_id) == 'yes'
-                ? $_REQUEST['contactFormField_Quantity'] : 1
+                ? intval($_REQUEST['contactFormField_Quantity']) : 1
             );
         if ($product_amount <= 0) {
             return '';
         }
         $objPaypal->add_field('business', self::GetProduktValue('product_paypal_sandbox', $product_id));
         $objPaypal->add_field('return', $paypalUriOk);
-        $objPaypal->add_field('cancel_return', $paypalUriNok);
+        // PayPal does no longer use 'return' by default for successfull payments.
+        // Instead is uses 'cancel_return'. Therefore we simply set the success-link
+        // as cancel-link
+        $objPaypal->add_field('cancel_return', $paypalUriOk);
         $objPaypal->add_field('notify_url', $paypalUriIpn);
         $objPaypal->add_field('item_name', $product_name);
         $objPaypal->add_field('amount', $product_amount);
@@ -457,22 +450,13 @@ class Egov extends EgovLibrary
         }
         $quantity =
             (self::GetProduktValue('product_per_day', $product_id) == 'yes'
-                ? $_REQUEST['contactFormField_Quantity'] : 1
+                ? intval($_REQUEST['contactFormField_Quantity']) : 1
             );
         $product_amount = (!empty($amount)
             ? $amount
             :   self::GetProduktValue('product_price', $product_id)
               * $quantity
         );
-        $FormFields = "id=$product_id&send=1&";
-        $arrFields = $this->getFormFields($product_id);
-        foreach (array_keys($arrFields) as $fieldId) {
-            $FormFields .= 'contactFormField_'.$fieldId.'='.strip_tags(contrexx_addslashes($_REQUEST['contactFormField_'.$fieldId])).'&';
-        }
-        if (self::GetProduktValue('product_per_day', $product_id) == 'yes') {
-            $FormFields .= 'contactFormField_1000='.$_REQUEST['contactFormField_1000'].'&';
-            $FormFields .= 'contactFormField_Quantity='.$_REQUEST['contactFormField_Quantity'];
-        }
 
         \Cx\Core\Setting\Controller\Setting::init('Egov', 'config');
 
@@ -596,9 +580,6 @@ $yellowpayForm
         if (isset($_REQUEST['result'])) {
             // Returned from payment
             $result = $this->payment();
-        } elseif (isset($_REQUEST['send'])) {
-            // Store order and launch payment, if necessary
-            $result = $this->_saveOrder();
         }
         // Fix/replace HTML and line breaks, which will all fail in the
         // alert() call.
@@ -650,10 +631,41 @@ $yellowpayForm
         if (empty($_REQUEST['id'])) {
             return;
         }
+        if (   isset($_POST['send'])
+            && (   \FWUser::getFWUserObject()->objUser->login()
+                || \Cx\Core_Modules\Captcha\Controller\Captcha::getInstance()->check()
+            )
+        ) {
+            // Store order and launch payment, if necessary
+            $result = $this->_saveOrder();
+            // Fix/replace HTML and line breaks, which will all fail in the
+            // alert() call.
+            $result =
+                html_entity_decode(
+                    strip_tags(
+                        preg_replace(
+                            '/\<br\s*?\/?\>/', '\n',
+                            preg_replace('/[\n\r]/', '', $result)
+                        )
+                    ), ENT_QUOTES, CONTREXX_CHARSET
+                );
+            $this->objTemplate->setVariable(
+                'EGOV_JS',
+                "<script type=\"text/javascript\">\n".
+                "// <![CDATA[\n$result\n// ]]>\n".
+                "</script>\n"
+            );
+        }
+
+        // $_REQUEST might get reset in Egov::_saveOrder()
+        if (empty($_REQUEST['id'])) {
+            return;
+        }
+
         $query = "
             SELECT product_id, product_name, product_desc, product_price ".
              "FROM ".DBPREFIX."module_egov_products
-             WHERE product_id=".$_REQUEST['id'];
+             WHERE product_id=".intval($_REQUEST['id']);
         $objResult = $objDatabase->Execute($query);
         if ($objResult && $objResult->RecordCount()) {
             $product_id = $objResult->fields['product_id'];

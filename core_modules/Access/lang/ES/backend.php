@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
  * @author      Cloudrexx Development Team <info@cloudrexx.com>
@@ -196,7 +196,7 @@ $_ARRAYLANG['TXT_ACCESS_OTHER_PICTURES'] = "Otras im&aacute;genes";
 $_ARRAYLANG['TXT_ACCESS_OVERVIEW'] = "Descripci&oacute;n general";
 $_ARRAYLANG['TXT_ACCESS_PARENT_ATTRIBUTE'] = "Atributos heredados";
 $_ARRAYLANG['TXT_ACCESS_PASSWORD_FIELD_EMPTY'] = "Si deja el campo contrase&ntilde;a vac&iacute;o, se mantiene la contrase&ntilde;a actual.";
-$_ARRAYLANG['TXT_ACCESS_PASSWORD_MD5_ENCRYPTED'] = "La contrase&ntilde;a se cifra mediante el algoritmo MD5.";
+$_ARRAYLANG['TXT_ACCESS_PASSWORD_MD5_ENCRYPTED'] = "La contrase&ntilde;a se cifra mediante el algoritmo Blowfish.";
 $_ARRAYLANG['TXT_ACCESS_PASSWORD_MINIMAL_CHARACTERS'] = "The password must be at least 6 characters long.<br /><br />The complexity requirement can be enabled in the global configuration.";
 $_ARRAYLANG['TXT_ACCESS_PASSWORD_MINIMAL_CHARACTERS_WITH_COMPLEXITY'] = "The password must be at least 6 characters long as well as contain at least one upper and one lower case character and one number.<br /><br />The complexity requirement can be disabled in the global configuration.";
 $_ARRAYLANG['TXT_ACCESS_PERMISSIONS'] = "Derechos";

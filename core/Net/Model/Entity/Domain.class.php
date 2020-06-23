@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * Domain Entity
  *
@@ -75,7 +75,7 @@ class Domain extends \Cx\Core\Model\Model\Entity\YamlEntity {
      * Constructor to initialize a new domain.
      * @param   string  $name   Domain name of new domain
      */
-    public function __construct($name) {
+    public function __construct($name = '') {
         $this->setName($name);
     }
 
@@ -100,6 +100,7 @@ class Domain extends \Cx\Core\Model\Model\Entity\YamlEntity {
      * @param   string $name    Domain name to set the domain to
      */
     public function setName($name) {
+        $name = preg_replace('/\s+/', '', $name);
         $this->name = \Cx\Core\Net\Controller\ComponentController::convertIdnToAsciiFormat($name);
     }
 
@@ -110,7 +111,7 @@ class Domain extends \Cx\Core\Model\Model\Entity\YamlEntity {
     public function getName() {
         return $this->name;
     }
-    
+
     /**
      * Returns the top-level-domain of the Domain
      * @return string the top-level-domain of the Domain
@@ -119,7 +120,7 @@ class Domain extends \Cx\Core\Model\Model\Entity\YamlEntity {
         $parts = $this->getParts();
         return $parts[0];
     }
-    
+
     /**
      * Returns the domain parts as an array where the tld is listed in index 0, sld in index 1 etc.
      * @return array the domain parts as an array
@@ -128,7 +129,7 @@ class Domain extends \Cx\Core\Model\Model\Entity\YamlEntity {
         $parts = array_reverse(explode('.', $this->getName()));
         return $parts;
     }
-    
+
     /**
      * Return the domain name with the following schema <idn notation> (<punycode notation>)
      * Attention. Returns the punycode notation only when needed
@@ -141,6 +142,4 @@ class Domain extends \Cx\Core\Model\Model\Entity\YamlEntity {
         }
         return $domainName;
     }
-
 }
-

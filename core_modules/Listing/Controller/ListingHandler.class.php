@@ -44,14 +44,7 @@ namespace Cx\Core_Modules\Listing\Controller;
  * @subpackage  coremodule_listing
  */
 abstract class ListingHandler {
-    
-    /**
-     * Constructor for the Handler. Do not
-     * do anything Listing specific (e.g.
-     * don't initialize page number here)
-     */
-    public abstract function __construct();
-    
+
     /**
      * Handles the listing by changing parameters like limit and offset
      *
@@ -62,9 +55,9 @@ abstract class ListingHandler {
      *     'criteria'   => {array},     // criteria (similiar to SQLs WHERE)
      *     'order'      => {array},     // order to sort by
      * )
-     * @param array $params Parameters
      * @param array $config Configuration
+     * @param array $params Parameters
      * @return array The handled parameters
      */
-    public abstract function handle($params, $config);
+    public abstract function handle($config, $params);
 }

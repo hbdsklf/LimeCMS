@@ -54,7 +54,7 @@ class ConsoleInterface extends UserInterface {
         if ($command == 'help') {
             if (isset($arguments[2])) {
                 if ($this->commandExists($arguments[2])) {
-                    $command = $this->getCommand($arguments[2]);    
+                    $command = $this->getCommand($arguments[2]);
                     echo 'Command `' . $command->getName() . "`\r\n" .
                         $command->getDescription() . "\r\n\r\n" .
                         $command->getSynopsis() . "\r\n\r\n" .
@@ -80,7 +80,7 @@ class ConsoleInterface extends UserInterface {
         }
         echo "\r\n";
     }
-    
+
     /**
      * Shows help for workbench
      */
@@ -96,7 +96,7 @@ Available subcommands:' . "\r\n";
             echo "\t" . $command->getName() . ' - ' . $command->getDescription() . "\r\n";
         }
     }
-    
+
     /**
      * Shows the ASCII flag
      */
@@ -163,14 +163,14 @@ Available subcommands:' . "\r\n";
               '2-8'   => '='
           ),
         );
-        
+
         $colCount = 38;
         $rowCount = max(array_keys($flagConfig));
-        
+
         echo "\n";
         for ($i=1;$i<=$rowCount;$i++) {
             $flagConfig[$i] = $rowConfig = isset($flagConfig[$i]) ? $flagConfig[$i] : $flagConfig[$i-1];
-            
+
             $colValues = array();
             foreach ($rowConfig as $key => $value) {
                 list($minCol, $maxCol) = explode('-', $key);
@@ -178,15 +178,15 @@ Available subcommands:' . "\r\n";
                     $colValues[$k] = $value;
                 }
             }
-            
+
             for ($j=1;$j<=$colCount;$j++) {
                 echo isset($colValues[$j]) ? $colValues[$j] : ' ';
             }
             echo "\n";
         }
-        
+
     }
-    
+
     /**
      * Gives commands access to database object
      * @return \AdoNewConnection Database connection
@@ -194,7 +194,7 @@ Available subcommands:' . "\r\n";
     public function getDb() {
         return $this->cx->getDb();
     }
-    
+
     /**
      * Get a user input
      * @param string $description Description to display the user
@@ -210,7 +210,7 @@ Available subcommands:' . "\r\n";
         }
         return $line;
     }
-    
+
     /**
      * Ask the user a yes/no question, default answer is no
      * @param string $question Question for the user
@@ -222,7 +222,7 @@ Available subcommands:' . "\r\n";
         $line = strtolower(trim(fgets($handle)));
         return ($line == 'yes' || $line == 'y');
     }
-    
+
     /**
      * Display a message for the user
      * @param string $message Message to display
@@ -233,10 +233,10 @@ Available subcommands:' . "\r\n";
         }
         echo $message . "\r\n";
     }
-    
+
     /**
      * Recursively show an array to the user (BETA)
-     * 
+     *
      * Accepts an array in the form array({something}=>{title}, 'children'=>{recursion})
      * @todo Tested for 2 dimensions only
      * @todo $childrenCount must be an array in order to handle more than 2 dimensions
@@ -272,5 +272,23 @@ Available subcommands:' . "\r\n";
             }
         }
         echo $output;
+    }
+
+    /**
+     * Opens a diff view for the user to diff $content1 and $content2
+     * @param string $content1 Content to diff with $content2
+     * @param string $content2 Content to diff with $content1
+     * @param string $tool (optional) Hint which tool to use
+     */
+    public function diff($content1, $content2, $tool = '') {
+        $file1 = tmpfile();
+        $file2 = tmpfile();
+        fwrite($file1, $content1);
+        fwrite($file2, $content2);
+        $filename1 = stream_get_meta_data($file1)['uri'];
+        $filename2 = stream_get_meta_data($file2)['uri'];
+        passthru('diff -sy ' . $filename1 . ' ' . $filename2);
+        fclose($file1);
+        fclose($file2);
     }
 }

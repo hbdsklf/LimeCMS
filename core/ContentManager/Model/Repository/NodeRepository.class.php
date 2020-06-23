@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * NodeRepository
  *
@@ -72,8 +72,8 @@ class NodeRepository extends NestedTreeRepository {
      * @return array
      * @override
      */
-    public function findBy(array $criteria)
-    {        
+    public function findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
+    {
         $qb = $this->_em->createQueryBuilder();
         $qb->select('n')
                 ->from('\Cx\Core\ContentManager\Model\Entity\Node', 'n');
@@ -86,7 +86,7 @@ class NodeRepository extends NestedTreeRepository {
             }
             $i++;
         }
-        
+
         try {
             $q = $qb->getQuery();
             $nodes = $q->getResult();
@@ -97,13 +97,9 @@ class NodeRepository extends NestedTreeRepository {
     }
 
     /**
-     * Finds a single entity by a set of criteria.
-     *
-     * @param array $criteria
-     * @return object
-     * @override
+     * {@inheritdoc}
      */
-    public function findOneBy(array $criteria)
+    public function findOneBy(array $criteria, array $orderBy = null)
     {
         $qb = $this->_em->createQueryBuilder();
         $qb->select('n')
@@ -117,7 +113,7 @@ class NodeRepository extends NestedTreeRepository {
             }
             $i++;
         }
-        
+
         try {
             $q = $qb->getQuery();
             $node = $q->getSingleResult();
@@ -135,7 +131,7 @@ class NodeRepository extends NestedTreeRepository {
     public function getRoot() {
         return $this->findOneBy(array('id'=>1));
     }
-    
+
     /**
      * Translates a branch of the tree recursively
      * @todo This does only work for root node by now
@@ -146,7 +142,7 @@ class NodeRepository extends NestedTreeRepository {
      * @param int $limit (optional) How many nodes should be copied, 0 means all, defaults to 0
      * @param int $offset (optional) How many nodes should be skipped, defaults to 0
      * @return array Returns an array with the following structure: array('count'=>{count of nodes}, 'offset'=>{current offset after copy})
-     * @throws \Cx\Core\ContentManager\ContentManagerException 
+     * @throws \Cx\Core\ContentManager\ContentManagerException
      */
     public function translateRecursive($rootNode, $fromLanguage, $toLanguage, $includingContent, $limit = 0, $offset = 0) {
         $nodes = $this->findAll();
@@ -179,6 +175,7 @@ class NodeRepository extends NestedTreeRepository {
                     true, //$includeName = true,
                     true, // true, //$includeMetaData = true,
                     true, // true, //$includeProtection = true,
+                    true, // includeEditingStatus
                     false, // true, //$followRedirects = false,
                     false, // true //$followFallbacks = false
                     $destPage
@@ -213,7 +210,7 @@ class NodeRepository extends NestedTreeRepository {
         $this->recoverBranch($startNode, $left);
         return $this->verify();
     }
-    
+
     /**
      * Tries to recover a branch - assuming that level and left of $rootNode are correct!
      * @param \Cx\Core\ContentManager\Model\Entity\Node $rootNode Node to start with
@@ -381,7 +378,11 @@ class NodeRepository extends NestedTreeRepository {
     {
         $result = false;
         $meta = $this->getClassMetadata();
-        if ($node instanceof $meta->name) {
+        if (!$node instanceof $meta->name) {
+            throw new InvalidArgumentException("Node is not related to this repository");
+        }
+        $this->_em->getConnection()->beginTransaction();
+        try {
             $config = $this->listener->getConfiguration($this->_em, $meta->name);
             $nextSiblings = $this->getNextSiblings($node, false, $skipAliasNodes);
             if ($numSiblings = count($nextSiblings)) {
@@ -395,8 +396,10 @@ class NodeRepository extends NestedTreeRepository {
                     ->getStrategy($this->_em, $meta->name)
                     ->updateNode($this->_em, $node, $nextSiblings[$number - 1], Nested::NEXT_SIBLING);
             }
-        } else {
-            throw new InvalidArgumentException("Node is not related to this repository");
+            $this->_em->getConnection()->commit();
+        } catch (\Exception $e) {
+            $this->_em->getConnection()->rollback();
+            throw $e;
         }
         return $result;
     }
@@ -415,7 +418,11 @@ class NodeRepository extends NestedTreeRepository {
     {
         $result = false;
         $meta = $this->getClassMetadata();
-        if ($node instanceof $meta->name) {
+        if (!$node instanceof $meta->name) {
+            throw new InvalidArgumentException("Node is not related to this repository");
+        }
+        $this->_em->getConnection()->beginTransaction();
+        try {
             $config = $this->listener->getConfiguration($this->_em, $meta->name);
             $prevSiblings = array_reverse($this->getPrevSiblings($node, false, $skipAliasNodes));
             if ($numSiblings = count($prevSiblings)) {
@@ -429,10 +436,11 @@ class NodeRepository extends NestedTreeRepository {
                     ->getStrategy($this->_em, $meta->name)
                     ->updateNode($this->_em, $node, $prevSiblings[$number - 1], Nested::PREV_SIBLING);
             }
-        } else {
-            throw new InvalidArgumentException("Node is not related to this repository");
+            $this->_em->getConnection()->commit();
+        } catch (\Exception $e) {
+            $this->_em->getConnection()->rollback();
+            throw $e;
         }
         return $result;
     }
 }
-

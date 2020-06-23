@@ -85,15 +85,18 @@ class LoginManager {
         }
 
         $this->objTemplate->setVariable('CONTREXX_CHARSET', CONTREXX_CHARSET);
-        
+
         $endcode = $this->objTemplate->get();
-        
+
         // replace links from before contrexx 3
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
         $ls = new \LinkSanitizer(
-            ASCMS_PATH_OFFSET.ASCMS_BACKEND_PATH.'/',
-            $endcode);
+            $cx,
+            $cx->getCodeBaseOffsetPath() . $cx->getBackendFolderName() . '/',
+            $endcode
+        );
         $endcode = $ls->replace();
-        
+
         echo $endcode;
         exit();
     }
@@ -171,8 +174,8 @@ class LoginManager {
         $confirmedPassword = isset($_POST['password2']) ? trim(contrexx_stripslashes($_POST['password2'])) : '';
 
         $this->objTemplate->setVariable(array(
-            'LOGIN_USERNAME'    => htmlentities($email, ENT_QUOTES, CONTREXX_CHARSET),
-            'LOGIN_RESTORE_KEY' => htmlentities($restoreKey, ENT_QUOTES, CONTREXX_CHARSET),
+            'LOGIN_EMAIL'       => contrexx_raw2xhtml($email),
+            'LOGIN_RESTORE_KEY' => contrexx_raw2xhtml($restoreKey),
         ));
 
         if (isset($_POST['reset_password'])) {
@@ -251,12 +254,24 @@ class LoginManager {
     private function showLogin()
     {
         global $_CORELANG, $_ARRAYLANG;
-        
+
         $this->objTemplate->addBlockfile('CONTENT_FILE', 'CONTENT_BLOCK', '/core_modules/Login/View/Template/Backend/login.html');
         $frontendLink = ASCMS_INSTANCE_OFFSET;
         if (empty($frontendLink)) {
             $frontendLink = '/';
-        }        
+        }
+        if (!empty($_POST['redirect'])) {
+            $redirect = contrexx_raw2xhtml($_POST['redirect']);
+        } else {
+            $redirect = contrexx_raw2xhtml(
+                ASCMS_PATH_OFFSET .
+                ASCMS_BACKEND_PATH .
+                substr(
+                    getenv('REQUEST_URI'),
+                    strlen(\Env::get('cx')->getWebsiteBackendPath())
+                )
+            );
+        }
         $this->objTemplate->setVariable(array(
             'TITLE'                         => $_ARRAYLANG['TXT_LOGIN_LOGIN'],
             'TXT_LOGIN_LOGIN'               => $_ARRAYLANG['TXT_LOGIN_LOGIN'],
@@ -268,7 +283,7 @@ class LoginManager {
             'TXT_LOGIN_PASSWORD'            => $_ARRAYLANG['TXT_LOGIN_PASSWORD'],
             'TXT_LOGIN_PASSWORD_LOST'       => $_ARRAYLANG['TXT_LOGIN_PASSWORD_LOST'],
             'TXT_LOGIN_REMEMBER_ME'         => $_CORELANG['TXT_CORE_REMEMBER_ME'],
-            'REDIRECT_URL'                  => !empty($_POST['redirect']) ? $_POST['redirect'] : ASCMS_PATH_OFFSET.ASCMS_BACKEND_PATH.substr(getenv('REQUEST_URI'), strlen(\Env::get('cx')->getWebsiteBackendPath())),
+            'REDIRECT_URL'                  => $redirect,
             'FRONTEND_LINK'                 => $frontendLink,
             'JAVASCRIPT'                    => \JS::getCode(),
         ));
@@ -283,6 +298,7 @@ class LoginManager {
             $this->objTemplate->setVariable(array(
                 'TXT_LOGIN_SECURITY_CODE'   => $_ARRAYLANG['TXT_LOGIN_SECURITY_CODE'],
                 'CAPTCHA_CODE'              => \Cx\Core_Modules\Captcha\Controller\Captcha::getInstance()->getCode(3),
+                'CAPTCHA_VALIDATION_CODE'   => \Cx\Core_Modules\Captcha\Controller\Captcha::getInstance()->getJSValidationFn(),
             ));
             $this->objTemplate->parse('captcha');
         } else {

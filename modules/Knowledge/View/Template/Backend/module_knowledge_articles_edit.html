@@ -37,7 +37,7 @@ function knowledgeSwitchAnswer(langId)
 </div>
 
 
-<form action="index.php?cmd=Knowledge{MODULE_INDEX}&section=articles&act={ACTION}" method="post" onsubmit="knowledgeSwitchAnswer();return checkCategory();">
+<form action="index.php?cmd=Knowledge{MODULE_INDEX}&act=articles&tpl={ACTION}" method="post" onsubmit="knowledgeSwitchAnswer();return checkCategory();">
 <table  cellspacing="0" cellpadding="3" border="0" class="adminlist" style="width: 100%;">
     <thead>
         <tr>
@@ -67,9 +67,9 @@ function knowledgeSwitchAnswer(langId)
 </table>
 <br /> <br />
 <ul id="tabmenu">
-	<!-- BEGIN showLanguageTabs -->
-	<li><a id="editArticle_{TABS_LINK_ID}" class="{TABS_CLASS}" href="javascript:void(0);" onclick="selectTab('{TABS_DIV_ID}');knowledgeSwitchAnswer({TABS_LANG_ID})" title="{TABS_NAME}" style="{TABS_DISPLAY_STYLE}">{TABS_NAME}</a></li>
-	<!-- END showLanguageTabs -->
+  <!-- BEGIN showLanguageTabs -->
+  <li><a id="editArticle_{TABS_LINK_ID}" class="{TABS_CLASS}" href="javascript:void(0);" onclick="selectTab('{TABS_DIV_ID}');knowledgeSwitchAnswer({TABS_LANG_ID})" title="{TABS_NAME}" style="{TABS_DISPLAY_STYLE}">{TABS_NAME}</a></li>
+  <!-- END showLanguageTabs -->
 </ul>
 
 <!-- BEGIN langDiv -->

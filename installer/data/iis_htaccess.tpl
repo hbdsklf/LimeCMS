@@ -15,7 +15,7 @@
 
                             <!-- Resolve language specific sitemap.xml -->
                             <rule name="Map multilingual sitemap.xml" stopProcessing="true">
-                                <match url="^(\w+)\/sitemap.xml$" />
+                                <match url="^([a-z]{1,2}(?:-[A-Za-z]{2,4})?)\/sitemap.xml$" />
                                 <action type="Rewrite" url="sitemap_{R:1}.xml" />
                             </rule>
 
@@ -30,7 +30,7 @@
 
                             <!-- Redirect all requests to non-existing files to Contrexx -->
                             <rule name="Capture all" stopProcessing="true">
-                                <match url="." ignoreCase="false" />
+                                <match url=".?" ignoreCase="false" />
                                 <conditions>
                                 <add input="{REQUEST_FILENAME}" matchType="IsFile" ignoreCase="false" negate="true" />
                                 </conditions>

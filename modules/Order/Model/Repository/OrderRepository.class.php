@@ -38,7 +38,7 @@ namespace Cx\Modules\Order\Model\Repository;
 
 /**
  * OrderRepositoryException
- * 
+ *
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @package     cloudrexx
@@ -48,59 +48,21 @@ class OrderRepositoryException extends \Exception {}
 
 /**
  * Class OrderRepository
- * 
+ *
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @package     cloudrexx
  * @subpackage  module_order
  */
 class OrderRepository extends \Doctrine\ORM\EntityRepository {
-    /**
-     * Get the orders based on the CRM contact, status(valid site or expired site), active site($excludeProduct) and trial site($includeProduct)
-     * 
-     * @param integer $contactId
-     * @param string  $status
-     * @param array   $excludeProduct
-     * @param array   $includeProduct
-     * 
-     * @return object
-     */
-    public function getOrdersByCriteria($contactId, $status, $excludeProduct, $includeProduct) {
-        //must check crm contact id present or not
-        if (empty($contactId)) {
-            return;
-        }
-        
-        $now = new \DateTime('now');
-        $qb = $this->getEntityManager()->createQueryBuilder();
-        $qb->select('o')
-                ->from('\Cx\Modules\Order\Model\Entity\Order', 'o')
-                ->leftJoin('o.subscriptions', 's')
-                ->leftJoin('s.product', 'p')
-                ->where('o.contactId = :contactId');
-        if ($status == 'valid') {
-            // verify that in case expirationDate is set, it must be sometime in the future
-            $qb->andWhere($qb->expr()->orX("s.expirationDate > '" . $now->format("Y-m-d H:i:s"). "'", 's.expirationDate is NULL'));
-            if (!empty($excludeProduct)) {
-                $qb->andWhere($qb->expr()->notIn('p.id', $excludeProduct));
-            } elseif (!empty($includeProduct)) {
-                $qb->andWhere($qb->expr()->in('p.id', $includeProduct));
-            }
-        } elseif ($status == 'expired') {
-            $qb->andWhere("s.expirationDate <= '" . $now->format("Y-m-d H:i:s") . "'");
-        }
-        $qb->setParameter('contactId', $contactId);
 
-        return $qb->getQuery()->getResult();
-    }
-    
     /**
      * Get orders by the search term
-     * 
+     *
      * @param type $term    Search term
      * @param type $contact Crm Contact id or \User object
-     * 
-     * @return object 
+     *
+     * @return object
      */
     public function findOrdersBySearchTerm($term, $contact)
     {
@@ -114,13 +76,13 @@ class OrderRepository extends \Doctrine\ORM\EntityRepository {
         } else {
             $contactId = $contact;
         }
-        
+
         $qb = $this->getEntityManager()->createQueryBuilder();
         $qb ->select('o')
             ->from('\Cx\Modules\Order\Model\Entity\Order', 'o')
             ->leftJoin('o.subscriptions', 's');
-        
-        $conditions = array(); 
+
+        $conditions = array();
         if (!empty($term)) {
             $subscriptionRepository = \Env::get('em')->getRepository('Cx\Modules\Order\Model\Entity\Subscription');
             $subscriptions          = $subscriptionRepository->findSubscriptionsBySearchTerm(array('term' => $term));
@@ -138,47 +100,47 @@ class OrderRepository extends \Doctrine\ORM\EntityRepository {
             $conditions[] = 'o.contactId = :contactId';
             $qb->setParameter('contactId', $contactId);
         }
-        
+
         $first = true;
         foreach ($conditions as $condition) {
             $method = $first ? 'where' : 'andWhere';
             $qb->$method($condition);
-            
+
             $first = false;
         }
-        
+
         return $qb->getQuery()->getResult();
     }
-    
+
     /**
      * Check the order count by the $crmId
-     * 
+     *
      * @param integer $crmId Crm User Id
-     * 
+     *
      * @return boolean
      */
     public function hasOrderByCrmId($crmId = 0) {
         if (empty($crmId)) {
             return;
         }
-        
+
         $qb = $this->getEntityManager()->createQueryBuilder();
         $qb->select('count(o.id)')
            ->from('\Cx\Modules\Order\Model\Entity\Order', 'o')
-           ->where('o.contactId = :contactId');     
+           ->where('o.contactId = :contactId');
         $qb->setParameter('contactId', $crmId);
-        
+
         return $qb->getQuery()->getSingleScalarResult();
     }
-    
+
     /**
-     * Create a new Order 
-     * 
+     * Create a new Order
+     *
      * @param integer $productId            productId
      * @param object  $objUser              \User object
      * @param string  $transactionReference transactionReference
      * @param array   $subscriptionOptions  subscriptionOptions
-     * 
+     *
      * @return boolean
      * @throws OrderRepositoryException
      */
@@ -191,19 +153,19 @@ class OrderRepository extends \Doctrine\ORM\EntityRepository {
         ) {
             return;
         }
-        
+
         $contactId = $objUser->getCrmUserId();
         if (\FWValidator::isEmpty($contactId)) {
             return;
         }
-        
+
         try {
             $order = new \Cx\Modules\Order\Model\Entity\Order();
             $order->setContactId($contactId);
             $order->setCurrency($currency);
             $productRepository = \Env::get('em')->getRepository('Cx\Modules\Pim\Model\Entity\Product');
             $product = $productRepository->findOneBy(array('id' => $productId));
-            
+
             //create subscription
             $subscription = $order->createSubscription($product, $subscriptionOptions);
             // set discount price for first payment period of subscription
@@ -213,7 +175,7 @@ class OrderRepository extends \Doctrine\ORM\EntityRepository {
 
             $order->billSubscriptions();
             $invoices = $order->getInvoices();
-            
+
             if (!empty($invoices)) {
                 \DBG::msg(__METHOD__.": order has invoices");
                 $paymentRepo = \Env::get('em')->getRepository('\Cx\Modules\Order\Model\Entity\Payment');
@@ -243,7 +205,7 @@ class OrderRepository extends \Doctrine\ORM\EntityRepository {
                                     ),
                                     true
                                 );
-                                
+
                                 if (!$objUser->store()) {
                                     \DBG::msg('Order::createOrder() Updating user failed: '.$objUser->getErrorMsg());
                                 }
@@ -260,16 +222,16 @@ class OrderRepository extends \Doctrine\ORM\EntityRepository {
 
             \Env::get('em')->persist($order);
             \Env::get('em')->flush();
-            
+
             return $order;
         } catch (\Exception $e) {
             throw new OrderRepositoryException($e->getMessage());
         }
     }
-    
+
     /**
      * Get the orders ordered by ID in descending order.
-     * 
+     *
      * @return array
      */
     public function getAllByDesc() {
@@ -277,7 +239,7 @@ class OrderRepository extends \Doctrine\ORM\EntityRepository {
         $qb->select('o')
            ->from('\Cx\Modules\Order\Model\Entity\Order', 'o')
            ->orderBy('o.id', 'DESC');
-        
+
         return $qb->getQuery()->getResult();
     }
 }

@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * Navigation
  * Note: modified 27/06/2006 by Sébastien Perret => sva.perret@bluewin.ch
@@ -81,7 +81,7 @@ class Navigation
     {
         return $this->parseNavigation($templateContent, $license, $boolShop, true);
     }
-    
+
 
     public function getNavigation($templateContent, $license, $boolShop=false)
     {
@@ -110,7 +110,10 @@ class Navigation
         $this->_objTpl->setTemplate($templateContent);
 
         if ($boolShop) {
-            $this->_objTpl->setVariable('SHOPNAVBAR_FILE', \Cx\Modules\Shop\Controller\Shop::getNavbar());
+            $themesPages = \Env::get('init')->getTemplates($this->page);
+            $this->_objTpl->setVariable('SHOPNAVBAR_FILE', \Cx\Modules\Shop\Controller\Shop::getNavbar($themesPages['shopnavbar']));
+            $this->_objTpl->setVariable('SHOPNAVBAR2_FILE', \Cx\Modules\Shop\Controller\Shop::getNavbar($themesPages['shopnavbar2']));
+            $this->_objTpl->setVariable('SHOPNAVBAR3_FILE', \Cx\Modules\Shop\Controller\Shop::getNavbar($themesPages['shopnavbar3']));
         }
 
         $rootNode = null;
@@ -172,64 +175,4 @@ class Navigation
         }
         return $result;
     }
-
-
-    /**
-     * getFrontendLangNavigation()
-     * @param \Cx\Core\Routing\Url $pageUrl
-     * @param boolean $langNameContraction
-     * @return string 
-     */
-    public function getFrontendLangNavigation($page, $pageUrl, $langNameContraction = false)
-    {
-        $activeLanguages = \FWLanguage::getActiveFrontendLanguages();
-        $node = $page->getNode();
-
-        $langNavigation = array();
-        foreach ($activeLanguages as $langId => $langData) {
-            $targetPage = $node->getPage($langId);
-            if ($targetPage && $targetPage->isActive()) {
-                $url = clone $pageUrl;
-                $url->setLangDir($langData['lang']);
-                $url->setPath(substr($targetPage->getPath(), 1));
-
-                $name  = contrexx_raw2xhtml($langNameContraction ? strtoupper($langData['lang']) : $langData['name']);
-                $class = $langId == FRONTEND_LANG_ID ? $langData['lang'].' active' : $langData['lang'];
-
-                $langNavigation[] = '<a class="'.$class.'" href="'.$url.'" title="'.$name.'">'.$name.'</a>';
-            }
-        }
-
-        return implode('', $langNavigation);
-    }
-
-
-    /**
-     * Sets the language placeholders in the provided template
-     * @param \Cx\Core\Routing\Url $pageUrl
-     * @param \Cx\Core\Html\Sigma $objTemplate 
-     */
-    public function setLanguagePlaceholders($page, $pageUrl, $objTemplate)
-    {
-        $activeLanguages = \FWLanguage::getActiveFrontendLanguages();
-        $node = $page->getNode();
-
-        $placeholders = array();
-        foreach ($activeLanguages as $langId => $langData) {
-            $url = clone $pageUrl;
-            $url->setLangDir($langData['lang']);
-
-            if (($targetPage = $node->getPage($langId)) && $targetPage->isActive()) {
-                $url->setPath(substr($targetPage->getPath(), 1));
-                $link = $url->__toString();
-            } else {
-                $link = $url->fromModuleAndCmd('Error', '', $langId);
-            }
-            $placeholders['LANG_CHANGE_'.strtoupper($langData['lang'])] = $link;
-            $placeholders['LANG_SELECTED_'.strtoupper($langData['lang'])] = '';
-        }
-        $placeholders['LANG_SELECTED_'.strtoupper($pageUrl->getLangDir())] = 'selected';
-        $objTemplate->setVariable($placeholders);
-    }
 }
-

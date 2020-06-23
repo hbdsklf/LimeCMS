@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,10 +24,10 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * Main controller for Session
- * 
+ *
  * @copyright   Cloudrexx AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @package     cloudrexx
@@ -38,7 +38,7 @@ namespace Cx\Core\Session\Controller;
 
 /**
  * Main controller for Session
- * 
+ *
  * @copyright   Cloudrexx AG
  * @author      Project Team SS4U <info@cloudrexx.com>
  * @package     cloudrexx
@@ -52,16 +52,52 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
     }
       /**
      * Do something before resolving is done
-     * 
+     *
      * @param \Cx\Core\Routing\Url                      $request    The URL object for this request
      */
     public function preResolve(\Cx\Core\Routing\Url $request) {
-        global $sessionObj;
-
-        if (\Cx\Core\Core\Controller\Cx::instanciate()->getMode() == \Cx\Core\Core\Controller\Cx::MODE_BACKEND) {
-            if (empty($sessionObj)) $sessionObj = \cmsSession::getInstance();
-            $_SESSION->cmsSessionStatusUpdate('backend');
+        if ($this->cx->getMode() == \Cx\Core\Core\Controller\Cx::MODE_BACKEND) {
+            $sessionObj = $this->getSession();
+            if (!$sessionObj) {
+                return;
+            }
+            $sessionObj->cmsSessionStatusUpdate('backend');
         }
     }
 
+    /**
+     * Returns the current session
+     *
+     * If the session has not yet been initialized, it will be initialized
+     * if $forceInitialization is set to TRUE.
+     * Otherwise it will only initialize the session if an existing session
+     * can be resumed.
+     *
+     * @param   boolean $initialize Whether or not to force the initialization
+     *                              of a session.
+     * @return \Cx\Core\Session\Model\Entity\Session Session instance of
+     *                                               current user. If no
+     *                                               session is present and
+     *                                               session initialization is
+     *                                               not forced, then NULL is
+     *                                               returned.
+     */
+    public function getSession($forceInitialization = true) {
+        if (
+            !\Cx\Core\Session\Model\Entity\Session::sessionExists() &&
+            !$forceInitialization
+        ) {
+            return null;
+        }
+
+        return \Cx\Core\Session\Model\Entity\Session::getInstance();
+    }
+
+    /**
+     * Returns the state of the session
+     * @return boolean TRUE if the session has been initialized, otherwise FALSE
+     */
+    public function isInitialized() {
+        return \Cx\Core\Session\Model\Entity\Session::isInitialized();
+    }
 }

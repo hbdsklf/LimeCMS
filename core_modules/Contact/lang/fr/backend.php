@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
  * @author      Cloudrexx Development Team <info@cloudrexx.com>
@@ -146,7 +146,6 @@ $_ARRAYLANG['TXT_CONTACT_CONTACT_FORM_SUCCESSFULLY_DELETED'] = "Le formulaire de
 $_ARRAYLANG['TXT_CONTACT_FAILED_DELETE_CONTACT_FORM'] = "Erreur lors de la suppression du formulaire!";
 $_ARRAYLANG['TXT_CONTACT_DATA_RECORD_UPDATED_SUCCESSFUL_VALIDATE'] = "Page mise à jour. Toutefois, un administrateur doit encore en confirmer la suppression, vos privilèges étant insuffisants pour le faire directement.";
 $_ARRAYLANG['TXT_CONTACT_SETTINGS_UPDATED'] = "Paramètres acceptés.";
-$_ARRAYLANG['TXT_CONTACT_META_DATE_BY_EXPORT'] = "Métainformations lors de l'exportation";
 $_ARRAYLANG['TXT_CONTACT_DEFAULT_FEEDBACK_TXT'] = "Nous vous remercions pour votre demande. Nous allons vous contacter très prochainement.";
 $_ARRAYLANG['TXT_CONTACT_SHOW_FORM_AFTER_SUBMIT'] = "Réafficher le formulaire envoi";
 $_ARRAYLANG['TXT_CONTACT_LANG'] = "Langue";
@@ -174,7 +173,6 @@ $_ARRAYLANG['TXT_CONTACT_FORM_MULTIPLE_UPLOAD_FIELDS'] = "You created multiple u
 $_ARRAYLANG['TXT_CONTACT_FORM_VALUES'] = "valeurs de formulaire";
 $_ARRAYLANG['TXT_FORM_FIELDS'] = "Champs du formulaire";
 $_ARRAYLANG['TXT_ADVANCED_SETTINGS'] = "Paramètres élargies ";
-$_ARRAYLANG['TXT_FORM_RECIPIENTS'] = "Liste de destinataires";
 $_ARRAYLANG['TXT_CONTACT_LANGUAGE'] = "Langue ";
 $_ARRAYLANG['TXT_CONTACT_FORM_NAME'] = "Nom";
 $_ARRAYLANG['TXT_CONTACT_FORM_FIELD_TITLE'] = "Champs du formulaire";

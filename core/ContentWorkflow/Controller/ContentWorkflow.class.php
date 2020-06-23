@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * Content Workflow
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
@@ -65,7 +65,7 @@ class ContentWorkflow extends \Module {
     private $pageId = 0;
     private $strCmd = '';
     private $intPos = 0;
-    
+
     //doctrine entity manager
     protected $em = null;
     //template object
@@ -74,11 +74,11 @@ class ContentWorkflow extends \Module {
     protected $db = null;
     //the init object
     protected $init = null;
-    
+
     protected $nodeRepo = null;
     protected $pageRepo = null;
     protected $logRepo  = null;
-    
+
     /**
     * Constructor
     *
@@ -89,13 +89,13 @@ class ContentWorkflow extends \Module {
     * @global    array     Configuration
     */
     function __construct($act, $template, $db, $init) {
-                
+
         parent::__construct($act, $template);
-        
+
         $this->pageId     = isset($_GET['id']) ? intval($_GET['id']) : 0;
         $this->cmd        = $act;
         $this->defaultAct = 'showHistory';
-        
+
         switch ($this->act) {
             case 'new':
             case 'updated':
@@ -106,36 +106,36 @@ class ContentWorkflow extends \Module {
                 $this->act = 'showHistoryDeleted';
                 break;
         }
-        
+
         $this->em = \Env::get('em');
         $this->tpl = $template;
         $this->db = $db;
         $this->nodeRepo = $this->em->getRepository('Cx\Core\ContentManager\Model\Entity\Node');
         $this->pageRepo = $this->em->getRepository('Cx\Core\ContentManager\Model\Entity\Page');
         $this->logRepo  = $this->em->getRepository('Cx\Core\ContentManager\Model\Entity\LogEntry');
-        
+
         if (isset($_GET['pos'])) {
             $this->intPos = intval($_GET['pos']);
         }
-        
+
         $this->tpl->setVariable(array(
             'CONTENT_TITLE'             => $this->strPageTitle,
             'CONTENT_OK_MESSAGE'        => $this->strOkMessage,
             'CONTENT_STATUS_MESSAGE'    => implode("<br />\n", $this->strErrMessage)
         ));
-        
+
         $this->setNavigation();
     }
-    
+
     /**
      * Sets the content workflow navigation
-     * 
+     *
      * @global    \Cx\Core\Html\Sigma
      * @global    array    Core language
      */
     protected function setNavigation() {
         global $_ARRAYLANG;
-        
+
         $this->tpl->setVariable(
             'CONTENT_NAVIGATION',
             '<a href="index.php?cmd=ContentWorkflow&amp;act=new" class="'.($this->cmd == 'new' || $this->cmd == '' ? 'active' : '').'">'.$_ARRAYLANG['TXT_NEW_PAGES'].'</a>
@@ -145,21 +145,27 @@ class ContentWorkflow extends \Module {
              //<a href="index.php?cmd=workflow&amp;act=showClean" class="'.($this->act == 'showClean' ? 'active' : '').'">'.$_ARRAYLANG['TXT_WORKFLOW_CLEAN_TITLE'].'</a>
         );
     }
-    
+
     /**
-    * Show logfile-entries (new, updated or deleted)
-    *
-    * @global     \Cx\Core\Html\Sigma
-    * @global     array        Core language
-    * @global     array        Configuration
-    */
+     * Show logfile-entries (new, updated or deleted)
+     *
+     * @todo: Merge showHistoryDeleted() into this method
+     *
+     * @global     \Cx\Core\Html\Sigma
+     * @global     array        Core language
+     * @global     array        Configuration
+     */
     protected function showHistory() {
         global $_ARRAYLANG, $_CONFIG;
-        
+
         \Permission::checkAccess(75, 'static');
 
-        $this->tpl->addBlockfile('ADMIN_CONTENT', 'content_history', 'content_history.html');
-        
+        $this->tpl->addBlockfile(
+            'ADMIN_CONTENT',
+            'content_history',
+            'content_history.html'
+        );
+
         switch ($this->cmd) {
             case 'updated':
                 $this->strPageTitle = $_ARRAYLANG['TXT_UPDATED_PAGES'];
@@ -173,19 +179,28 @@ class ContentWorkflow extends \Module {
                 $this->strPageTitle = $_ARRAYLANG['TXT_NEW_PAGES'];
                 $strPagingAct       = 'new';
         }
-        
+
         $this->setTextVariables();
-        
-        // Gets the quantity of log entries
-        $countLogEntries = $this->logRepo->countLogEntries($this->cmd);
-        
+
+        // Gets the log entries and quantity of log entries
+        $countLogEntries = 0;
+        $logs  = $this->logRepo->getLogs(
+            $this->cmd,
+            $this->intPos,
+            $_CONFIG['corePagingLimit'],
+            $countLogEntries
+        );
+
         // Paging
-        $strPaging = getPaging($countLogEntries, $this->intPos, '&cmd=ContentWorkflow&act='.$strPagingAct, '', true);
+        $strPaging = getPaging(
+            $countLogEntries,
+            $this->intPos,
+            '&cmd=ContentWorkflow&act='.$strPagingAct,
+            '',
+            true
+        );
         $this->tpl->setVariable('HISTORY_PAGING', $strPaging);
-        
-        // Gets the log entries
-        $logs  = $this->logRepo->getLogs($this->cmd, $this->intPos, $_CONFIG['corePagingLimit']);
-        
+
         foreach ($logs as $log) {
             if ($log['action'] == 'remove') {
                 $page = new \Cx\Core\ContentManager\Model\Entity\Page();
@@ -193,6 +208,9 @@ class ContentWorkflow extends \Module {
                 $this->logRepo->revert($page, $log['version'] - 1);
             } else {
                 $page = $this->pageRepo->findOneById($log['objectId']);
+            }
+            if (!$page) {
+                continue;
             }
             $data[$page->getId()] = array(
                 'action'  => $log['action'],
@@ -202,10 +220,10 @@ class ContentWorkflow extends \Module {
                 'page'    => $page,
             );
         }
-        
+
         if (!empty($data)) {
             $intRowCount = 0;
-            
+
             foreach ($data as $pageId => $data) {
                 $act      = $data['action'];
                 $history  = $data['version'] - 1;
@@ -214,7 +232,7 @@ class ContentWorkflow extends \Module {
                 $page     = $data['page'];
                 $type     = $this->pageRepo->getTypeByPage($page);
                 $prefix   = '';
-                
+
                 // Only for new, updated and unvalidated pages
                 if ($this->cmd  != 'deleted') {
                     $langDir     = \FWLanguage::getLanguageCodeById($page->getLang());
@@ -228,7 +246,7 @@ class ContentWorkflow extends \Module {
                         break;
                     case 'unvalidated':
                         $strIcon = '<a href="'.CONTREXX_DIRECTORY_INDEX.'?cmd=ContentManager&amp;page='.$pageId.'&amp;tab=content" target="_blank"><img src="../core/Core/View/Media/icons/details.gif" alt="'.$_ARRAYLANG['TXT_DETAILS'].'" title="'.$_ARRAYLANG['TXT_DETAILS'].'" border="0" /></a>';
-                        
+
                         switch ($act) {
                             case 'create':
                                 $prefix = $_ARRAYLANG['TXT_VALIDATE_PREFIX_NEW'].'&nbsp;';
@@ -245,7 +263,7 @@ class ContentWorkflow extends \Module {
                         $strIcon  = '<a href="../'.\FWLanguage::getLanguageCodeById($page->getLang()).$page->getPath().'" target="_blank"><img src="../core/ContentManager/View/Media/Preview.png" alt="'.$_ARRAYLANG['TXT_WORKFLOW_PAGE_PREVIEW'].'" title="'.$_ARRAYLANG['TXT_WORKFLOW_PAGE_PREVIEW'].'" border="0" /></a>&nbsp;';
                         $strIcon .= '<a href="'.CONTREXX_DIRECTORY_INDEX.'?cmd=ContentManager&amp;page='.$pageId.'&amp;tab=content" target="_blank"><img src="../core/Core/View/Media/icons/edit.gif" alt="'.$_ARRAYLANG['TXT_EDIT_PAGE'].'" title="'.$_ARRAYLANG['TXT_EDIT_PAGE'].'" border="0" /></a>';
                 }
-                
+
                 $this->tpl->setVariable(array(
                     'HISTORY_ROWCLASS'              => $intRowCount % 2 == 0 ? 'row0' : 'row1',
                     'HISTORY_IMGDETAILS'            => $strIcon,
@@ -272,32 +290,45 @@ class ContentWorkflow extends \Module {
 
     protected function showHistoryDeleted() {
         global $_ARRAYLANG, $_CONFIG;
-        
+
         \Permission::checkAccess(75, 'static');
-        
-        $this->tpl->addBlockfile('ADMIN_CONTENT', 'content_history', 'content_history_deleted.html');
+
+        $this->tpl->addBlockfile(
+            'ADMIN_CONTENT',
+            'content_history',
+            'content_history_deleted.html'
+        );
         $this->strPageTitle = $_ARRAYLANG['TXT_DELETED_PAGES'];
         $this->setTextVariables($_ARRAYLANG['TXT_DELETED_PAGES']);
-        
-        // Gets the quantity of log entries
-        $countLogEntries = $this->logRepo->countLogEntries('deleted');
-        
-        // Paging
-        $strPaging = getPaging($countLogEntries, $this->intPos, '&cmd=ContentWorkflow&act=deleted', '', true);
-        $this->tpl->setVariable('HISTORY_PAGING', $strPaging);
-        
-        // Gets the log entries
-        $logsByNodeId  = $this->logRepo->getLogs('deleted', $this->intPos, $_CONFIG['corePagingLimit']);
+
+        // Gets the log entries and quantity of log entries
+        $countLogEntries = 0;
+        $logsByNodeId  = $this->logRepo->getLogs(
+            'deleted',
+            $this->intPos,
+            $_CONFIG['corePagingLimit'],
+            $countLogEntries
+        );
         $dataByNodeId  = array();
-        
+
+        // Paging
+        $strPaging = getPaging(
+            $countLogEntries,
+            $this->intPos,
+            '&cmd=ContentWorkflow&act=deleted',
+            '',
+            true
+        );
+        $this->tpl->setVariable('HISTORY_PAGING', $strPaging);
+
         foreach ($logsByNodeId as $nodeId => $logsByLang) {
             $dataByLang = array();
-            
+
             foreach ($logsByLang as $lang => $log) {
                 $page = new \Cx\Core\ContentManager\Model\Entity\Page();
                 $page->setId($log['objectId']);
                 $this->logRepo->revert($page, $log['version'] - 1);
-                
+
                 $dataByLang[$lang] = array(
                     'version' => $log['version'],
                     'updated' => $log['loggedAt'],
@@ -305,10 +336,10 @@ class ContentWorkflow extends \Module {
                     'page'    => $page,
                 );
             }
-            
+
             $dataByNodeId[$nodeId] = $dataByLang;
         }
-        
+
         if (!empty($dataByNodeId)) {
             $intRowCount = 0;
             foreach ($dataByNodeId as $dataByLang) {
@@ -322,12 +353,12 @@ class ContentWorkflow extends \Module {
                     $title    = '';
                     $period   = '';
                     $slug     = '';
-                    
+
                     foreach ($dataByLang as $data) {
                         $history = $data['version'] - 1;
                         $page    = $data['page'];
                         $pageId  = $page->getId();
-                        
+
                         $updated   = $data['updated'];
                         $lang     .= \FWLanguage::getLanguageCodeById($page->getLang()).'<br />';
                         $type     .= $this->pageRepo->getTypeByPage($page).'<br />';
@@ -338,10 +369,10 @@ class ContentWorkflow extends \Module {
                         $period   .= $start.' - '.$end.'<br />';
                         $slug     .= $page->getSlug().'<br />';
                     }
-                    
+
                     $data = array_shift($dataByLang);
                     $linkPageId = $data['page']->getId();
-                    
+
                     $this->tpl->setVariable(array(
                         'HISTORY_ROW'                   => $intRowCount % 2 == 0 ? 'row1' : 'row2',
                         'HISTORY_IMGDETAILS'            => '<a href="javascript:restoreDeleted(\''.$linkPageId.'\');"><img src="../core/Core/View/Media/icons/import.gif" alt="'.$_ARRAYLANG['TXT_DELETED_RESTORE'].'" title="'.$_ARRAYLANG['TXT_DELETED_RESTORE'].'" border="0" align="middle" /></a>',
@@ -354,7 +385,7 @@ class ContentWorkflow extends \Module {
                         'HISTORY_PUBLICATION_PERIOD'    => $period,
                         'HISTORY_SLUG'                  => $slug,
                     ));
-                    
+
                     $this->tpl->parse('page_row');
                     $intRowCount++;
                 }
@@ -364,7 +395,7 @@ class ContentWorkflow extends \Module {
 
     private function setTextVariables() {
         global $_ARRAYLANG;
-        
+
         $this->tpl->setVariable(array(
             'TXT_TITLE'                 => $this->strPageTitle,
             'TXT_DATE'                  => $_ARRAYLANG['TXT_DATE'],
@@ -380,52 +411,54 @@ class ContentWorkflow extends \Module {
             'TXT_DELETED_RESTORE_JS'    => $_ARRAYLANG['TXT_DELETED_RESTORE_JS'],
         ));
     }
-    
+
     /**
      *  Restores a page from histroy.
      */
     protected function restoreHistory() {
         \Permission::checkAccess(77, 'static');
-        
+
         // Create node
         $node = new \Cx\Core\ContentManager\Model\Entity\Node();
         $node->setParent($this->nodeRepo->getRoot());
         $this->em->persist($node);
         $this->em->flush();
-        
+
         $arrData = $this->revertPage($this->pageId);
         $currentPage    = $arrData['page'];
         $logs           = $arrData['logs'];
         $nodeIdShadowed = $currentPage->getNodeIdShadowed();
-        
+
         $this->restorePage($node, $currentPage, $logs);
-        
-        $logsRemove = $this->logRepo->getLogsByAction('remove');
-        foreach ($logsRemove as $logRemove) {
-            $arrData = $this->revertPage($logRemove->getObjectId());
-            $page    = $arrData['page'];
-            $logs    = $arrData['logs'];
-            if ($page->getNodeIdShadowed() == $nodeIdShadowed) {
-                $this->restorePage($node, $page, $logs);
+
+        if ($nodeIdShadowed !== null) {
+            $logsRemove = $this->logRepo->getLogsByAction('remove');
+            foreach ($logsRemove as $logRemove) {
+                $arrData = $this->revertPage($logRemove->getObjectId());
+                $page    = $arrData['page'];
+                $logs    = $arrData['logs'];
+                if ($page->getNodeIdShadowed() == $nodeIdShadowed) {
+                    $this->restorePage($node, $page, $logs);
+                }
             }
         }
-        
+
         $this->redirectPage($currentPage->getId());
     }
-    
+
     private function revertPage($pageId) {
         $page = new \Cx\Core\ContentManager\Model\Entity\Page();
         $page->setId($pageId);
         $logs = $this->logRepo->getLogEntries($page);
         $this->logRepo->revert($page, $logs[1]->getVersion());
         $page->setId(0);
-        
+
         return array(
             'page' => $page,
             'logs' => $logs,
         );
     }
-    
+
     private function restorePage($node, $page, $logs) {
         // Save the restored page
         $page->setNode($node);
@@ -433,18 +466,18 @@ class ContentWorkflow extends \Module {
         $this->em->persist($page);
         $this->em->flush();
         $pageId = $page->getId();
-        
+
         // Remove the new 'create' log
         $newLogs = $this->logRepo->findByObjectId($pageId);
         foreach ($newLogs as $newLog) {
             $this->em->remove($newLog);
         }
         $this->em->flush();
-        
+
         // Delete the 'remove' log
         $this->em->remove($logs[0]);
         unset($logs[0]);
-        
+
         // Set the new object id in the old logs
         foreach ($logs as $log) {
             $log->setObjectId($pageId);
@@ -455,15 +488,19 @@ class ContentWorkflow extends \Module {
         }
         $this->em->flush();
     }
-    
+
     /**
      * Redirect to content manager (open site)
      *
      * @param  integer  The page with this id will be shown in content manager.
      */
     protected function redirectPage($intPageId) {
-        \Cx\Core\Csrf\Controller\Csrf::header('location: index.php?cmd=ContentManager&page='.$intPageId.'&tab=content');
-        exit;
+        // This is not really a nice way to generate this URL!
+        $baseUrl = \Cx\Core\Routing\Url::fromDocumentRoot();
+        $baseUrl->setMode(\Cx\Core\Core\Controller\Cx::MODE_BACKEND);
+        \Cx\Core\Csrf\Controller\Csrf::redirect(
+            $baseUrl . 'cadmin/ContentManager?page=' . $intPageId . '&tab=content'
+        );
     }
 
 }

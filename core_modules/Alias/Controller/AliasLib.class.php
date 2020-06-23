@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * Alias library
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
@@ -54,38 +54,38 @@ class AliasLib
     public $langId;
 
     public $_arrConfig = null;
-    
+
     protected $em = null;
-    
+
     protected $nodeRepository = null;
-    
+
     protected $pageRepository = null;
-    
+
     protected $hasLegacyPages = false;
 
     function __construct($langId = 0)
     {
         $this->langId = intval($langId) > 0 ? $langId : FRONTEND_LANG_ID;
-        
+
         $this->em = \Env::get('em');
         $this->nodeRepository = $this->em->getRepository('Cx\Core\ContentManager\Model\Entity\Node');
         $this->pageRepository = $this->em->getRepository('Cx\Core\ContentManager\Model\Entity\Page');
     }
 
-    
+
     function _getAliases($limit = null, $all = false, $legacyPages = false, $slug = null)
     {
         $pos = !$all && isset($_GET['pos']) ? intval($_GET['pos']) : 0;
-        
+
         if(!$slug){
             // show all entries
             $aliases = $this->pageRepository->findBy(array(
                 'type' => \Cx\Core\ContentManager\Model\Entity\Page::TYPE_ALIAS,
-            ), true);
+            ), null, null, null, true);
         } else {
             // query builder for filtering entries
             $qb = $this->pageRepository->createQueryBuilder('p');
-            $aliases = 
+            $aliases =
                 $qb->select('p')
                 ->add('where', $qb->expr()->andX(
                     $qb->expr()->eq('p.type', ':type'),
@@ -112,7 +112,7 @@ class AliasLib
                 break;
             }
         }
-        
+
         return $pages;
     }
 
@@ -121,34 +121,39 @@ class AliasLib
     {
         return count($this->_getAliases(null, true, $showLegacyPagealiases, $slug));
     }
-    
+
 
     function _getAlias($aliasId)
     {
         $crit = array(
             'node' => $aliasId,
         );
-        return current($this->pageRepository->findBy($crit, true));
+        return current($this->pageRepository->findBy($crit, null, null, null, true));
     }
-    
-    
+
+
     function _fetchTarget($page)
     {
-        return $this->pageRepository->getTargetPage($page);
+        try {
+            return $this->pageRepository->getTargetPage($page);
+        } catch (\Cx\Core\ContentManager\Model\Repository\PageRepositoryException $e) {
+            \DBG::log($e->getMessage());
+            return null;
+        }
     }
-    
-    
+
+
     function _isLocalAliasTarget($page)
     {
         return $page->isTargetInternal();
     }
-    
-    
+
+
     function _getURL($page)
     {
-        return $page->getUrl();
+        return $page->getURL(null, array());
     }
-    
+
     function _getAliasesWithSameTarget($aliasPage)
     {
         $aliases = array();
@@ -159,12 +164,12 @@ class AliasLib
                 'type'   => \Cx\Core\ContentManager\Model\Entity\Page::TYPE_ALIAS,
                 'target' => $target,
             );
-            $aliases = $this->pageRepository->findBy($crit, true);
+            $aliases = $this->pageRepository->findBy($crit, null, null, null, true);
         }
 
         return $aliases;
     }
-    
+
 
     function _setAliasTarget(&$arrAlias)
     {
@@ -181,19 +186,19 @@ class AliasLib
                 'lang' => $target_lang_id,
             );
             $page_repo = \Env::get('em')->getRepository('Cx\Core\ContentManager\Model\Entity\Page');
-            $targetPage = $page_repo->findBy($crit, true);
+            $targetPage = $page_repo->findBy($crit, null, null, null, true);
             $targetPage = $targetPage[0];
             $targetPath = $page_repo->getPath($targetPage);
             $arrAlias['pageUrl'] = "/".$targetPath;
             $arrAlias['title'] = $targetPage->getContentTitle();
         }
     }
-    
-    
+
+
     function _createTemporaryAlias()
     {
         global $objFWUser;
-        
+
         $page = new \Cx\Core\ContentManager\Model\Entity\Page();
         $page->setLang(0);
         $page->setType(\Cx\Core\ContentManager\Model\Entity\Page::TYPE_ALIAS);
@@ -202,28 +207,20 @@ class AliasLib
         //$page->setUsername($objFWUser->objUser->getUsername());
         return $page;
     }
-    
+
 
     function _saveAlias($slug, $target, $is_local, $id = '')
     {
         if ($slug == '') {
             return false;
         }
-        
+
         // is internal target
         if ($is_local) {
             // get target page
             $temp_page = new \Cx\Core\ContentManager\Model\Entity\Page();
             $temp_page->setTarget($target);
             $existing_aliases = $this->_getAliasesWithSameTarget($temp_page);
-            
-            // if alias already exists -> fail
-            foreach ($existing_aliases as $existing_alias) {
-                if (($id == '' || $existing_alias->getNode()->getId() != $id) &&
-                        $slug == $existing_alias->getSlug()) {
-                    return false;
-                }
-            }
         }
 
         if ($id == '') {
@@ -250,17 +247,12 @@ class AliasLib
                 return false;
             }
         }
-        
+
         // set page attributes
         $page->setSlug($slug);
         $page->setTarget($target);
         $page->setTitle($page->getSlug());
-        
-        // sanitize slug
-        while (file_exists(ASCMS_PATH . '/' . $page->getSlug())) {
-            $page->nextSlug();
-        }
-        
+
         // save
         try {
             $page->validate();
@@ -271,7 +263,7 @@ class AliasLib
         $this->em->flush();
         $this->em->refresh($node);
         $this->em->refresh($page);
-        
+
         return true;
     }
 
@@ -285,7 +277,7 @@ class AliasLib
         }
         $this->em->remove($alias->getNode());
         $this->em->remove($alias);
-        $this->em->flush();        
+        $this->em->flush();
         return true;
     }
 }

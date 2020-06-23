@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * Wrapper class for the Gedmo\Loggable\LoggableListener
  *
@@ -32,7 +32,7 @@
  * @author      ss4u <ss4u.comvation@gmail.com>
  * @version     3.1.2
  * @package     cloudrexx
- * @subpackage  core 
+ * @subpackage  core
  */
 
 namespace Cx\Core\Model\Model\Event;
@@ -50,13 +50,13 @@ class LoggableListenerException extends \Exception { }
  * @subpackage  core
  */
 class LoggableListener extends \Gedmo\Loggable\LoggableListener {
-    
+
     /**
      * {@inheritDoc}
      */
     protected function getEventAdapter(\Doctrine\Common\EventArgs $args) {
         parent::getEventAdapter($args);
-        
+
         $class = get_class($args);
         if (preg_match('@Doctrine\\\([^\\\]+)@', $class, $m) && $m[1] == 'ORM') {
             $this->adapters[$m[1]] = new ORM();
@@ -67,5 +67,31 @@ class LoggableListener extends \Gedmo\Loggable\LoggableListener {
         } else {
             throw new LoggableListenerException('Event mapper does not support event arg class: '.$class);
         }
+    }
+
+    /**
+     * Returns the log entity class for a given entity class
+     *
+     * This does not tell whether an entity is loggable or not.
+     * @todo As metadata needs to be read for this we should cache the result
+     * @param string $entityClassName Entity class name
+     * @return string Log entity class name
+     */
+    public function getLogEntryClassForEntityClass(string $entityClassName): string {
+        $em = \Cx\Core\Core\Controller\Cx::instanciate()->getDb()->getEntityManager();
+        $event = new \Doctrine\ORM\Event\LoadClassMetadataEventArgs(
+            $em->getClassMetadata($entityClassName),
+            $em
+        );
+
+        // Metadata is not always pre-read into cache. Therefore we need to
+        // force a metadata reload for this entity class.
+        $this->loadClassMetadata($event);
+        return $this->getLogEntryClass(
+            $this->getEventAdapter(
+                $event
+            ),
+            $entityClassName
+        );
     }
 }

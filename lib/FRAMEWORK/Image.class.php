@@ -54,16 +54,16 @@ class ImageManager
     public $orgImageHeight;
     public $orgImageType;
     public $orgImageFile;
-	
+
     public $newImage;
     public $newImageWidth;
     public $newImageHeight;
     public $newImageQuality;
     public $newImageType;
     public $newImageFile;
-	public $newImagePosX;
+    public $newImagePosX;
     public $newImagePosY;
-	
+
     public $imageCheck = 1;
 
     const IMG_TYPE_GIF = 1;
@@ -96,20 +96,20 @@ class ImageManager
         $this->_resetVariables();
         $this->orgImageFile = $file;
         $this->orgImageType = $this->_isImage($this->orgImageFile);
-		
+
         if ($this->orgImageType) {
             $getImage             = $this->_getImageSize($this->orgImageFile);
             $this->orgImageWidth  = $getImage[0];
             $this->orgImageHeight = $getImage[1];
             $this->orgImage       = $this->_imageCreateFromFile($this->orgImageFile);
-			
+
             if ($this->orgImage) return true;
-            
+
             $this->imageCheck = 0;
             $this->_resetVariables();
             return false;
         }
-		
+
         $this->imageCheck = 0;
         $this->_resetVariables();
         return false;
@@ -184,17 +184,17 @@ class ImageManager
         $thumbWidth  = $tmpSize[0] * $factor;
         $thumbHeight = $tmpSize[1] * $factor;
         if (!$_objImage->loadImage($strPath.$file)) return false;
-        
+
         if ($generateThumbnailByRatio && !$_objImage->resizeImageWithAspectRatio($thumbWidth, $thumbHeight, $quality)) {
             return false;
         } elseif (!$generateThumbnailByRatio && !$_objImage->resizeImage($thumbWidth, $thumbHeight, $quality)) {
             return false;
         }
-        
+
         if (!(strlen($thumb_name) > 0)) {
             $thumb_name = self::getThumbnailFilename($file);
         }
-        if (!$_objImage->saveNewImage($strPath.$thumb_name)) return false;
+        if (!$_objImage->saveNewImage($strPath.$thumb_name, false, false)) return false;
         if (!\Cx\Lib\FileSystem\FileSystem::makeWritable($strPath.$thumb_name)) return false;
         return true;
     }
@@ -211,7 +211,7 @@ class ImageManager
      * thumbnail before attempting to write the new one.
      * Note that all "Path" parameters are required to bring along their
      * own trailing slash.
-	 * 
+     *
      * @param   string  $strPath        The image file folder
      * @param   string  $strWebPath     The image file web folder
      * @param   string  $file           The image file name
@@ -256,7 +256,7 @@ class ImageManager
         if (is_file($strPathNew.$fileNew.$thumbNailSuffix)) {
             if (!\Cx\Lib\FileSystem\FileSystem::delete_file($strPathNew.$fileNew.$thumbNailSuffix)) return false;
         }
-        if (!$this->saveNewImage($strPathNew.$fileNew.$thumbNailSuffix)) return false;
+        if (!$this->saveNewImage($strPathNew.$fileNew.$thumbNailSuffix, false, false)) return false;
         if (!\Cx\Lib\FileSystem\FileSystem::makeWritable($strPathNew.$fileNew.$thumbNailSuffix)) return false;
         return true;
     }
@@ -275,24 +275,24 @@ class ImageManager
     public function resizeImage($width, $height, $quality)
     {
         if (!$this->imageCheck) return false;
-        
+
         //Create a new image for given size
-	$this->createNewImageForResize($width, $height, $quality);
+        $this->createNewImageForResize($width, $height, $quality);
         if (function_exists('imagecopyresampled')) { //resampled is gd2 only
             imagecopyresampled($this->newImage, $this->orgImage, 0, 0, 0, 0, $this->newImageWidth, $this->newImageHeight, $this->orgImageWidth, $this->orgImageHeight);
         } else {
             imagecopyresized($this->newImage, $this->orgImage, 0, 0, 0, 0, $this->newImageWidth, $this->newImageHeight, $this->orgImageWidth, $this->orgImageHeight);
         }
 
-	if ($this->newImage) {
+    if ($this->newImage) {
             return true;
         }
         return false;
     }
-    
+
     /**
      * create new image for resize
-     * 
+     *
      * @param   string   $width    The width of the new image.
      * @param   string   $height   The height of the new image.
      * @param   string   $quality  The quality for the new image.
@@ -304,12 +304,12 @@ class ImageManager
             $this->orgImageWidth  = $this->newImageWidth;
             $this->orgImageHeight = $this->newImageHeight;
         }
-		
+
         $this->newImageWidth = $width;
         $this->newImageHeight = $height;
         $this->newImageQuality = $quality;
         $this->newImageType = $this->orgImageType;
-	
+
         if (function_exists('imagecreatetruecolor')) {
             $this->newImage = @imagecreatetruecolor($this->newImageWidth, $this->newImageHeight);
             // GD > 2 check
@@ -326,41 +326,41 @@ class ImageManager
             $this->newImage = imagecreate($this->newImageWidth, $this->newImageHeight);
         }
     }
-    
+
     /**
      * Resize the image with aspect ratio and fill the white color in empty area
-     * 
+     *
      * @param   string   $width    The width of the new image.
      * @param   string   $height   The height of the new image.
      * @param   string   $quality  The quality for the new image.
-     * 
+     *
      * @return boolean
      */
     public function resizeImageWithAspectRatio($width, $height, $quality)
     {
         if (!$this->imageCheck) return false;
-        
+
         $setWhiteBackground = ($width  > $this->orgImageWidth) ? true : false;
         //Create a new image for given size
         $this->createNewImageForResize($width, $height, $quality, $setWhiteBackground);
-        
+
         $dstX      = ($this->newImageWidth  > $this->orgImageWidth) ? round(($this->newImageWidth - $this->orgImageWidth) / 2) : 0;
         $dstY      = ($this->newImageHeight > $this->orgImageHeight) ? round(($this->newImageHeight - $this->orgImageHeight) / 2) : 0;
         $newWidth  = ($this->newImageWidth  > $this->orgImageWidth) ? $this->orgImageWidth : $this->newImageWidth;
         $newHeight = ($this->newImageHeight > $this->orgImageHeight) ? $this->orgImageHeight : $this->newImageHeight;
-        
+
         if (function_exists('imagecopyresampled')) { //resampled is gd2 only
             imagecopyresampled($this->newImage, $this->orgImage, $dstX, $dstY, 0, 0, $newWidth, $newHeight, $this->orgImageWidth, $this->orgImageHeight);
         } else {
             imagecopyresized($this->newImage, $this->orgImage, $dstX, $dstY, 0, 0, $newWidth, $newHeight, $this->orgImageWidth, $this->orgImageHeight);
         }
-        
-	if ($this->newImage) {
+
+        if ($this->newImage) {
             return true;
         }
         return false;
     }
-    
+
 
     /**
      * Add transparency to new image
@@ -419,20 +419,20 @@ class ImageManager
         if ($newPath == '') $newPath = $path;
         if ($newWebPath == '') $newWebPath = $webPath;
         if ($newFileName == '') $newFileName = $fileName.$thumbNailSuffix;
-		
+
         $this->_checkTrailingSlash($path);
         $this->_checkTrailingSlash($webPath);
         $this->_checkTrailingSlash($newPath);
         $this->_checkTrailingSlash($newWebPath);
-		
+
         $this->loadImage($path.$fileName);
         if (!$this->imageCheck) return false;
-		
+
         $this->newImageWidth = $width;
         $this->newImageHeight = $height;
         $this->newImageQuality = $quality;
         $this->newImageType = $this->orgImageType;
-		
+
         if (function_exists ('imagecreatetruecolor')) {
             $this->newImage = @imagecreatetruecolor($this->newImageWidth, $this->newImageHeight);
             // GD > 2 check
@@ -444,14 +444,14 @@ class ImageManager
         } else {
             $this->newImage = ImageCreate($this->newImageWidth, $this->newImageHeight);
         }
-		
+
         imagecopyresized(
             $this->newImage, $this->orgImage,
             0, 0, 0, 0,
             $this->newImageWidth+1, $this->newImageHeight+1,
             $this->orgImageWidth, $this->orgImageHeight
         );
-		
+
         return $this->saveNewImage($newPath.$newFileName);
     }
 
@@ -473,15 +473,20 @@ class ImageManager
 
     /**
      * Saves the new image wherever you want
+     *
      * @todo    In case the PHP script has no write access to the location set by $this->newImageFile,
      *          the image shall be sent to the output buffer and then be put into the new file
      *          location using the FileSystemFile object.
+     * @todo    Check for all usages of this method if argument
+     *          $injectTransparency must be set to FALSE.
      * @access  public
      * @param   string    $file             The path for the image file to be written.
      * @param   booelan   $forceOverwrite   Force overwriting existing files if true.
+     * @param   booelan   $injectTransparency Whether or not to set transparency
+     *                                      info on new image.
      * @return  boolean                     True on success, false otherwise.
      */
-    public function saveNewImage($file, $forceOverwrite=false)
+    public function saveNewImage($file, $forceOverwrite=false, $injectTransparency = true)
     {
 // TODO: Add some sort of diagnostics (Message) here and elsewhere in this class
         if (!$this->imageCheck) return false;
@@ -510,13 +515,16 @@ class ImageManager
             return false;
         }
         \Cx\Lib\FileSystem\FileSystem::chmod($file, 0666);//\Cx\Lib\FileSystem\FileSystem::CHMOD_FILE);
-        
+
         $this->newImageFile = $file;
-        
-        if ($this->newImageType == self::IMG_TYPE_PNG) {
+
+        if (
+            $injectTransparency &&
+            $this->newImageType == self::IMG_TYPE_PNG
+        ) {
             $this->setTransparency();
         }
-        
+
         switch($this->newImageType) {
             case self::IMG_TYPE_GIF:
                 $function = 'imagegif';
@@ -534,8 +542,8 @@ class ImageManager
                 return false;
         }
 
-		
-		// Only adjust quality, if it is set.
+
+        // Only adjust quality, if it is set.
         if ($this->newImageQuality != '') {
             $function($this->newImage, $this->newImageFile, $this->getQuality());
         } else {
@@ -573,15 +581,15 @@ class ImageManager
     function showNewImage()
     {
         $this->newImage     = !empty($this->newImage)     ? $this->newImage     : $this->orgImage;
-		$this->newImageType = !empty($this->newImageType) ? $this->newImageType : $this->orgImageType;
-        
+        $this->newImageType = !empty($this->newImageType) ? $this->newImageType : $this->orgImageType;
+
         if (!$this->imageCheck == 1) return false;
         if (empty($this->newImage)) return false;
-        
+
         if ($this->newImageType == self::IMG_TYPE_PNG) {
             $this->setTransparency();
         }
-		
+
         switch($this->newImageType) {
             case self::IMG_TYPE_GIF:
                 header("Content-type: image/gif");
@@ -601,7 +609,7 @@ class ImageManager
             default:
                 return false;
         }
-		// Only adjust quality, if it is set.
+        // Only adjust quality, if it is set.
         if ($this->newImageQuality != '') {
             $function($this->newImage, null, $this->getQuality());
         } else {
@@ -613,7 +621,7 @@ class ImageManager
 
     /**
      * Resets all object variables.
-	 * 
+     *
      * @access   private
      * @return   void
      */
@@ -624,15 +632,15 @@ class ImageManager
         $this->orgImageHeight  = '';
         $this->orgImageType    = '';
         $this->orgImageFile    = '';
-		
+
         $this->newImage        = '';
         $this->newImageWidth   = '';
         $this->newImageHeight  = '';
         $this->newImageQuality = 100;
         $this->newImageType    = '';
         $this->newImageFile    = '';
-		$this->newImagePosX    = '';
-    	$this->newImagePosY    = '';
+        $this->newImagePosX    = '';
+        $this->newImagePosY    = '';
     }
 
 
@@ -695,24 +703,52 @@ class ImageManager
     {
         $arrSizeInfo = getimagesize($file);
         if (!is_array($arrSizeInfo)) return false;
+
+        // fetch channels of image
+        if (
+            !isset($arrSizeInfo['channels']) ||
+            $arrSizeInfo['channels'] < 3
+        ) {
+            $channels = 3;
+        } else {
+            $channels = $arrSizeInfo['channels'];
+        }
+
+        // fetch bits per pixel of image
+        if (!isset($arrSizeInfo['bits'])) {
+            $bits = 8;
+        } else {
+            $bits = $arrSizeInfo['bits'];
+        }
+
         $type = $this->_isImage($file);
-        $potentialRequiredMemory = $arrSizeInfo[0] * $arrSizeInfo[1] * 1.8;
+
+        // see comments of https://www.php.net/manual/en/function.imagecreatefromjpeg.php
+        $fudgeFactor = 2.2;
+
+        // width * height * "fudge factor"
+        $potentialRequiredMemory = $arrSizeInfo[0] * $arrSizeInfo[1] * $fudgeFactor;
+
+        // multiply required memory by number of bits and channels per pixel
+        // depending on image type
         switch($type) {
             case self::IMG_TYPE_GIF:
                 $function = 'imagecreatefromgif';
                 break;
             case self::IMG_TYPE_JPEG:
                 $function = 'imagecreatefromjpeg';
-                $potentialRequiredMemory *=
-                    ($arrSizeInfo['bits']/8) * ($arrSizeInfo['channels'] < 3 ? 3 : $arrSizeInfo['channels']);
+                $potentialRequiredMemory *= $bits / 8 * $channels;
                 break;
             case self::IMG_TYPE_PNG:
                 $function = 'imagecreatefrompng';
-                $potentialRequiredMemory *= 4;
+                $potentialRequiredMemory *= $bits;
                 break;
             default:
                 return '';
         }
+
+        // round potential required memory to int
+        $potentialRequiredMemory = round($potentialRequiredMemory);
 
         require_once(ASCMS_FRAMEWORK_PATH.'/System.class.php');
         $objSystem = new FWSystem();
@@ -723,11 +759,14 @@ class ImageManager
             // set default php memory limit of 8 MBytes
             $memoryLimit = 8 * pow(1024, 2);
         }
+        // fetch already used memory
         if (function_exists('memory_get_usage')) {
             $potentialRequiredMemory += memory_get_usage();
         } else {
-            // add a default of 3 MBytes
-            $potentialRequiredMemory += 3 * pow(1024, 2);
+            // as we are unable to fetch the currently used memory,
+            // we do continue our calculation with an expected
+            // amount of used memory of 32 MB
+            $potentialRequiredMemory += 32 * pow(1024, 2);
         }
         if ($potentialRequiredMemory > $memoryLimit) {
             // try to set a higher memory_limit
@@ -838,7 +877,7 @@ class ImageManager
 
     /**
      * Rotates the image 90 degrees to the left or right.
-     * 
+     *
      * @access  public
      * @param   float   $angle  Rotation angle, in degrees. The rotation angle is interpreted as the number of degrees to rotate the image anticlockwise.
      * @return  bool            True on success, false otherwise.
@@ -848,27 +887,27 @@ class ImageManager
         if ($this->imageCheck == 1) {
             $angle = ($angle <= 360) || ($angle >= 0) ? $angle : 0;
             $this->newImage = imagerotate($this->orgImage, $angle, 0);
-            
+
             if ($this->newImage) {
                 $this->setTransparency();
-                
+
                 $this->newImageWidth = imagesx($this->newImage);
                 $this->newImageHeight = imagesy($this->newImage);
                 $this->newImageType  = $this->orgImageType;
-                
+
                 return true;
             }
-            
+
             throw new Exception('Could not rotate image');
         }
-        
+
         throw new Exception('Is not a valid image');
     }
 
 
     /**
      * Crops the image with the given coordinates.
-     * 
+     *
      * @access  public
      * @param   int   $x       X-coordinate for the new image.
      * @param   int   $y       Y-coordinate for the new image.
@@ -884,11 +923,11 @@ class ImageManager
             $this->newImageWidth  = $width;
             $this->newImageHeight = $height;
             $this->newImageType   = $this->orgImageType;
-            
+
             if ($this->newImage) {
                 $this->orgImage = $this->newImage;
             }
-            
+
             if (function_exists('imagecreatetruecolor')) {
                 $this->newImage = @imagecreatetruecolor($this->newImageWidth, $this->newImageHeight);
                 // GD > 2 check
@@ -900,7 +939,7 @@ class ImageManager
             } else {
                 $this->newImage = imagecreate($this->newImageWidth, $this->newImageHeight);
             }
-            
+
             imagecopy (
                 $this->newImage,      // Source of new image
                 $this->orgImage,      // Source of original image
@@ -911,18 +950,67 @@ class ImageManager
                 $this->newImageWidth, // New image width
                 $this->newImageHeight // New image height
             );
-            
+
             if (!empty($this->newImage)) {
                 return true;
             }
-            
+
             throw new Exception('Could not crop image');
         }
-        
+
         throw new Exception('Is not a valid image');
     }
 
+    /**
+     * Fix image orientation based on its Exif-data
+     *
+     * @param string $filePath File path
+     */
+    public function fixImageOrientation($filePath)
+    {
+        if (!function_exists('exif_read_data')) {
+            return;
+        }
 
+        // The method exif_read_data() reads a header information from an image.
+        // It returns an associated array where the array indexes are the header
+        // names and the array values are the values associated with those
+        // headers.
+        // If no data can be returned, exif_read_data() will return FALSE.
+        $exif = exif_read_data($filePath);
+        if (empty($exif['Orientation'])) {
+            return;
+        }
+
+        $this->loadImage($filePath);
+        // The information from the accelerometer is stored in the orientation
+        // field of the Exchangeable Image File Format (Exif) metadata.
+        // If the image has rotated, Exif data should have 'Orientation' in its
+        // header information. The orientation is one of 3, 6 or 8. Here
+        // orientation 3 will rotate 180 degree left, orientation 6 will
+        // rotate 90 degree right and orientation 8 will rotate 90 degree left.
+        // For more information about the Orientation image data structure
+        // property see:
+        // http://www.digicamsoft.com/exif22/exif22/html/exif22_24.htm?gInitialPosX=10px&gInitialPosY=10px&gZoomValue=100
+        // or check http://www.cipa.jp for the latest Exif standard doc
+        try {
+            // Note that $this->rotateImage() does rotate the image anticlockwise
+            switch ($exif['Orientation']) {
+                case 3:
+                    $this->rotateImage(180);
+                    break;
+                case 6:
+                    $this->rotateImage(-90);
+                    break;
+                case 8:
+                    $this->rotateImage(90);
+                    break;
+                default :
+                    return;
+            }
+            $this->saveNewImage($filePath, true);
+        } catch (\Exception $ex) {
+            \DBG::msg($ex->getMessage());
+        }
+    }
 }
-
-?>

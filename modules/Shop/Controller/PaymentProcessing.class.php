@@ -265,27 +265,38 @@ class PaymentProcessing
         switch (self::getPaymentProcessorName()) {
             case 'internal':
                 \Cx\Core\Csrf\Controller\Csrf::redirect(
-                    \Cx\Core\Routing\Url::fromModuleAndCmd('Shop', 'success').
-                    '?result=1&handler=internal');
+                    \Cx\Core\Routing\Url::fromModuleAndCmd('Shop'.MODULE_INDEX, 'success', '',
+                        array('result' => 1, 'handler' => 'internal')
+                    )
+                );
             case 'internal_lsv':
                 \Cx\Core\Csrf\Controller\Csrf::redirect(
-                    \Cx\Core\Routing\Url::fromModuleAndCmd('Shop', 'success').
-                    '?result=1&handler=internal');
+                    \Cx\Core\Routing\Url::fromModuleAndCmd('Shop'.MODULE_INDEX, 'success', '',
+                        array('result' => 1, 'handler' => 'internal')
+                    )
+                );
             case 'internal_creditcard':
                 // Not implemented
                 \Cx\Core\Csrf\Controller\Csrf::redirect(
-                    \Cx\Core\Routing\Url::fromModuleAndCmd('Shop', 'success').
-                    '?result=1&handler=internal');
+                    \Cx\Core\Routing\Url::fromModuleAndCmd('Shop'.MODULE_INDEX, 'success', '',
+                        array('result' => 1, 'handler' => 'internal')
+                    )
+                );
             case 'internal_debit':
                 // Not implemented
                 \Cx\Core\Csrf\Controller\Csrf::redirect(
-                    \Cx\Core\Routing\Url::fromModuleAndCmd('Shop', 'success').
-                    '?result=1&handler=internal');
+                    \Cx\Core\Routing\Url::fromModuleAndCmd('Shop'.MODULE_INDEX, 'success', '',
+                        array('result' => 1, 'handler' => 'internal')
+                    )
+                );
             case 'saferpay':
             case 'saferpay_all_cards':
             case 'saferpay_mastercard_multipay_car': // Obsolete
             case 'saferpay_visa_multipay_car':  // Obsolete
                 $return = self::_SaferpayProcessor();
+                break;
+            case 'saferpay_json':
+                $return = self::_SaferpayJsonProcessor();
                 break;
             case 'yellowpay': // was: 'PostFinance_DebitDirect'
                 $return = self::_YellowpayProcessor();
@@ -296,7 +307,7 @@ class PaymentProcessing
             // Added 20100222 -- Reto Kohli
             case 'mobilesolutions':
                 $return = \PostfinanceMobile::getForm(
-                    intval(100 * $_SESSION['shop']['grand_total_price']),
+                    intval(bcmul($_SESSION['shop']['grand_total_price'], 100, 0)),
                     $_SESSION['shop']['order_id']);
                 if ($return) {
 //DBG::log("Postfinance Mobile getForm() returned:");
@@ -323,11 +334,11 @@ foreach (\PostfinanceMobile::getErrors() as $error) {
                 $return = \PayPal::getForm($account_email, $order_id,
                     $currency_code, $amount, $item_name);
                 break;
-            case 'paymill_cc':    
+            case 'paymill_cc':
             case 'paymill_elv':
             case 'paymill_iban':
                 $return =  self::_PaymillProcessor(self::getPaymentProcessorName());
-                break;                
+                break;
             case 'dummy':
                 $return = \Dummy::getForm();
                 break;
@@ -356,10 +367,10 @@ foreach (\PostfinanceMobile::getErrors() as $error) {
                 '/\.\w+$/', '_'.FRONTEND_LANG_ID.$match[1], $imageName);
 //DBG::log("PaymentProcessing::_getPictureCode(): Testing path ".ASCMS_DOCUMENT_ROOT.SHOP_PAYMENT_LOGO_PATH.$imageName_lang);
         return
-            '<br /><br /><img src="'.
+            '<br /><br /><img id="shopPspLogo" src="'.
             // Is there a language dependent version?
             (file_exists(\Cx\Core\Core\Controller\Cx::instanciate()->getCodeBaseModulePath() . '/Shop/View/Media/payments/' .$imageName_lang)
-              ? \Cx\Core\Core\Controller\Cx::instanciate()->getCodeBaseModuleWebPath() . '/Shop/View/Media/payments/' . $imageName_lang 
+              ? \Cx\Core\Core\Controller\Cx::instanciate()->getCodeBaseModuleWebPath() . '/Shop/View/Media/payments/' . $imageName_lang
               : \Cx\Core\Core\Controller\Cx::instanciate()->getCodeBaseModuleWebPath() . '/Shop/View/Media/payments/' . $imageName) .
             '" alt="" title="" /><br /><br />';
     }
@@ -375,30 +386,24 @@ foreach (\PostfinanceMobile::getErrors() as $error) {
     {
         global $_ARRAYLANG;
 
-        $serverBase = $_SERVER['SERVER_NAME'] . \Cx\Core\Core\Controller\Cx::instanciate()->getWebsiteOffsetPath() . '/';
         $arrShopOrder = array(
-            'AMOUNT' => str_replace('.', '', $_SESSION['shop']['grand_total_price']),
-            'CURRENCY' => Currency::getActiveCurrencyCode(),
-            'ORDERID' => $_SESSION['shop']['order_id'],
-            'ACCOUNTID' => \Cx\Core\Setting\Controller\Setting::getValue('saferpay_id','Shop'),
-            'SUCCESSLINK' =>
-                'http://'.$serverBase.'index.php?section=Shop'.MODULE_INDEX.
-                '&cmd=success&result=1&handler=saferpay',
-            'FAILLINK' =>
-                'http://'.$serverBase.'index.php?section=Shop'.MODULE_INDEX.
-                '&cmd=success&result=0&handler=saferpay',
-            'BACKLINK' =>
-                'http://'.$serverBase.'index.php?section=Shop'.MODULE_INDEX.
-                '&cmd=success&result=2&handler=saferpay',
-            'DESCRIPTION' =>
-                '"'.$_ARRAYLANG['TXT_ORDER_NR'].
-                ' '.$_SESSION['shop']['order_id'].'"',
-            'LANGID' => \FWLanguage::getLanguageCodeById(FRONTEND_LANG_ID),
-            'NOTIFYURL' =>
-                'http://'.$serverBase.'index.php?section=Shop'.MODULE_INDEX.
-                '&cmd=success&result=-1&handler=saferpay',
-            'ALLOWCOLLECT' => 'no',
-            'DELIVERY' => 'no',
+            'AMOUNT'        => str_replace('.', '', $_SESSION['shop']['grand_total_price']),
+            'CURRENCY'      => Currency::getActiveCurrencyCode(),
+            'ORDERID'       => $_SESSION['shop']['order_id'],
+            'ACCOUNTID'     => \Cx\Core\Setting\Controller\Setting::getValue('saferpay_id','Shop'),
+            'SUCCESSLINK'   => \Cx\Core\Routing\Url::fromModuleAndCmd('Shop'.MODULE_INDEX, 'success', '',
+                                   array('result' => 1, 'handler' => 'saferpay'))->toString(),
+            'FAILLINK'      => \Cx\Core\Routing\Url::fromModuleAndCmd('Shop'.MODULE_INDEX, 'success', '',
+                                   array('result' => 0, 'handler' => 'saferpay'))->toString(),
+            'BACKLINK'      => \Cx\Core\Routing\Url::fromModuleAndCmd('Shop'.MODULE_INDEX, 'success', '',
+                                   array('result' => 2, 'handler' => 'saferpay'))->toString(),
+            'DESCRIPTION'   => '"'.$_ARRAYLANG['TXT_ORDER_NR'].
+                                ' '.$_SESSION['shop']['order_id'].'"',
+            'LANGID'        => \FWLanguage::getLanguageCodeById(FRONTEND_LANG_ID),
+            'NOTIFYURL'     => \Cx\Core\Routing\Url::fromModuleAndCmd('Shop'.MODULE_INDEX, 'success', '',
+                                   array('result' => '-1', 'handler' => 'saferpay'))->toString(),
+            'ALLOWCOLLECT'  => 'no',
+            'DELIVERY'      => 'no',
         );
         $payInitUrl = \Saferpay::payInit($arrShopOrder,
             \Cx\Core\Setting\Controller\Setting::getValue('saferpay_use_test_account','Shop'));
@@ -450,21 +455,62 @@ foreach (\PostfinanceMobile::getErrors() as $error) {
             "' />\n</form>\n";
     }
 
+    /**
+     * Returns the HTML code for the Saferpay payment form.
+     * @param   array   $arrCards     The optional accepted card types
+     * @return  string                The HTML code
+     * @static
+     */
+    static function _SaferpayJsonProcessor()
+    {
+        global $_ARRAYLANG;
+
+        $arrShopOrder = array(
+            'AMOUNT'        => str_replace('.', '', $_SESSION['shop']['grand_total_price']),
+            'CURRENCY'      => Currency::getActiveCurrencyCode(),
+            'ORDERID'       => $_SESSION['shop']['order_id'],
+            'ACCOUNTID'     => \Cx\Core\Setting\Controller\Setting::getValue('saferpay_id','Shop'),
+            'SUCCESSLINK'   => \Cx\Core\Routing\Url::fromModuleAndCmd('Shop'.MODULE_INDEX, 'success', '',
+                                   array('result' => 1, 'handler' => 'saferpay_json'))->toString(),
+            'FAILLINK'      => \Cx\Core\Routing\Url::fromModuleAndCmd('Shop'.MODULE_INDEX, 'success', '',
+                                   array('result' => 0, 'handler' => 'saferpay_json'))->toString(),
+            'BACKLINK'      => \Cx\Core\Routing\Url::fromModuleAndCmd('Shop'.MODULE_INDEX, 'success', '',
+                                   array('result' => 2, 'handler' => 'saferpay_json'))->toString(),
+            'DESCRIPTION'   => '"'.$_ARRAYLANG['TXT_ORDER_NR'].
+                                ' '.$_SESSION['shop']['order_id'].'"',
+            'LANGID'        => \FWLanguage::getLanguageCodeById(FRONTEND_LANG_ID),
+            'NOTIFYURL'     => \Cx\Core\Routing\Url::fromModuleAndCmd('Shop'.MODULE_INDEX, 'success', '',
+                                   array('result' => '-1', 'handler' => 'saferpay_json'))->toString(),
+            'ALLOWCOLLECT'  => 'no',
+            'DELIVERY'      => 'no',
+        );
+        $payInitUrl = \SaferpayJson::payInit($arrShopOrder);
+        if (!$payInitUrl) {
+            return '<font color="red"><b>' .
+                $_ARRAYLANG['TXT_SHOP_PSP_FAILED_TO_INITIALIZE_SAFERPAY_JSON'].
+                '<br />' . $payInitUrl . '</b></font>' .
+                '<br />' . \SaferpayJson::getErrors();
+        }
+        return $_ARRAYLANG['TXT_ORDER_LINK_PREPARED'] . '<br/><br/>' . PHP_EOL .
+            '<form method="post" action="' . $payInitUrl . '">' . PHP_EOL.
+            '<input type="submit" value="' .  $_ARRAYLANG['TXT_ORDER_NOW'] .
+            '" />' . PHP_EOL . '</form>' . PHP_EOL;
+    }
 
     /**
      * Returns the HTML code for the Paymill payment method.
-     * 
+     *
      * @return  string  HTML code
      */
     static function _PaymillProcessor($processMethod)
     {
         global $_ARRAYLANG;
-        
+
         $landingPage = \Env::get('em')->getRepository('Cx\Core\ContentManager\Model\Entity\Page')->findOneByModuleCmdLang('Shop'.MODULE_INDEX, 'success', FRONTEND_LANG_ID);
-        
+
         $arrShopOrder = array(
             'order_id'  => $_SESSION['shop']['order_id'],
-            'amount'    => intval($_SESSION['shop']['grand_total_price']*100),
+            'amount'    => intval(bcmul($_SESSION['shop']['grand_total_price'], 100, 0)),
             'currency'  => Currency::getActiveCurrencyCode(),
         );
 
@@ -479,7 +525,7 @@ foreach (\PostfinanceMobile::getErrors() as $error) {
                 $return = \PaymillIBANHandler::getForm($arrShopOrder, $landingPage);
                 break;
         }
-        
+
         if (_PAYMENT_DEBUG && \PaymillHandler::$arrError) {
             $strError =
                 '<font color="red"><b>'.
@@ -495,10 +541,10 @@ foreach (\PostfinanceMobile::getErrors() as $error) {
                 \DBG::log("Paymill Error: $error");
             }
         }
-        
+
         return $return;
     }
-    
+
     /**
      * Returns the HTML code for the Yellowpay payment method.
      * @return  string  HTML code
@@ -510,7 +556,7 @@ foreach (\PostfinanceMobile::getErrors() as $error) {
         $arrShopOrder = array(
 // 20111227 - Note that all parameter names should now be uppercase only
             'ORDERID'   => $_SESSION['shop']['order_id'],
-            'AMOUNT'    => intval($_SESSION['shop']['grand_total_price']*100),
+            'AMOUNT'    => intval(bcmul($_SESSION['shop']['grand_total_price'], 100, 0)),
             'CURRENCY'  => Currency::getActiveCurrencyCode(),
             'PARAMPLUS' => 'section=Shop'.MODULE_INDEX.'&cmd=success&handler=yellowpay',
 // Custom code for adding more Customer data to the form.
@@ -632,7 +678,7 @@ if (empty ($return)) {
             case 'paymill_iban':
                 $arrShopOrder = array(
                     'order_id'  => $_SESSION['shop']['order_id'],
-                    'amount'    => intval($_SESSION['shop']['grand_total_price']*100),
+                    'amount'    => intval(bcmul($_SESSION['shop']['grand_total_price'], 100, 0)),
                     'currency'  => Currency::getActiveCurrencyCode(),
                     'note'      => $_SESSION['shop']['note']
                 );
@@ -644,7 +690,7 @@ if (empty ($return)) {
                     \DBG::log("PaymentProcessing::checkIn(): WARNING: paymill: Payment verification failed; errors: ".var_export($response, true));
                     return false;
                 }
-                
+
             case 'saferpay':
                 $arrShopOrder = array(
                     'ACCOUNTID' => \Cx\Core\Setting\Controller\Setting::getValue('saferpay_id','Shop'));
@@ -655,6 +701,8 @@ if (empty ($return)) {
                 }
 //DBG::log("Transaction: ".var_export($transaction, true));
                 return (boolean)$id;
+            case 'saferpay_json':
+                return \SaferpayJson::payConfirm() && \SaferpayJson::payComplete();
             case 'paypal':
                 if (empty ($_POST['custom'])) {
 //DBG::log("PaymentProcessing::checkIn(): No custom parameter, returning NULL");
@@ -754,6 +802,8 @@ DBG::log("PaymentProcessing::checkIn(): WARNING: mobilesolutions: Payment verifi
         switch ($_REQUEST['handler']) {
             case 'saferpay':
                 return \Saferpay::getOrderId();
+            case 'saferpay_json':
+                return \SaferpayJson::getOrderId();
             case 'paypal':
                 return \PayPal::getOrderId();
             case 'yellowpay':
@@ -849,6 +899,9 @@ DBG::log("PaymentProcessing::checkIn(): WARNING: mobilesolutions: Payment verifi
             array(11, 'external', 'mobilesolutions',
                 'PostFinance Mobile',
                 'https://postfinance.mobilesolutions.ch/', 1, 'logo_postfinance_mobile.gif'),
+            array(16, 'external', 'saferpay_json',
+                'Saferpay is a comprehensive Internet payment platform, specially developed for commercial applications. It provides a guarantee of secure payment processes over the Internet for merchants as well as for cardholders. Merchants benefit from the easy integration of the payment method into their e-commerce platform, and from the modularity with which they can take account of current and future requirements. Cardholders benefit from the security of buying from any shop that uses Saferpay.',
+                'http://www.saferpay.com/', 1, 'logo_saferpay.gif'),
         );
         $query_template = "
             REPLACE INTO `$table_name_new` (

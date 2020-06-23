@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * Properties for the wysiwyg template entity
  *
@@ -71,6 +71,10 @@ class WysiwygTemplate extends \Cx\Model\Base\EntityBase {
      */
     protected $active = true;
 
+    /**
+     * @var integer $order
+     */
+    protected $order;
 
     /**
      * Get id
@@ -180,5 +184,25 @@ class WysiwygTemplate extends \Cx\Model\Base\EntityBase {
     public function getActive()
     {
         return $this->active;
+    }
+
+    /**
+     * Set order
+     *
+     * @param integer $order
+     */
+    public function setOrder($order)
+    {
+        $this->order = $order;
+    }
+
+    /**
+     * Get order
+     *
+     * @return integer $order
+     */
+    public function getOrder()
+    {
+        return $this->order;
     }
 }

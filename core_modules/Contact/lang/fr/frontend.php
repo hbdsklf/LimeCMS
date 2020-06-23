@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
  * @author      Cloudrexx Development Team <info@cloudrexx.com>
@@ -59,6 +59,6 @@ $_ARRAYLANG['TXT_CONTACT_CAPTCHA_DESCRIPTION'] = "Veuillez saisir la séquence d
 $_ARRAYLANG['TXT_CONTACT_RESET'] = "Reculer ";
 $_ARRAYLANG['TXT_CONTACT_RECEIVER_ADDRESSES_SELECTION'] = "Liste d'adresse de destinataires";
 $_ARRAYLANG['TXT_CONTACT_CAPTCHA'] = "Captcha";
-$_ARRAYLANG['TXT_CONTACT_PLEASE_SELECT'] = "S'il vous plaît Choisir";
+$_ARRAYLANG['TXT_CONTACT_PLEASE_SELECT'] = "S'il vous plaît choisir";
 $_ARRAYLANG['TXT_CONTACT_NOT_SPECIFIED'] = "Non indiquée";
-?>
+$_ARRAYLANG['TXT_CONTACT_RECAPTCHA_ERROR'] = "S'il vous plaît confirmer le CAPTCHA";

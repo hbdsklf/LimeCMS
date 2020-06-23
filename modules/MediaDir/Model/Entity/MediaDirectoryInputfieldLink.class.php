@@ -63,15 +63,17 @@ class MediaDirectoryInputfieldLink extends \Cx\Modules\MediaDir\Controller\Media
 
     function getInputfield($intView, $arrInputfield, $intEntryId=null)
     {
-        global $objDatabase, $_LANGID, $objInit, $_ARRAYLANG;
+        global $objDatabase, $objInit, $_ARRAYLANG;
+
+        $langId = static::getOutputLocale()->getId();
 
         switch ($intView) {
             default:
             case 1:
-                //modify (add/edit) View                  
+                //modify (add/edit) View
                 $intId = intval($arrInputfield['id']);
                 $arrValue = null;
-                
+
                 if (!empty($intEntryId)) {
                     $objInputfieldValue = $objDatabase->Execute("
                         SELECT
@@ -84,16 +86,16 @@ class MediaDirectoryInputfieldLink extends \Cx\Modules\MediaDir\Controller\Media
                         AND
                             entry_id=".$intEntryId."
                     ");
-                    
+
                     if ($objInputfieldValue !== false) {
                         while (!$objInputfieldValue->EOF) {
                             $arrValue[intval($objInputfieldValue->fields['lang_id'])] = contrexx_raw2xhtml($objInputfieldValue->fields['value']);
                             $objInputfieldValue->MoveNext();
                         }
-                        $arrValue[0] = isset($arrValue[$_LANGID]) ? $arrValue[$_LANGID] : null;
+                        $arrValue[0] = isset($arrValue[$langId]) ? $arrValue[$langId] : null;
                     }
                 }
-                
+
                 if (empty($arrValue)) {
                     foreach ($arrInputfield['default_value'] as $intLangKey => $strDefaultValue) {
                         $strDefaultValue = empty($strDefaultValue) ? $arrInputfield['default_value'][0] : $strDefaultValue;
@@ -105,10 +107,10 @@ class MediaDirectoryInputfieldLink extends \Cx\Modules\MediaDir\Controller\Media
                         }
                     }
                 }
-                
+
                 $arrInfoValue = null;
                 $strInfoClass = '';
-                
+
                 if (!empty($arrInputfield['info'][0])) {
                     $arrInfoValue[0] = 'title="'.$arrInputfield['info'][0].'"';
                     $strInfoClass = 'mediadirInputfieldHint';
@@ -116,24 +118,42 @@ class MediaDirectoryInputfieldLink extends \Cx\Modules\MediaDir\Controller\Media
                         $arrInfoValue[$intLangKey] = empty($strInfoValue) ? 'title="'.$arrInputfield['info'][0].'"' : 'title="'.$strInfoValue.'"';
                     }
                 }
-                
+
                 $countFrontendLang = count($this->arrFrontendLanguages);
 
                 if ($objInit->mode == 'backend') {
-                    $strInputfield = '<div id="' . $this->moduleNameLC . 'Inputfield_' . $intId . '_Minimized" style="display: block;"><input type="text" data-id="' . $intId . '" class="' . $this->moduleNameLC . 'InputfieldDefault" name="' . $this->moduleNameLC . 'Inputfield[' . $intId . '][0]" id="' . $this->moduleNameLC . 'Inputfield_' . $intId . '_0" value="' . $arrValue[0] . '" style="width: 300px" onfocus="this.select();" />&nbsp;<a href="javascript:ExpandMinimize(\'' . $intId . '\');">' . $_ARRAYLANG['TXT_MEDIADIR_MORE'] . '&nbsp;&raquo;</a></div>';
+                    $strInputfield = '<div id="' . $this->moduleNameLC . 'Inputfield_' . $intId . '_Minimized" style="display: block;">';
+                    $strInputfield .= '<input type="text" data-id="' . $intId . '" class="' . $this->moduleNameLC . 'InputfieldDefault" name="' . $this->moduleNameLC . 'Inputfield[' . $intId . '][0]" id="' . $this->moduleNameLC . 'Inputfield_' . $intId . '_0" value="' . $arrValue[0] . '" style="width: 300px" onfocus="this.select();" />';
+                    $strInputfield .= '&nbsp;&nbsp;<input type="button" 
+                        onClick="getMediaBrowser($J(this));"
+                        data-input-id="' . $this->moduleNameLC . 'Inputfield_' . $intId . '_0"
+                        data-views="filebrowser,sitestructure"
+                        data-startmediatype="' . $this->moduleNameLC . '"
+                        value="' . $_ARRAYLANG['TXT_BROWSE'] . '"
+                    />';
+                    $strInputfield .= '&nbsp;<a href="javascript:ExpandMinimize(\'' . $intId . '\');">' . $_ARRAYLANG['TXT_MEDIADIR_MORE'] . '&nbsp;&raquo;</a>';
+                    $strInputfield .= '</div>';
 
                     $strInputfield .= '<div id="' . $this->moduleNameLC . 'Inputfield_' . $intId . '_Expanded" style="display: none;">';
                     foreach ($this->arrFrontendLanguages as $key => $arrLang) {
                         $intLangId = $arrLang['id'];
-                        
+
                         $minimize = "";
                         if (($key + 1) == $countFrontendLang) {
                             $minimize = "&nbsp;<a href=\"javascript:ExpandMinimize('" . $intId . "');\">&laquo;&nbsp;" . $_ARRAYLANG['TXT_MEDIADIR_MINIMIZE'] . "</a>";
                         }
-                        
+
                         $value = isset($arrValue[$intLangId]) ? $arrValue[$intLangId] : '';
-                        $strInputfield .= '<input type="text" data-id="' . $intId . '" name="' . $this->moduleNameLC . 'Inputfield[' . $intId . '][' . $intLangId . ']" id="' . $this->moduleNameLC . 'Inputfield_' . $intId . '_' . $intLangId . '" value="' . $value . '" style="width: 279px; margin-bottom: 2px; padding-left: 21px; background: #ffffff url(\'' . \Env::get('cx')->getCodeBaseOffsetPath() . \Env::get('cx')->getCoreFolderName() . '/Country/View/Media/Flag/flag_' . $arrLang['lang'] . '.gif\') no-repeat 3px 3px;" onfocus="this.select();" />&nbsp;' . $arrLang['name'] . '&nbsp;' . $minimize . '<br />';
-                    }                    
+                        $strInputfield .= '<input type="text" data-id="' . $intId . '" name="' . $this->moduleNameLC . 'Inputfield[' . $intId . '][' . $intLangId . ']" id="' . $this->moduleNameLC . 'Inputfield_' . $intId . '_' . $intLangId . '" value="' . $value . '" style="width: 279px; margin-bottom: 2px; padding-left: 21px; background: #ffffff url(\'' . \Env::get('cx')->getCodeBaseOffsetPath() . \Env::get('cx')->getCoreFolderName() . '/Country/View/Media/Flag/flag_' . $arrLang['lang'] . '.gif\') no-repeat 3px 3px;" onfocus="this.select();" />';
+                        $strInputfield .= '&nbsp;&nbsp;<input type="button" 
+                            onClick="getMediaBrowser($J(this));"
+                            data-input-id="' . $this->moduleNameLC . 'Inputfield_' . $intId . '_' . $intLangId . '"
+                            data-views="filebrowser,sitestructure"
+                            data-startmediatype="' . $this->moduleNameLC . '"
+                            value="' . $_ARRAYLANG['TXT_BROWSE'] . '"
+                        />';
+                        $strInputfield .= '&nbsp;' . $minimize . '<br />';
+                    }
                     $strInputfield .= '</div>';
                 } else {
                     if ($this->arrSettings['settingsFrontendUseMultilang'] == 1) {
@@ -142,20 +162,20 @@ class MediaDirectoryInputfieldLink extends \Cx\Modules\MediaDir\Controller\Media
                         $strInputfield .= '<div id="' . $this->moduleNameLC . 'Inputfield_' . $intId . '_Expanded" style="display: none;  float: left;" class="' . $this->moduleNameLC . 'GroupMultilang">';
                         foreach ($this->arrFrontendLanguages as $key => $arrLang) {
                             $intLangId = $arrLang['id'];
-                            
+
                             $minimize = "";
                             if (( $key + 1) == $countFrontendLang) {
                                 $minimize = "&nbsp;<a href=\"javascript:ExpandMinimize('" . $intId . "');\">&laquo;&nbsp;" . $_ARRAYLANG['TXT_MEDIADIR_MINIMIZE'] . "</a>";
                             }
-                            
+
                             $value = isset($arrValue[$intLangId]) ? $arrValue[$intLangId] : '';
                             $strInputfield .= '<input type="text" data-id="' . $intId . '" name="' . $this->moduleNameLC . 'Inputfield[' . $intId . '][' . $intLangId . ']" id="' . $this->moduleNameLC . 'Inputfield_' . $intId . '_' . $intLangId . '" value="' . $value . '" class="' . $this->moduleNameLC . 'InputfieldLink ' . $strInfoClass . '" ' . $arrInfoValue[$intLangId] . ' onfocus="this.select();" />&nbsp;' . $arrLang['name'] . '&nbsp;' . $minimize . '<br />';
-                        }	                    
+                        }
                         $strInputfield .= '</div>';
                     } else {
-                    	$strInputfield = '<input type="text" name="' . $this->moduleNameLC . 'Inputfield[' . $intId . '][0]" id="' . $this->moduleNameLC . 'Inputfield_' . $intId . '_0" value="' . $arrValue[0] . '" class="' . $this->moduleNameLC . 'InputfieldLink ' . $strInfoClass . '" ' . $arrInfoValue[0] . '" onfocus="this.select();" />';
+                        $strInputfield = '<input type="text" name="' . $this->moduleNameLC . 'Inputfield[' . $intId . '][0]" id="' . $this->moduleNameLC . 'Inputfield_' . $intId . '_0" value="' . $arrValue[0] . '" class="' . $this->moduleNameLC . 'InputfieldLink ' . $strInfoClass . '" ' . $arrInfoValue[0] . '" onfocus="this.select();" />';
                     }
-                }  
+                }
                 return $strInputfield;
 
                 break;
@@ -191,54 +211,13 @@ class MediaDirectoryInputfieldLink extends \Cx\Modules\MediaDir\Controller\Media
 
     function getContent($intEntryId, $arrInputfield, $arrTranslationStatus)
     {
-        global $objDatabase, $_LANGID;
-
-        $intId = intval($arrInputfield['id']);
-        $objEntryDefaultLang = $objDatabase->Execute("SELECT `lang_id` FROM ".DBPREFIX."module_".$this->moduleTablePrefix."_entries WHERE id=".intval($intEntryId)." LIMIT 1");
-        $intEntryDefaultLang = intval($objEntryDefaultLang->fields['lang_id']);
-        
-        $intLangId = $_LANGID;
-        if ($this->arrSettings['settingsTranslationStatus'] == 1) {
-            $intLangId = (in_array($_LANGID, $arrTranslationStatus)) ? $_LANGID : $intEntryDefaultLang;
-        }
-        
-        $objInputfieldValue = $objDatabase->Execute("
-            SELECT
-                `value`
-            FROM
-                ".DBPREFIX."module_".$this->moduleTablePrefix."_rel_entry_inputfields
-            WHERE
-                field_id=".$intId."
-            AND
-                entry_id=".intval($intEntryId)."
-            AND
-                lang_id=".$intLangId."
-
-            LIMIT 1
-        ");
-        
-        if (empty($objInputfieldValue->fields['value'])) {
-            $objInputfieldValue = $objDatabase->Execute("
-                SELECT
-                    `value`
-                FROM
-                    ".DBPREFIX."module_".$this->moduleTablePrefix."_rel_entry_inputfields
-                WHERE
-                    field_id=".$intId."
-                AND
-                    entry_id=".intval($intEntryId)."
-                AND
-                    lang_id=".intval($intEntryDefaultLang)."
-                LIMIT 1
-            ");
-        }
-        
-        $strValue = strip_tags(htmlspecialchars($objInputfieldValue->fields['value'], ENT_QUOTES, CONTREXX_CHARSET));
+        $strValue = static::getRawData($intEntryId, $arrInputfield, $arrTranslationStatus);
+        $strValue = strip_tags(htmlspecialchars($strValue, ENT_QUOTES, CONTREXX_CHARSET));
 
         // replace the links
         $strValue = preg_replace('/\\[\\[([A-Z0-9_-]+)\\]\\]/', '{\\1}', $strValue);
         \LinkGenerator::parseTemplate($strValue, true);
-        
+
         //make link name without protocol
         $strValueName = preg_replace('#^.*://#', '', $strValue);
 
@@ -248,8 +227,8 @@ class MediaDirectoryInputfieldLink extends \Cx\Modules\MediaDir\Controller\Media
 
         //make link href with "http://"
         $strValueHref = $strValue;
-        if (!preg_match('#^.*://#', $strValueHref)) {
-            $strValueHref = "http://".$strValueHref;
+        if (substr($strValueHref, 0, 1) !== '/' && !preg_match('#^.*://#', $strValueHref)) {
+            $strValueHref = 'http://' . $strValueHref;
         }
 
         //make hyperlink with <a> tag
@@ -267,6 +246,53 @@ class MediaDirectoryInputfieldLink extends \Cx\Modules\MediaDir\Controller\Media
         return $arrContent;
     }
 
+    function getRawData($intEntryId, $arrInputfield, $arrTranslationStatus) {
+        global $objDatabase;
+
+        $intId = intval($arrInputfield['id']);
+        $objEntryDefaultLang = $objDatabase->Execute("SELECT `lang_id` FROM ".DBPREFIX."module_".$this->moduleTablePrefix."_entries WHERE id=".intval($intEntryId)." LIMIT 1");
+        $intEntryDefaultLang = intval($objEntryDefaultLang->fields['lang_id']);
+        $langId = static::getOutputLocale()->getId();
+
+        $intLangId = $langId;
+        if ($this->arrSettings['settingsTranslationStatus'] == 1) {
+            $intLangId = (in_array($langId, $arrTranslationStatus)) ? $langId : $intEntryDefaultLang;
+        }
+
+        $objInputfieldValue = $objDatabase->Execute("
+            SELECT
+                `value`
+            FROM
+                ".DBPREFIX."module_".$this->moduleTablePrefix."_rel_entry_inputfields
+            WHERE
+                field_id=".$intId."
+            AND
+                entry_id=".intval($intEntryId)."
+            AND
+                lang_id=".$intLangId."
+
+            LIMIT 1
+        ");
+
+        if (empty($objInputfieldValue->fields['value'])) {
+            $objInputfieldValue = $objDatabase->Execute("
+                SELECT
+                    `value`
+                FROM
+                    ".DBPREFIX."module_".$this->moduleTablePrefix."_rel_entry_inputfields
+                WHERE
+                    field_id=".$intId."
+                AND
+                    entry_id=".intval($intEntryId)."
+                AND
+                    lang_id=".intval($intEntryDefaultLang)."
+                LIMIT 1
+            ");
+        }
+
+        return $objInputfieldValue->fields['value'];
+    }
+
 
     function getJavascriptCheck()
     {
@@ -276,21 +302,21 @@ class MediaDirectoryInputfieldLink extends \Cx\Modules\MediaDir\Controller\Media
             case 'link':
                 value = document.getElementById('$fieldName' + field + '_0').value;
                 if (value == "" && isRequiredGlobal(inputFields[field][1], value)) {
-                	isOk = false;
-                	document.getElementById('$fieldName' + field + '_0').style.border = "#ff0000 1px solid";
+                    isOk = false;
+                    document.getElementById('$fieldName' + field + '_0').style.border = "#ff0000 1px solid";
                 } else if (value != "" && !matchType(inputFields[field][2], value)) {
-                	isOk = false;
-                	document.getElementById('$fieldName' + field + '_0').style.border = "#ff0000 1px solid";
+                    isOk = false;
+                    document.getElementById('$fieldName' + field + '_0').style.border = "#ff0000 1px solid";
                 } else {
-                	document.getElementById('$fieldName' + field + '_0').style.borderColor = '';
+                    document.getElementById('$fieldName' + field + '_0').style.borderColor = '';
                 }
                 break;
 
 EOF;
         return $strJavascriptCheck;
     }
-    
-    
+
+
     function getFormOnSubmit($intInputfieldId)
     {
         return null;

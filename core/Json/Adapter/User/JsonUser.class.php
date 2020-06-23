@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * JSON Adapter for User class
  * @copyright   Cloudrexx AG
@@ -48,7 +48,7 @@ class JsonUser implements JsonAdapter {
 
     /**
      * List of messages
-     * @var Array 
+     * @var Array
      */
     private $messages = array();
 
@@ -75,7 +75,7 @@ class JsonUser implements JsonAdapter {
     public function getMessagesAsString() {
         return implode('<br />', $this->messages);
     }
-    
+
     /**
      * Returns default permission as object
      * @return Object
@@ -87,7 +87,7 @@ class JsonUser implements JsonAdapter {
     /**
      * Returns the user with the given user id.
      * If the user does not exist then return the currently logged in user.
-     * 
+     *
      * @return array User id and title
      */
     public function getUserById() {
@@ -113,7 +113,7 @@ class JsonUser implements JsonAdapter {
 
     /**
      * Returns all users according to the given term.
-     * 
+     *
      * @return array List of users
      */
     public function getUsers() {
@@ -126,34 +126,127 @@ class JsonUser implements JsonAdapter {
         }
 
         $term = !empty($_GET['term']) ? trim($_GET['term']) : '';
+        $terms = explode(' ', $term);
+        array_walk($terms, function(&$value, $key) {
+            $value = '%' . $value . '%';
+        });
 
-        $arrSearch = array(
-            'company' => $term,
-            'firstname' => $term,
-            'lastname' => $term,
-            'username' => $term,
+        $whitelistedFields = array(
+            'company',
+            'address',
+            'city',
+            'zip',
+            'firstname',
+            'lastname',
+            'username',
+            'email',
         );
-        $arrAttributes = array(
-            'company', 'firstname', 'lastname', 'username',
-        );
-        $arrUsers = array();
 
-        if ($objUser = $objFWUser->objUser->getUsers(null, $arrSearch, null, $arrAttributes)) {
-            while (!$objUser->EOF) {
-                $id = $objUser->getId();
-                $title = $objFWUser->getParsedUserTitle($objUser);
-
-                $arrUsers[$id] = $title;
-                $objUser->next();
+        $searchFields = array('company', 'firstname', 'lastname', 'username', 'email');
+        if (!empty($_GET['searchFields'])) {
+            $possibleSearchFields = explode(',', $_GET['searchFields']);
+            foreach ($possibleSearchFields as $key=>$possibleSearchField) {
+                if (!in_array($possibleSearchField, $whitelistedFields)) {
+                    unset($possibleSearchFields[$key]);
+                }
+            }
+            if (count($possibleSearchFields)) {
+                $searchFields = $possibleSearchFields;
+            }
+        }
+        // AND-ed search is only available if 2 or less search fields are
+        // in use and no more than 2 search terms are specified. With higher
+        // values there are an increasing amount of possibilities.
+        // If there's but one search field the sensful search query
+        // results in the same as the OR-ed one. If there's but one term the
+        // same happens.
+        if (
+            count($searchFields) == 2 &&
+            count($terms) == 2 &&
+            isset($_GET['searchAnd']) &&
+            $_GET['searchAnd'] == 'true'
+        ) {
+            // We can search for "Peter Muster" or "Muster Peter"
+            // (field1 = term1 AND field2 = term2) OR (field2 = term1 AND field1 = term2)
+            $arrFilter = array(
+                'OR' => array(
+                    0 => array(
+                        'AND' => array(
+                            0 => array(
+                                $searchFields[0] => $terms[0],
+                            ),
+                            1 => array(
+                                $searchFields[1] => $terms[1],
+                            ),
+                        ),
+                    ),
+                    1 => array(
+                        'AND' => array(
+                            0 => array(
+                                $searchFields[1] => $terms[0],
+                            ),
+                            1 => array(
+                                $searchFields[0] => $terms[1],
+                            ),
+                        ),
+                    ),
+                ),
+            );
+        } else {
+            $arrFilter = array('OR' => array());
+            foreach ($searchFields as $field) {
+                $arrFilter['OR'][][$field] = $terms;
             }
         }
 
+        $arrAttributes = $whitelistedFields;
+
+        $limit = 0;
+        if (isset($_GET['limit'])) {
+            $limit = intval($_GET['limit']);
+        }
+
+        $arrUsers = array();
+        $objUser = $objFWUser->objUser->getUsers(
+            $arrFilter,
+            null,
+            null,
+            $arrAttributes,
+            $limit ? $limit : null
+        );
+
+        if (!$objUser) {
+            return array();
+        }
+        $resultFormat = '%title%';
+        if (!empty($_GET['resultFormat'])) {
+            $resultFormat = contrexx_input2raw($_GET['resultFormat']);
+        }
+        while (!$objUser->EOF) {
+            $id = $objUser->getId();
+            $title = $objFWUser->getParsedUserTitle($objUser);
+
+            $result = str_replace('%id%', $id, $resultFormat);
+            $result = str_replace('%title%', $title, $result);
+            $result = str_replace('%username%', $objUser->getUsername(), $result);
+            $result = str_replace('%email%', $objUser->getEmail(), $result);
+            foreach ($whitelistedFields as $field) {
+                $result = str_replace(
+                    '%' . $field . '%',
+                    $objUser->getProfileAttribute($field),
+                    $result
+                );
+            }
+
+            $arrUsers[$id] = $result;
+            $objUser->next();
+        }
         return $arrUsers;
     }
 
     /**
      * Logs the current User in.
-     * 
+     *
      * @param string $_POST['USERNAME']
      * @param string $_POST['PASSWORD']
      * @return false on failure and array with userdata on success
@@ -173,7 +266,7 @@ class JsonUser implements JsonAdapter {
 
     /**
      * Logs the current User out.
-     * 
+     *
      * @return boolean
      */
     public function logoutUser() {
@@ -183,7 +276,7 @@ class JsonUser implements JsonAdapter {
 
     /**
      * Sends a Email with a new tomporary Password to the user with given email
-     * 
+     *
      * @param string $arguments['get']['email'] || $arguments['post']['email']
      * @return boolean
      */
@@ -201,7 +294,7 @@ class JsonUser implements JsonAdapter {
 
     /**
      * Set a new Password for a specific user if the admin has enough permissions
-     * 
+     *
      * @param string $arguments['get']['userId'] || $arguments['post']['userId']
      * @param string $arguments['get']['password'] || $arguments['post']['password']
      * @param string $arguments['get']['repeatPassword'] || $arguments['post']['repeatPassword']

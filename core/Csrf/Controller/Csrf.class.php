@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,11 +24,11 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * Csrf Class
  * Protect against Csrf attacks
- * 
+ *
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
  * @author      David Vogt <david.vogt@comvation.com>
  * @since       2.1.3
@@ -105,7 +105,7 @@ class Csrf {
         if (!empty(self::$current_code)) {
             return self::$current_code;
         }
-        self::$current_code = base64_encode(rand(1000000000000, 9999999999999));
+        self::$current_code = base64_encode(rand(100000000, 999999999));
         self::$current_code = preg_replace('#[\'"=%]#', '_', self::$current_code);
         self::__setkey(self::$current_code, self::$validity_count);
         return self::$current_code;
@@ -147,7 +147,7 @@ class Csrf {
         \DBG::stack();
         header(self::__enhance_header($header), $replace, $httpResponseCode);
     }
-    
+
     /**
      * Redirect
      *
@@ -168,10 +168,10 @@ class Csrf {
         if (headers_sent()) {
             return false;
         }
-        
+
         $url = \Cx\Core\Routing\Url::fromMagic($url);
         $url = $url->toString(); // use absolute url
-        
+
         self::header('Location: '. $url);
 
         if (    $rfc2616 && isset($_SERVER['REQUEST_METHOD']) &&
@@ -248,7 +248,7 @@ class Csrf {
         if (self::__is_ajax()) {
             return;
         }
-        
+
         if (!is_object($tpl)) {
             \DBG::msg("self::add_placeholder(): fix this call, that ain't a template object! (Stack follows)");
             \DBG::stack();
@@ -313,15 +313,27 @@ class Csrf {
             return;
         }
 
-        $code = ($_SERVER['REQUEST_METHOD'] == 'GET')
-            ? (isset($_GET [self::$formkey]) ? $_GET[self::$formkey] : '')
-            : (isset($_POST[self::$formkey]) ? $_POST[self::$formkey] : '');
+        $code = '';
+        $method = $_SERVER['REQUEST_METHOD']; 
+
+        switch ($method) {
+            case 'GET':
+                $code = isset($_GET [self::$formkey]) ? $_GET[self::$formkey] : '';
+                break;
+
+            case 'POST':
+                $code = isset($_POST[self::$formkey]) ? $_POST[self::$formkey] : '';
+                break;
+
+            default:
+                break;
+        }
 
         self::__cleanup();
         if (! self::__getkey($code)) {
             self::__kill();
         } else {
-            self::__reduce($code);
+            self::__reduce($code, $method);
             if (self::__getkey($code) < 0) {
                 self::__kill();
             }
@@ -335,7 +347,8 @@ class Csrf {
 
         $data = ($_SERVER['REQUEST_METHOD'] == 'GET' ? $_GET : $_POST);
         self::add_code();
-        $tpl = new \Cx\Core\Html\Sigma(\Env::get('cx')->getCodeBaseCorePath() . '/Csrf/View/Template/Generic/');
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $tpl = new \Cx\Core\Html\Sigma($cx->getCodeBaseCorePath() . '/Csrf/View/Template/Generic/');
         $tpl->setErrorHandling(PEAR_ERROR_DIE);
         $tpl->loadTemplateFile('Warning.html');
         $form = '';
@@ -368,15 +381,17 @@ class Csrf {
             'IMAGES_PATH'       => ASCMS_ADMIN_WEB_PATH.'/images/csrfprotection',
         ));
         $tpl->parse();
-        
+
         $endcode = $tpl->get();
-        
+
         // replace links from before contrexx 3
         $ls = new \LinkSanitizer(
-            ASCMS_PATH_OFFSET.ASCMS_BACKEND_PATH.'/',
-            $endcode);
+            $cx,
+            $cx->getCodeBaseOffsetPath() . $cx->getBackendFolderName() . '/',
+            $endcode
+        );
         $endcode = $ls->replace();
-        
+
         echo $endcode;
         die();
     }
@@ -403,13 +418,34 @@ class Csrf {
         return htmlspecialchars(contrexx_stripslashes($str), ENT_QUOTES, CONTREXX_CHARSET);
     }
 
-
-    private static function __reduce($code)
+    /**
+     * Decrease the validity of the CSRF tokens
+     *
+     * @param   string  $code   The CSRF token used for this request
+     * @param   string  $method The HTTP request method
+     */
+    private static function __reduce($code, $method)
     {
         foreach ($_SESSION[self::$sesskey] as $key => $value) {
-            $_SESSION[self::$sesskey][$key] = $_SESSION[self::$sesskey][$key] -
-                ($code == $key
-                    ? self::$active_decrease : self::$unused_decrease);
+            // invalidate token immediately in case it has been
+            // used by a POST request
+            if (
+                $method == 'POST' &&
+                $key == $code
+            ) {
+                $_SESSION[self::$sesskey][$key] = 0;
+                continue;
+            }
+
+            // stepwise decrease the validity of the tokens
+            // for GET requests
+            if ($key == $code) {
+                $decreaseValue = self::$active_decrease;
+            } else {
+                $decreaseValue = self::$unused_decrease;
+            }
+
+            $_SESSION[self::$sesskey][$key] -= $decreaseValue;
         }
     }
 
@@ -442,7 +478,8 @@ class Csrf {
     private static function __setkey($key, $value)
     {
         if (!isset($_SESSION[self::$sesskey])) {
-            \cmsSession::getInstance();
+            $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+            $cx->getComponent('Session')->getSession();
             $_SESSION[self::$sesskey] = array();
         }
         $_SESSION[self::$sesskey][$key] = $value;

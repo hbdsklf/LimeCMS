@@ -64,7 +64,9 @@ class MediaDirectoryInputfieldLinkGroup extends \Cx\Modules\MediaDir\Controller\
 
     function getInputfield($intView, $arrInputfield, $intEntryId=null)
     {
-        global $objDatabase, $_LANGID, $objInit, $_ARRAYLANG;
+        global $objDatabase, $objInit, $_ARRAYLANG;
+
+        $langId = static::getOutputLocale()->getId();
 
         switch ($intView) {
             default:
@@ -72,7 +74,7 @@ class MediaDirectoryInputfieldLinkGroup extends \Cx\Modules\MediaDir\Controller\
                 //modify (add/edit) View
                 $intId = intval($arrInputfield['id']);
                 $arrValue = null;
-                
+
                 if (!empty($intEntryId)) {
                     $objInputfieldValue = $objDatabase->Execute("
                         SELECT
@@ -90,10 +92,10 @@ class MediaDirectoryInputfieldLinkGroup extends \Cx\Modules\MediaDir\Controller\
                             $arrValue[intval($objInputfieldValue->fields['lang_id'])] = contrexx_raw2xhtml($objInputfieldValue->fields['value']);
                             $objInputfieldValue->MoveNext();
                         }
-                        $arrValue[0] = isset($arrValue[$_LANGID]) ? $arrValue[$_LANGID] : null;
+                        $arrValue[0] = isset($arrValue[$langId]) ? $arrValue[$langId] : null;
                     }
                 }
-                
+
                 if (empty($arrValue)) {
                     foreach ($arrInputfield['default_value'] as $intLangKey => $strDefaultValue) {
                         $strDefaultValue = empty($strDefaultValue) ? $arrInputfield['default_value'][0] : $strDefaultValue;
@@ -105,10 +107,10 @@ class MediaDirectoryInputfieldLinkGroup extends \Cx\Modules\MediaDir\Controller\
                         }
                     }
                 }
-                
+
                 $arrInfoValue = null;
                 $strInfoClass = '';
-                
+
                 if (!empty($arrInputfield['info'][0])) {
                     $arrInfoValue[0] = 'title="'.$arrInputfield['info'][0].'"';
                     $strInfoClass = 'mediadirInputfieldHint';
@@ -116,9 +118,9 @@ class MediaDirectoryInputfieldLinkGroup extends \Cx\Modules\MediaDir\Controller\
                         $arrInfoValue[$intLangKey] = empty($strInfoValue) ? 'title="'.$arrInputfield['info'][0].'"' : 'title="'.$strInfoValue.'"';
                     }
                 }
-                
+
                 $countFrontendLang = count($this->arrFrontendLanguages);
-                
+
                 if ($objInit->mode == 'backend') {
                     $strInputfield = '<div id="' . $this->moduleNameLC . 'Inputfield_' . $intId . '_Minimized" style="display: block;"><textarea data-id="' . $intId . '" class="' . $this->moduleNameLC . 'InputfieldDefault" name="' . $this->moduleNameLC . 'Inputfield[' . $intId . '][0]" id="' . $this->moduleNameLC . 'Inputfield_' . $intId . '_0" style="width: 300px; height: 60px;" onfocus="this.select();" />' . $arrValue[0] . '</textarea>&nbsp;<a href="javascript:ExpandMinimize(\'' . $intId . '\');">' . $_ARRAYLANG['TXT_MEDIADIR_MORE'] . '&nbsp;&raquo;</a></div>';
 
@@ -147,7 +149,7 @@ class MediaDirectoryInputfieldLinkGroup extends \Cx\Modules\MediaDir\Controller\
                             if (($key + 1) == $countFrontendLang) {
                                 $minimize = "&nbsp;<a href=\"javascript:ExpandMinimize('" . $intId . "');\">&laquo;&nbsp;" . $_ARRAYLANG['TXT_MEDIADIR_MINIMIZE'] . "</a>";
                             }
-                            
+
                             $value = isset($arrValue[$intLangId]) ? $arrValue[$intLangId] : '';
                             $strInputfield .= '<textarea data-id="' . $intId . '" name="' . $this->moduleNameLC . 'Inputfield[' . $intId . '][' . $intLangId . ']" id="' . $this->moduleNameLC . 'Inputfield_' . $intId . '_' . $intLangId . '" class="' . $this->moduleNameLC . 'InputfieldTextarea ' . $strInfoClass . '" ' . $arrInfoValue[$intLangId] . ' onfocus="this.select();" />' . $value . '</textarea>&nbsp;' . $arrLang['name'] . '<a href="javascript:ExpandMinimize(\'' . $intId . '\');">&nbsp;' . $minimize . '</a><br />';
                         }
@@ -189,15 +191,67 @@ class MediaDirectoryInputfieldLinkGroup extends \Cx\Modules\MediaDir\Controller\
 
     function getContent($intEntryId, $arrInputfield, $arrTranslationStatus)
     {
-        global $objDatabase, $_LANGID;
+        $strValue = static::getRawData($intEntryId, $arrInputfield, $arrTranslationStatus);
+        $strValue = strip_tags(htmlspecialchars($strValue, ENT_QUOTES, CONTREXX_CHARSET));
+
+        if(!empty($strValue)) {
+            //get seperator
+            $strSeperator = $this->getSeperartor($strValue);
+
+            //explode links
+            $arrLinkGroup = explode($strSeperator, $strValue);
+
+            //open link <ul> list
+            $strValue = '<ul class="mediadirInputfieldLink_group">';
+
+            //make list elements
+            foreach ($arrLinkGroup as $strLink) {
+
+                //make link name without "http://"
+                $strValueName = $strLink;
+                if (substr($strValueName, 0,7) == "http://") {
+                    $strValueName = substr($strValueName,7);
+                }
+
+                if (strlen($strValueName) >= 55 ) {
+                    $strValueName = substr($strValueName, 0, 55)." [...]";
+                }
+
+                //make link href with "http://"
+                $strValueHref = $strLink;
+                if (substr($strValueHref, 0,7) != "http://") {
+                    $strValueHref = "http://".$strValueHref;
+                }
+
+                //make hyperlink with <a> and <li> tag
+                $strValue .= '<li><a href="'.$strValueHref.'" target="_blank">'.$strValueName.'</a></li>';
+            }
+
+            //close link </ul> list
+            $strValue .= '</ul>';
+        }
+
+        if(!empty($strValue)) {
+            $arrContent['TXT_'.$this->moduleLangVar.'_INPUTFIELD_NAME'] = htmlspecialchars($arrInputfield['name'][0], ENT_QUOTES, CONTREXX_CHARSET);
+            $arrContent[$this->moduleLangVar.'_INPUTFIELD_VALUE'] = $strValue;
+        } else {
+            $arrContent = null;
+        }
+
+        return $arrContent;
+    }
+
+    function getRawData($intEntryId, $arrInputfield, $arrTranslationStatus) {
+        global $objDatabase;
 
         $intId = intval($arrInputfield['id']);
         $objEntryDefaultLang = $objDatabase->Execute("SELECT `lang_id` FROM ".DBPREFIX."module_".$this->moduleTablePrefix."_entries WHERE id=".intval($intEntryId)." LIMIT 1");
         $intEntryDefaultLang = intval($objEntryDefaultLang->fields['lang_id']);
+        $langId = static::getOutputLocale()->getId();
 
-        $intLangId = $_LANGID;
+        $intLangId = $langId;
         if($this->arrSettings['settingsTranslationStatus'] == 1) {
-            $intLangId = in_array($_LANGID, $arrTranslationStatus) ? $_LANGID : $intEntryDefaultLang;            
+            $intLangId = in_array($langId, $arrTranslationStatus) ? $langId : $intEntryDefaultLang;
         }
 
         $objInputfieldValue = $objDatabase->Execute("
@@ -230,53 +284,7 @@ class MediaDirectoryInputfieldLinkGroup extends \Cx\Modules\MediaDir\Controller\
             ");
         }
 
-        $strValue = strip_tags(htmlspecialchars($objInputfieldValue->fields['value'], ENT_QUOTES, CONTREXX_CHARSET));
-
-        if(!empty($strValue)) {
-            //get seperator
-            $strSeperator = $this->getSeperartor($strValue);
-    
-            //explode links
-            $arrLinkGroup = explode($strSeperator, $strValue);
-    
-            //open link <ul> list
-            $strValue = '<ul class="mediadirInputfieldLink_group">';
-    
-            //make list elements
-            foreach ($arrLinkGroup as $strLink) {
-    
-                //make link name without "http://"
-                $strValueName = $strLink;
-                if (substr($strValueName, 0,7) == "http://") {
-                    $strValueName = substr($strValueName,7);
-                }
-    
-                if (strlen($strValueName) >= 55 ) {
-                    $strValueName = substr($strValueName, 0, 55)." [...]";
-                }
-    
-                //make link href with "http://"
-                $strValueHref = $strLink;
-                if (substr($strValueHref, 0,7) != "http://") {
-                    $strValueHref = "http://".$strValueHref;
-                }
-    
-                //make hyperlink with <a> and <li> tag
-                $strValue .= '<li><a href="'.$strValueHref.'" target="_blank">'.$strValueName.'</a></li>';
-            }
-    
-            //close link </ul> list
-            $strValue .= '</ul>';
-        }
-
-        if(!empty($strValue)) {
-            $arrContent['TXT_'.$this->moduleLangVar.'_INPUTFIELD_NAME'] = htmlspecialchars($arrInputfield['name'][0], ENT_QUOTES, CONTREXX_CHARSET);
-            $arrContent[$this->moduleLangVar.'_INPUTFIELD_VALUE'] = $strValue;
-        } else {
-            $arrContent = null;
-        }
-
-        return $arrContent;
+        return $objInputfieldValue->fields['value'];
     }
 
 
@@ -307,21 +315,21 @@ class MediaDirectoryInputfieldLinkGroup extends \Cx\Modules\MediaDir\Controller\
             case 'link_group':
                  value = document.getElementById('$fieldName' + field + '_0').value;
                 if (value == "" && isRequiredGlobal(inputFields[field][1], value)) {
-                	isOk = false;
-                	document.getElementById('$fieldName' + field + '_0').style.border = "#ff0000 1px solid";
+                    isOk = false;
+                    document.getElementById('$fieldName' + field + '_0').style.border = "#ff0000 1px solid";
                 } else if (value != "" && !matchType(inputFields[field][2], value)) {
-                	isOk = false;
-                	document.getElementById('$fieldName' + field + '_0').style.border = "#ff0000 1px solid";
+                    isOk = false;
+                    document.getElementById('$fieldName' + field + '_0').style.border = "#ff0000 1px solid";
                 } else {
-                	document.getElementById('$fieldName' + field + '_0').style.borderColor = '';
+                    document.getElementById('$fieldName' + field + '_0').style.borderColor = '';
                 }
                 break;
 
 EOF;
         return $strJavascriptCheck;
     }
-    
-    
+
+
     function getFormOnSubmit($intInputfieldId)
     {
         return null;

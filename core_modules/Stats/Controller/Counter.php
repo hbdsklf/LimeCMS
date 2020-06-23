@@ -35,11 +35,25 @@
  * @todo        Edit PHP DocBlocks!
  */
 namespace Cx\Core_Modules\Stats\Controller;
+
+// detect system location
+$depth = 4;
+if (strpos(__FILE__, 'customizing/') !== false) {
+    // this files resides within the customizing directory, therefore we'll have to strip
+    // out one directory more than usually
+    $depth++;
+}
+if (strpos(__FILE__, 'codeBases/') !== false) {
+    // this files resides in a codeBase directory, therefore we'll have to strip
+    // out two directory more than usually
+    $depth += 2;
+}
+$contrexx_path = dirname(__FILE__, $depth);
+
 /**
  * @ignore
  */
-require_once dirname(dirname(dirname(dirname(__FILE__)))).'/core/Core/init.php';
-
+require_once($contrexx_path . '/core/Core/init.php');
 $cx = init('minimal');
 
 // those variables get defined in Data/spiders.inc.php, Data/referers.inc.php, Data/banned.inc.php
@@ -112,7 +126,7 @@ class Counter
     public $mobilePhone = "";
 
     protected $cx;
-    
+
     /**
     * Constructor
     *
@@ -207,6 +221,18 @@ class Counter
                 }
             }
         }
+
+        // output content-type based on request method (javascript / image-tag)
+        $mode = isset($_GET['mode']) ? $_GET['mode'] : '';
+        if ($mode == 'script') {
+            header('Content-Type: application/javascript');
+        } else {
+            // output Transparent 1x1 GIF pixel
+            header('Content-Type: image/gif');
+            echo base64_decode('R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==');
+        }
+
+        exit;
     }
 
     /**
@@ -278,7 +304,7 @@ class Counter
             foreach ($arrUriGets AS $elem) {
                 //avoid multiple entries for same request:
                 //check if Session-ID is traced by url (cookies are disabled)
-                //also skip the csrf and caching parameter (they are appended by the backend's preview link) 
+                //also skip the csrf and caching parameter (they are appended by the backend's preview link)
                 if (!preg_match("/(PHPSESSID|csrf|caching)/",$elem)) {
                     if ($elem != "") {
                         $uriString .="&".$elem;
@@ -323,7 +349,8 @@ class Counter
 
         $this->_getProxyInformations(); // get also the client ip
 
-        $this->arrClient['host'] = @gethostbyaddr($this->arrClient['ip']);
+        $net = $this->cx->getComponent('Net');
+        $this->arrClient['host'] = $net->getHostByAddr($this->arrClient['ip']);
         if ($this->arrClient['host'] == $this->arrClient['ip']) { // is remote host available?
             $this->arrClient['host'] = '';
         } else {
@@ -340,14 +367,14 @@ class Counter
         $this->_getReferer();
         $this->_checkForSpider();
         $this->_checkMobilePhone();
-		
-		// Anonymize if necessary
-		if ($this->arrConfig['exclude_identifying_info']['status']) {
-			// Exclude the least significant part from the hostname or ip address
-			$this->arrClient['ip'] = preg_replace('/[0-9a-fA-F]+$/', '*', $this->arrClient['ip']);
-			$this->arrClient['host'] = preg_replace('/^[a-zA-Z0-9-_]+\./', '*.', $this->arrClient['host']);
-		}
-		
+
+        // Anonymize if necessary
+        if ($this->arrConfig['exclude_identifying_info']['status']) {
+            // Exclude the least significant part from the hostname or ip address
+            $this->arrClient['ip'] = preg_replace('/[0-9a-fA-F]+$/', '*', $this->arrClient['ip']);
+            $this->arrClient['host'] = preg_replace('/^[a-zA-Z0-9-_]+\./', '*.', $this->arrClient['host']);
+        }
+
         $this->md5Id = md5($this->arrClient['ip'].$this->arrClient['useragent'].$this->arrClient['language'].$this->arrProxy['ip'].$this->arrProxy['host']);
     }
 
@@ -359,7 +386,8 @@ class Counter
     function _getProxyInformations() {
         if (isset($_SERVER['HTTP_VIA']) && $_SERVER['HTTP_VIA']) { // client does use a proxy
             $this->arrProxy['ip'] = isset($_SERVER['HTTP_CF_CONNECTING_IP']) ? $_SERVER['HTTP_CF_CONNECTING_IP'] : $_SERVER['REMOTE_ADDR'];
-            $this->arrProxy['host'] = @gethostbyaddr($this->arrProxy['ip']);
+            $net = $this->cx->getComponent('Net');
+            $this->arrProxy['host'] = $net->getHostByAddr($this->arrProxy['ip']);
             $proxyUseragent = trim(addslashes(urldecode(strstr($_SERVER['HTTP_VIA'],' '))));
             $startPos = strpos($proxyUseragent,"(");
             $this->arrProxy['useragent'] = substr($proxyUseragent,$startPos+1);
@@ -540,8 +568,8 @@ class Counter
         // check for mobilephone
         /*$fp = fopen('Data/mobile-useragents.inc',"r");
         while (true) {
-        	$line = fgets($fp);
-        	if ($line === false) break;
+            $line = fgets($fp);
+            if ($line === false) break;
             $arrUserAgent = explode("\t",$line);
             if (!strcasecmp(trim($this->arrClient['useragent']),trim($arrUserAgent[2]))) {
                 $this->mobilePhone = $arrUserAgent[0].' '.$arrUserAgent[1];
@@ -581,13 +609,13 @@ class Counter
     function _getBrowser()
     {
         global $arrBrowserRegExps, $arrBrowserNames;
-        
+
         $userAgent = $this->arrClient['useragent'];
         $arrBrowserRegExps = array();
         $arrBrowserNames = array();
         $arrBrowser = array();
-        $this->cx->getClassLoader()->loadFile($this->cx->getCoreModuleFolderName().'/Stats/Data/useragents.inc.php');        
-        
+        $this->cx->getClassLoader()->loadFile($this->cx->getCoreModuleFolderName().'/Stats/Data/useragents.inc.php');
+
         if (!empty($arrBrowserRegExps)) {
             foreach ($arrBrowserRegExps as $browserRegExp) {
                 if (preg_match($browserRegExp, $userAgent, $arrBrowser)) {
@@ -631,12 +659,12 @@ class Counter
     function _getOperatingSystem()
     {
         global $arrOperatingSystems;
-        
+
         $operationgSystem = '';
-        $userAgent = $this->arrClient['useragent'];        
+        $userAgent = $this->arrClient['useragent'];
         $arrOperatingSystems = array();
         $this->cx->getClassLoader()->loadFile($this->cx->getCoreModuleFolderName().'/Stats/Data/operatingsystems.inc.php');
-        
+
         if (!empty($arrOperatingSystems)) {
             foreach ($arrOperatingSystems as $arrOperatingSystem) {
                 if (preg_match($arrOperatingSystem['regExp'], $userAgent)) {
@@ -764,8 +792,8 @@ class Counter
         $result = $objDb->Execute($query);
         if ($result) {
             while (true) {
-            	$arrResult = $result->FetchRow();
-            	if (empty($arrResult)) break;
+                $arrResult = $result->FetchRow();
+                if (empty($arrResult)) break;
                 $arrStats[$arrResult['type']]['id'] = $arrResult['id'];
             }
         }
@@ -839,4 +867,3 @@ class Counter
         }
     }
 }
-

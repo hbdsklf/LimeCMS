@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
  * @author      Cloudrexx Development Team <info@cloudrexx.com>
@@ -146,7 +146,6 @@ $_ARRAYLANG['TXT_CONTACT_CONTACT_FORM_SUCCESSFULLY_DELETED'] = "Контактн
 $_ARRAYLANG['TXT_CONTACT_FAILED_DELETE_CONTACT_FORM'] = "В процессе удаления контактной формы возникла ошибка!";
 $_ARRAYLANG['TXT_CONTACT_DATA_RECORD_UPDATED_SUCCESSFUL_VALIDATE'] = "Страница содержания успешно оновлена. Но так как вы не обладаете достаточными правами, она передана администратору на утверждение.bestätigen.";
 $_ARRAYLANG['TXT_CONTACT_SETTINGS_UPDATED'] = "Установки сохранены.";
-$_ARRAYLANG['TXT_CONTACT_META_DATE_BY_EXPORT'] = "Метаданные при экспорте";
 $_ARRAYLANG['TXT_CONTACT_DEFAULT_FEEDBACK_TXT'] = "Большое спасибо за Ваш запрос. Мы обязательно свяжемся с Вами.";
 $_ARRAYLANG['TXT_CONTACT_SHOW_FORM_AFTER_SUBMIT'] = "Снова показать форму ответа";
 $_ARRAYLANG['TXT_CONTACT_LANG'] = "Язык";
@@ -174,7 +173,6 @@ $_ARRAYLANG['TXT_CONTACT_FORM_MULTIPLE_UPLOAD_FIELDS'] = "You created multiple u
 $_ARRAYLANG['TXT_CONTACT_FORM_VALUES'] = "Formularwerte";
 $_ARRAYLANG['TXT_FORM_FIELDS'] = "Formularfelder";
 $_ARRAYLANG['TXT_ADVANCED_SETTINGS'] = "Erweiterte Einstellungen";
-$_ARRAYLANG['TXT_FORM_RECIPIENTS'] = "Empfängerliste";
 $_ARRAYLANG['TXT_CONTACT_LANGUAGE'] = "Sprache";
 $_ARRAYLANG['TXT_CONTACT_FORM_NAME'] = "Name";
 $_ARRAYLANG['TXT_CONTACT_FORM_FIELD_TITLE'] = "Formularfelder";

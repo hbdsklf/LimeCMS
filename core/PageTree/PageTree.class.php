@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * PageTree
  *
@@ -61,6 +61,13 @@ abstract class PageTree {
     protected $skipInactive;
 
     /**
+     * Consider seo enabled pages alone
+     *
+     * @var Boolean
+     */
+    protected $considerSeoEnabledOnly;
+
+    /**
      * @param $entityManager the doctrine em
      * @param \Cx\Core_Modules\License\License $license License used to check if a module is allowed in frontend
      * @param int $maxDepth maximum depth to fetch, 0 means everything
@@ -69,8 +76,9 @@ abstract class PageTree {
      * @param \Cx\Core\ContentManager\Model\Entity\Page $currentPage if set, renderElement() will receive a correctly set $current flag.
      * @param bool $skipInvisible value to skip invisible pages
      * @param bool $considerLogin value to consider whether the user is logged in or not
+     * @param boolean $considerSeoEnabledOnly   Consider seo enabled pages alone
      */
-    public function __construct($entityManager, $license, $maxDepth = 0, $rootNode = null, $lang = null, $currentPage = null, $skipInvisible = true, $considerLogin = true, $skipInactive = true) {
+    public function __construct($entityManager, $license, $maxDepth = 0, $rootNode = null, $lang = null, $currentPage = null, $skipInvisible = true, $considerLogin = true, $skipInactive = true, $considerSeoEnabledOnly = false) {
         $this->lang = $lang;
         $this->depth = $maxDepth;
         $this->em = $entityManager;
@@ -80,6 +88,7 @@ abstract class PageTree {
         $this->skipInvisible = $skipInvisible;
         $this->considerLogin = $considerLogin;
         $this->skipInactive = $skipInactive;
+        $this->considerSeoEnabledOnly = $considerSeoEnabledOnly;
         $pageI = $currentPage;
         while ($pageI) {
             $this->pageIdsAtCurrentPath[] = $pageI->getId();
@@ -185,18 +194,18 @@ abstract class PageTree {
                     }
                 }
             }
-            
-            //if page is protected, protected pages are hidden and user has not 
+
+            //if page is protected, protected pages are hidden and user has not
             //sufficent permissions, then hide all child elements from this page
             if($page && $page->isFrontendProtected() && $_CONFIG['coreListProtectedPages'] != 'on' &&
                !(
-                    \Permission::checkAccess($page->getFrontendAccessId(), 'dynamic', true) && 
+                    \Permission::checkAccess($page->getFrontendAccessId(), 'dynamic', true) &&
                     $this->considerLogin
                 )
             ){
                 $hasChilds = false;
             }
-            
+
             if ($hasChilds && !$dontDescend) {
                 // add preRenderLevel to stack
                 $pageTree = $this;
@@ -215,15 +224,16 @@ abstract class PageTree {
                     return $pageTree->preRenderLevel($level, $lang, $node);
                 });
             }
-            
+
             if (
-                !$page || 
-                ($this->skipInvisible && !$page->isVisible()) ||
-                ($this->skipInactive && !$page->isActive())
+                   !$page
+                || ($this->skipInvisible && !$page->isVisible())
+                || ($this->skipInactive && !$page->isActive())
+                || ($this->considerSeoEnabledOnly && !$page->getMetarobots())
             ) {
                 continue;
             }
-            
+
             try {
                 $parentPage = $page->getParent();
                 // if parent is invisible or unpublished and parent node is not start node
@@ -240,11 +250,11 @@ abstract class PageTree {
                 // if parent page does not exist, parent is root
             }
 
-            
+
             // if page is protected, user has not sufficent permissions and protected pages are hidden
             if ($page->isFrontendProtected() && $_CONFIG['coreListProtectedPages'] != 'on' &&
                 !(
-                    \Permission::checkAccess($page->getFrontendAccessId(), 'dynamic', true) && 
+                    \Permission::checkAccess($page->getFrontendAccessId(), 'dynamic', true) &&
                     $this->considerLogin
                 )
             ) {

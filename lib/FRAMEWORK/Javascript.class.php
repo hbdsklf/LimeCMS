@@ -125,9 +125,9 @@ class JS
                 'cx', // depends on jquery
             ),
             'specialcode'  => "
-Shadowbox.loadSkin('classic', cx.variables.get('basePath', 'contrexx')+'lib/javascript/shadowbox/src/skin/');
-Shadowbox.loadLanguage('en', cx.variables.get('basePath', 'contrexx')+'lib/javascript/shadowbox/src/lang');
-Shadowbox.loadPlayer(['flv', 'html', 'iframe', 'img', 'qt', 'swf', 'wmp'], cx.variables.get('basePath', 'contrexx')+'lib/javascript/shadowbox/src/player');
+Shadowbox.loadSkin('standard', cx.variables.get('basePath', 'contrexx')+'lib/javascript/shadowbox/skin/');
+Shadowbox.loadLanguage('en', cx.variables.get('basePath', 'contrexx')+'lib/javascript/shadowbox/lang');
+Shadowbox.loadPlayer(['flv', 'html', 'iframe', 'img', 'qt', 'swf', 'wmp'], cx.variables.get('basePath', 'contrexx')+'lib/javascript/shadowbox/player');
 cx.jQuery(document).ready(function(){
   Shadowbox.init();
 })"
@@ -170,7 +170,7 @@ cx.jQuery(document).ready(function(){
                      ),
                 ),
                 '1.6.1' => array(
-            		'jsfiles'       => array(
+                    'jsfiles'       => array(
                         'lib/javascript/jquery/1.6.1/js/jquery.min.js',
                      ),
                 ),
@@ -215,17 +215,19 @@ cx.jQuery(document).ready(function(){
             ),
             'dependencies' => array('jquery'),
         ),
-        'ckeditor'     => array(
+        'js-cookie' => array(
             'jsfiles'       => array(
-                'lib/ckeditor/ckeditor.js',
+                'lib/javascript/js-cookie.min.js',
             ),
-            'dependencies' => array('jquery'),
         ),
-        'jquery-cookie' => array(
-            'jsfiles'       => array(
-                'lib/javascript/jquery/cookie/jquery.cookie.js',
+        'jquery-nstslider' => array(
+            'jsfiles' => array(
+                'lib/javascript/jquery/plugins/nstSlider/jquery.nstSlider.min.js',
             ),
-            'dependencies' => array('jquery'),
+            'cssfiles' => array(
+                'lib/javascript/jquery/plugins/nstSlider/jquery.nstSlider.min.css',
+            ),
+            'dependencies' => array('jquery' => '^([^1]\..*|1\.[^0-6]*\..*|1\.6\.[^0-3])$'), // jquery needs to be version 1.9.0 or higher
         ),
         // Required by HTML::getDatepicker() (modules/shop)!
         // (Though other versions will do just as well)
@@ -236,7 +238,7 @@ cx.jQuery(document).ready(function(){
                 'lib/javascript/jquery/ui/jquery-ui-timepicker-addon.js',
             ),
             'cssfiles'      => array(
-                'lib/javascript/jquery/ui/css/jquery-ui.css'
+                'jquery-ui.css' => 'lib/javascript/jquery/ui/css/jquery-ui.css',
             ),
             'dependencies'  => array(
                 'cx', // depends on jquery
@@ -311,7 +313,7 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
                 'lib/javascript/jquery/jstree/jquery.jstree.js',
                 'lib/javascript/jquery/hotkeys/jquery.hotkeys.js',
             ),
-            'dependencies' => array('jquery', 'jquery-cookie'),
+            'dependencies' => array('jquery', 'js-cookie'),
         ),
         'ace' => array(
             'jsfiles'  => array(
@@ -331,12 +333,26 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
             'dependencies' => array('jquery'),
             'specialcode'  => '
                 cx.jQuery(document).ready(function() {
-                    if(cx.jQuery(".chzn-select").length > 0) {
-                        cx.jQuery(".chzn-select").chosen({
-                            disable_search: true
+                    if (cx.jQuery(\'.chzn-select\').length > 0) {
+                        cx.jQuery(\'.chzn-select\').each(function(i, e) {
+                            cx.jQuery(e).chosen(
+                                cx.jQuery(e).data()
+                            )
                         });
                     }
                 });'
+        ),
+        // Extends standard "chosen" above.  Usage:
+        //  cx.jQuery([selector])
+        //    .chosen([options])
+        //    .chosenSortable([extra options]);
+        'chosen-sortable' => array(
+            'jsfiles' => array(
+                'lib/javascript/jquery/chosen/chosen-sortable.min.js',
+                // Use the full version for debugging
+                //'lib/javascript/jquery/chosen/chosen-sortable.js',
+            ),
+            'dependencies' => array('jqueryui', 'chosen'),
         ),
         'backend' => array(
             'jsfiles' => array(
@@ -435,7 +451,7 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
         ),
         'mediabrowser' => array(
             'jsfiles' => array(
-                'lib/javascript/jquery/1.9.1/js/jquery.min.js',
+                'lib/javascript/jquery/2.0.3/js/jquery.min.js',
                 'lib/plupload/js/moxie.min.js?v=2',
                 'lib/plupload/js/plupload.full.min.js?v=2',
                 'lib/javascript/angularjs/angular.js?v=2',
@@ -449,15 +465,39 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
                 'core_modules/MediaBrowser/View/Style/MediaBrowser.css?v=2',
                 'core_modules/MediaBrowser/View/Style/Frontend.css?v=2'
             ),
-            'dependencies' => array('twitter-bootstrap' => '3.2.0', 'cx'),
+            'dependencies' => array(
+                'cx',
+                'js-cookie',
+                // Note: loading jQuery as a dependency does not work as it would
+                //       interfere with jQuery plugins
+                //'jquery'    => '^([^1]\..*|1\.[^0-8]*\..*)$', // jquery needs to be version 1.9.0 or higher
+            ),
             'specialcode' => 'if (typeof cx.variables.get(\'jquery\', \'mediabrowser\') == \'undefined\'){
     cx.variables.set({"jquery": jQuery.noConflict(true)},\'mediabrowser\');
 }'
         ),
-        'intro.js' => array(
+        'schedule-publish-tooltip' => array(
             'jsfiles' => array(
-                'lib/javascript/intro/intro.min.js',
-            )
+                'core/Core/View/Script/ScheduledPublishing.js',
+            ),
+            'cssfiles' => array(
+                'core/Core/View/Style/ScheduledPublishing.css'
+            ),
+            'loadcallback' => 'initScheduledPublishing',
+            'dependencies' => array(
+                'cx',
+            ),
+        ),
+        'tag-it' => array(
+            'jsfiles' => array(
+                'lib/javascript/tag-it/js/tag-it.min.js',
+            ),
+            'cssfiles' => array(
+                'lib/javascript/tag-it/css/tag-it.css',
+            ),
+            'dependencies' => array(
+                'jqueryui',
+            ),
         ),
     );
 
@@ -468,6 +508,24 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
      * @var array
      */
     private static $customJS = array();
+
+    /**
+     * Holds data for each JS file that was located before the src attribute
+     * of the script tag
+     *
+     * @static
+     * @var array
+     */
+    protected static $scriptTagPreSrcData = array();
+
+    /**
+     * Holds data for each JS file that was located after the src attribute
+     * of the script tag
+     *
+     * @static
+     * @var array
+     */
+    protected static $scriptTagPostSrcData = array();
 
     /**
      * Holds the template JS files
@@ -518,6 +576,15 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
      */
     private static $registeredJsFiles = array();
 
+    /**
+     * Remembers all css files already added in some way.
+     *
+     * @access protected
+     * @static
+     * @var array
+     */
+    protected static $registeredCssFiles = array();
+
     private static $re_name_postfix = 1;
     private static $comment_dict = array();
 
@@ -532,7 +599,8 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
      * @var array associative array ( '/regexstring/' => 'componentToIncludeInstead' )
      */
     protected static $alternatives = array(
-        '/^jquery([-_]\d\.\d(\.\d)?)?(\.custom)?(\.m(in|ax))?\.js$/i' => 'jquery'
+        '/^jquery([-_]\d\.\d(\.\d)?)?(\.custom)?(\.m(in|ax))?\.js$/i' => 'jquery',
+        '/^contrexxJs\.js$/i' => 'cx',
     );
 
     /**
@@ -594,16 +662,96 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
         }
         self::$active[] = $name;
         if (!empty($data['dependencies']) && $dependencies) {
-            foreach ($data['dependencies'] as $dep) {
-                self::activate($dep);
+            foreach ($data['dependencies'] as $dep => $depVersion) {
+                if (is_string($dep)) {
+                    self::activateByVersion($dep, $depVersion, $name);
+                } else {
+                    // dependency does not specify a particular version of the library to load
+                    // -> $depVersion contains the library name
+                    self::activate($depVersion);
+                }
             }
         }
         if (isset($data['loadcallback']) && isset($options)) {
-            self::$data['loadcallback']($options);
+            self::{$data['loadcallback']}($options);
         }
         return true;
     }
 
+    /**
+     * Activate a specific version of an available js file
+     *
+     * @static
+     * @param  string  $name Name of the library to load
+     * @param  string  $version Specific version of the library to load.
+     *                 Specified as 'x.z.y'. Also accepts PCRE wildchars.
+     * @param  string  $dependencyOf is the optional name of the library
+     *                 that triggered the loaded of the specific library version.
+     * @return bool     TRUE if specific version of the library has been loaded. FALSE on failure
+     */
+    public static function activateByVersion($name, $version, $dependencyOf = null) {
+        // abort in case the library is unknown
+        if (!isset(self::$available[$name])) {
+            return false;
+        }
+
+        // fetch the library meta data
+        $library = self::$available[$name];
+
+        // check if a matching library has already been loaded
+        $activatedLibraries = preg_grep('/^'.$name.'-version-/', self::$active);
+        // check if any of the already loaded libraries can be used as an alternativ
+        foreach ($activatedLibraries as $activatedLibrary) {
+            $activatedLibraryVersion = str_replace($name.'-version-', '', $activatedLibrary);
+            if (!preg_match('/'.$version.'/', $activatedLibraryVersion)) {
+                continue;
+            }
+
+            if ($name != 'jquery' || !$dependencyOf) {
+                return true;
+            }
+
+            $libraryVersionData['specialcode'] = "cx.libs={{$name}:{'$dependencyOf': jQuery.noConflict()}};";
+            $customAvailableLibrary = $name.'-version-'.$activatedLibraryVersion;
+            self::$available[$customAvailableLibrary]['specialcode'] .= $libraryVersionData;
+
+            // trigger the activate again to push the library up in the dependency chain
+            self::activate($customAvailableLibrary);
+            return true;
+        }
+
+        // abort in case the library does not specify particular versions
+        if (!isset($library['versions'])) {
+            return false;
+        }
+
+        // try to load a matching version of the library
+        foreach ($library['versions'] as $libraryVersion => $libraryVersionData) {
+            if (!preg_match('/'.$version.'/', $libraryVersion)) {
+                continue;
+            }
+
+            // register specific version of the library
+            $customAvailableLibrary = $name.'-version-'.$libraryVersion;
+            if ($name == 'jquery') {
+                if ($dependencyOf) {
+                    $libraryVersionData['specialcode'] = "cx.libs={{$name}:{'$dependencyOf': jQuery.noConflict()}};";
+                } else {
+                    $libraryVersionData['specialcode'] = "cx.libs={{$name}:{'$libraryVersion': jQuery.noConflict()}};";
+                }
+                // we have to load cx again as we are using cx.libs in the specialcode
+                $libraryVersionData['dependencies'] = array('cx');
+            }
+            self::$available[$customAvailableLibrary] = $libraryVersionData;
+
+            // activate the specific version of the library
+            self::activate($customAvailableLibrary);
+            return true;
+        }
+
+        // no library by the specified version found
+        return false;
+    }
 
     /**
      * Deactivate a previously activated js file
@@ -636,11 +784,17 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
      * @param string $file The path of $file must be specified relative to the document root of the website.
      *     I.e. modules/foo/bar.js
      * @param bool $template is a javascript file which has been included from template
+     * @param   string  $preSrcData Optional string of attributes that shall
+     *                              be added to the HTML script tag before the
+     *                              src-attribute.
+     * @param   string  $preSrcData Optional string of attributes that shall
+     *                              be added to the HTML script tag after the
+     *                              src-attribute.
      *
      * External files are also suppored by providing a valid HTTP(S) URI as $file.
      * @return bool Returns TRUE if the file will be loaded, otherwiese FALSE.
      */
-    public static function registerJS($file, $template = false)
+    public static function registerJS($file, $template = false, $preSrcData = '', $postSrcData = '')
     {
         // check whether the script has a query string and remove it
         // this is necessary to check whether the file exists in the filesystem or not
@@ -671,12 +825,32 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
         if (array_search($file, self::$customJS) !== false || array_search($file, self::$templateJS) !== false) {
             return true;
         }
+
+        // register optional attributes for the HTML script tag
+        $scriptHash = md5($file . $template);
+        static::$scriptTagPreSrcData[$scriptHash] = $preSrcData;
+        static::$scriptTagPostSrcData[$scriptHash] = $postSrcData;
+
         if ($template) {
             self::$templateJS[] = $file;
         } else {
             self::$customJS[] = $file;
         }
         return true;
+    }
+
+    /**
+     * Register a JavaScript library that can later (after preContentLoad hook)
+     * be loaded by any component by calling \JS::activate($name).
+     * This method should only be used within the preContentLoad hook.
+     *
+     * @param   $name   string  Name of the library to register
+     * @param   $definition array   Meta information about the library.
+     *                              See static::$available for schema
+     *                              definition.
+     */
+    public static function registerJsLibrary($name, $definition = array()) {
+        static::$available[$name] = $definition;
     }
 
     /**
@@ -690,16 +864,37 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
      */
     public static function registerCSS($file)
     {
-        if (   !file_exists(\Env::get('ClassLoader')->getFilePath(\Cx\Core\Core\Controller\Cx::instanciate()->getCodeBaseDocumentRootPath().'/'.$file))
-            && !file_exists(\Env::get('ClassLoader')->getFilePath(\Cx\Core\Core\Controller\Cx::instanciate()->getWebsiteDocumentRootPath().'/'.$file))
-        ) {
-            self::$error = "The file ".$file." doesn't exist\n";
-            return false;
+        // check whether the script has a query string and remove it
+        // this is necessary to check whether the file exists in the filesystem or not
+        $fileName = $file;
+        $queryStringBegin = strpos($fileName, '?');
+        if ($queryStringBegin) {
+            $fileName = substr($fileName, 0, $queryStringBegin);
         }
 
-        if (array_search($file, self::$customCSS) === false) {
-            self::$customCSS[] = $file;
+        // if it is an local css file
+        if (!preg_match('#^https?://#', $fileName)) {
+            if ($fileName[0] == '/') {
+                $codeBasePath = \Cx\Core\Core\Controller\Cx::instanciate()->getCodeBasePath();
+                $websitePath = \Cx\Core\Core\Controller\Cx::instanciate()->getWebsitePath();
+            } else {
+                $codeBasePath = \Cx\Core\Core\Controller\Cx::instanciate()->getCodeBaseDocumentRootPath();
+                $websitePath = \Cx\Core\Core\Controller\Cx::instanciate()->getWebsiteDocumentRootPath();
+            }
+            if (   !file_exists(\Env::get('ClassLoader')->getFilePath(($codeBasePath.'/').$fileName))
+                && !file_exists(\Env::get('ClassLoader')->getFilePath(($websitePath.'/').$fileName))
+            ) {
+                self::$error .= "The file ".$fileName." doesn't exist\n";
+                return false;
+            }
         }
+
+        // add original file name with query string to custom javascripts array
+        if (array_search($file, self::$customCSS) !== false) {
+            return true;
+        }
+
+        self::$customCSS[] = $file;
         return true;
     }
 
@@ -737,6 +932,7 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
         $lazyLoadingFiles = array();
         $retstring  = '';
         $jsScripts = array();
+
         if (count(self::$active) > 0) {
             // check for lazy dependencies, if there are lazy dependencies, activate cx
             // cx provides the lazy loading mechanism
@@ -750,7 +946,12 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
                             $lazyLoadingFiles = array_merge($lazyLoadingFiles, self::$available[$dependency]['jsfiles']);
                         }
                         if (!empty(self::$available[$dependency]['cssfiles'])) {
-                            $cssfiles = array_merge($cssfiles, self::$available[$dependency]['cssfiles']);
+                            $cssfiles = array_merge(
+                                $cssfiles,
+                                static::getRealCssFiles(
+                                    self::$available[$dependency]['cssfiles']
+                                )
+                            );
                         }
                     }
                 }
@@ -761,7 +962,7 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
 
             // set cx.variables with lazy loading file paths
             ContrexxJavascript::getInstance()->setVariable('lazyLoadingFiles', $lazyLoadingFiles, 'contrexx');
-            
+
             // Note the "reverse" here.  Dependencies are at the end of the
             // array, and must be loaded first!
             foreach (array_reverse(self::$active) as $name) {
@@ -778,13 +979,16 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
                 }
                 $jsScripts[] = self::makeJSFiles($data['jsfiles']);
                 if (!empty($data['cssfiles'])) {
-                    $cssfiles = array_merge($cssfiles, $data['cssfiles']);
+                    $cssfiles = array_merge(
+                        $cssfiles,
+                        static::getRealCssFiles($data['cssfiles'])
+                    );
                 }
                 if (isset($data['specialcode']) && strlen($data['specialcode']) > 0) {
                     $jsScripts[] = self::makeSpecialCode(array($data['specialcode']));
                 }
                 if (isset($data['makecallback'])) {
-                    self::$data['makecallback']();
+                    self::{$data['makecallback']}();
                 }
                 // Special case cloudrexx-API: fetch specialcode if activated
                 if ($name == 'cx') {
@@ -795,13 +999,13 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
         }
 
         $jsScripts[] = self::makeJSFiles(self::$customJS);
-        
+
         // if jquery is activated, do a noConflict
         if (array_search('jquery', self::$active) !== false) {
-        $jsScripts[] = self::makeSpecialCode('$J = cx.jQuery = jQuery.noConflict();');
+            $jsScripts[] = self::makeSpecialCode('if (typeof jQuery != "undefined") { jQuery.noConflict(); }');
         }
-        $jsScripts[] = self::makeJSFiles(self::$templateJS);
-        
+        $jsScripts[] = self::makeJSFiles(self::$templateJS, true);
+
         // no conflict for normal jquery version which has been included in template or by theme dependency
         $jsScripts[] = self::makeSpecialCode('if (typeof jQuery != "undefined") { jQuery.noConflict(); }');
         $retstring .= self::makeCSSFiles($cssfiles);
@@ -811,6 +1015,63 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
         $retstring .= self::makeJSFiles(self::$customJS);
         $retstring .= self::makeSpecialCode(self::$customCode);
         return $retstring;
+    }
+
+
+    /**
+     * Get the CSS files to be loaded
+     *
+     * Check for each CSS-file if there exists a customized version
+     * in the loaded webdesign theme. If so, the customized version's
+     * path will be returned instead of the original path.
+     *
+     * @param   $cssFiles   array   List of CSS files to check for customized
+     *                              versions of.
+     * @return  array   The supplied array $cssFiles. Whereas the path of CSS
+     *                  files has been replaced, in case there is a customized
+     *                  version available.
+     */
+    protected static function getRealCssFiles($cssFiles) {
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+
+        $files = array();
+        foreach ($cssFiles as $customizingPath => $file) {
+            // if $customizingPath is an integer, then its a regular
+            // CSS file to be included.
+            // otherwise (if not in frontend-mode), it
+            // might be a customizable CSS file
+            if (
+                $cx->getMode() !=
+                    \Cx\Core\Core\Controller\Cx::MODE_FRONTEND ||
+                preg_match('/^\d+$/', $customizingPath)
+            ) {
+                $files[] = $file;
+                continue;
+            }
+
+            // if $customizingPath is not an integer, it may represent
+            // a custom file name, by which the CSS file
+            // might be customized in the current webdesign
+            // template
+            if(
+                file_exists(
+                    \Env::get('ClassLoader')->getFilePath(
+                        $cx->getWebsiteThemesPath() . '/' .
+                        \Env::get('init')->getCurrentThemesPath() .
+                        '/' . $customizingPath
+                    )
+                )
+            ) {
+                $files[] = $cx->getWebsiteThemesWebPath() . '/' .
+                    \Env::get('init')->getCurrentThemesPath() .
+                    '/' . $customizingPath;
+                continue;
+            }
+
+            // fallback: add original CSS file
+            $files[] = $file;
+        }
+        return $files;
     }
 
 
@@ -841,11 +1102,12 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
     /**
      * Make the code for the Javascript files
      * @param array $files
+     * @param   bool    $template   Whether the file has been included from
+     *                              the webdesign template or not
      * @return string
      * @static
-     * @access private
      */
-    private static function makeJSFiles($files)
+    private static function makeJSFiles($files, $template = false)
     {
         global $_CONFIG;
         $code = "";
@@ -865,7 +1127,28 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
             }
 
             $path .= $file;
-            $code .= "<script type=\"text/javascript\" src=\"".$path."\"></script>\n\t";
+
+            // check for additional script tag attributes
+            $scriptHash = md5($file . $template);
+            $preSrcData = '';
+            if (isset(static::$scriptTagPreSrcData[$scriptHash])) {
+                $preSrcData = static::$scriptTagPreSrcData[$scriptHash];
+            }
+            $postSrcData = '';
+            if (isset(static::$scriptTagPostSrcData[$scriptHash])) {
+                $postSrcData = static::$scriptTagPostSrcData[$scriptHash];
+            }
+
+            // add script tag attribute 'type' in case its missing in the
+            // additional script tag attributes
+            $typeRegex = '/type\s?=\s?["\']text\/javascript["\']/i';
+            if (!preg_match($typeRegex, $preSrcData) ||
+                !preg_match($typeRegex, $preSrcData)
+            ) {
+                $preSrcData .= 'type="text/javascript" ';
+            }
+
+            $code .= "<script " . $preSrcData . "src=\"".$path."\"" . $postSrcData . "></script>\n\t";
         }
         return $code;
     }
@@ -883,10 +1166,19 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
         global $_CONFIG;
         $code = "";
         foreach ($files as $file) {
-            $path = self::$offset;
-            if ($_CONFIG['useCustomizings'] == 'on' && file_exists(ASCMS_CUSTOMIZING_PATH.'/'.$file)) {
-                $path .= preg_replace('#'.\Cx\Core\Core\Controller\Cx::instanciate()->getCodeBaseDocumentRootPath().'/#', '', ASCMS_CUSTOMIZING_PATH) . '/';
+            // The file has already been added to the js list
+            if (array_search($file, self::$registeredCssFiles) !== false)
+                continue;
+            static::$registeredCssFiles[] = $file;
+            $path = '';
+
+            if (!preg_match('#^https?://#', $file)) {
+                $path = self::$offset;
+                if ($_CONFIG['useCustomizings'] == 'on' && file_exists(ASCMS_CUSTOMIZING_PATH.'/'.$file)) {
+                    $path .= preg_replace('#'.\Cx\Core\Core\Controller\Cx::instanciate()->getCodeBaseDocumentRootPath().'/#', '', ASCMS_CUSTOMIZING_PATH) . '/';
+                }
             }
+
             $path .= $file;
             $code .= "<link rel=\"stylesheet\" type=\"text/css\" href=\"".$path."\" />\n\t";
         }
@@ -906,7 +1198,7 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
         if (empty($code)) {
             return '';
         }
-        
+
         $retcode = "<script type=\"text/javascript\">\n/* <![CDATA[ */\n";
         if (is_array($code)) {
             $retcode .= implode("\r\n", $code);
@@ -920,7 +1212,9 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
 
     public static function registerFromRegex($matchinfo)
     {
-        $script = $matchinfo[1];
+        $preSrcData = $matchinfo[1];
+        $script = $matchinfo[2];
+        $postSrcData = $matchinfo[3];
         $alternativeFound = false;
         //make sure we include the alternative if provided
         foreach(self::$alternatives as $pattern => $alternative) {
@@ -934,7 +1228,7 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
         }
         //only register the js if we didn't activate the alternative
         if(!$alternativeFound)
-            self::registerJS($script, true);
+            self::registerJS($script, true, $preSrcData, $postSrcData);
     }
 
 
@@ -948,10 +1242,10 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
     public static function findJavascripts(&$content)
     {
         JS::grabComments($content);
-        $content = preg_replace_callback('/<script .*?src=(?:"|\')([^"\']*)(?:"|\').*?\/?>(?:<\/script>)?/i', array('JS', 'registerFromRegex'), $content);
+        $content = preg_replace_callback('/<script (.*?)src=(?:"|\')([^"\']*)(?:"|\')(.*?)\/?>(?:<\/script>)?/i', array('JS', 'registerFromRegex'), $content);
         JS::restoreComments($content);
     }
-    
+
     /**
      * Finds all <link>-Tags in the passed HTML content, strips them out
      * and puts them in the internal CSS placeholder store.
@@ -977,7 +1271,7 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
         JS::restoreComments($content);
         return $css;
     }
-    
+
     /**
      * Get an array of libraries which are ready to load in different versions
      * @return array the libraries which are ready to configure for skin
@@ -1001,7 +1295,11 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
      */
     private static function grabComments(&$content)
     {
+        // filter HTML-comments
         $content = preg_replace_callback('#<!--.*?-->#ms', array('JS', '_storeComment'), $content);
+
+        // filter esi-includes
+        $content = preg_replace_callback('#<esi:include src="([^"]+)" onerror="continue"/>#', array('JS', '_storeComment'), $content);
     }
 
 
@@ -1030,4 +1328,20 @@ Caution: JS/ALL files are missing. Also, this should probably be loaded through 
         return $name;
     }
 
+    /**
+     * Callback function to load related cx variables for "schedule-publish-tooltip" lib
+     *
+     * @param array $options options array
+     */
+    protected static function initScheduledPublishing($options)
+    {
+        global $_CORELANG;
+
+        \ContrexxJavascript::getInstance()->setVariable(array(
+            'active'            => $_CORELANG['TXT_CORE_ACTIVE'],
+            'inactive'          => $_CORELANG['TXT_CORE_INACTIVE'],
+            'scheduledActive'   => $_CORELANG['TXT_CORE_SCHEDULED_ACTIVE'],
+            'scheduledInactive' => $_CORELANG['TXT_CORE_SCHEDULED_INACTIVE'],
+        ), 'core/View');
+    }
 }

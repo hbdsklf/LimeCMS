@@ -55,12 +55,13 @@ define('DBG_LOG_FILE',          1<<9);
 define('DBG_LOG_FIREPHP',       1<<10);
 define('DBG_LOG_MEMORY',        1<<11);
 define('DBG_LOG',               1<<12);
+define('DBG_PROFILE',           1<<13);
 // Full debugging (quite pointless really)
 define('DBG_ALL',
       DBG_PHP
     | DBG_DB | DBG_DB_TRACE | DBG_DB_ERROR | DBG_DB_CHANGE
     | DBG_LOG_FILE | DBG_LOG_FIREPHP | DBG_LOG_MEMORY
-    | DBG_LOG);
+    | DBG_LOG | DBG_PROFILE);
 // Common debugging modes (add more as required)
 define('DBG_ERROR_FIREPHP',
       DBG_PHP | DBG_DB_ERROR | DBG_LOG_FIREPHP);
@@ -77,7 +78,7 @@ DBG::deactivate();
  * @version     3.0.0
  * @since       2.1.3
  * @package     cloudrexx
- * @subpackage	lib_dbg
+ * @subpackage    lib_dbg
  */
 class DBG
 {
@@ -98,7 +99,9 @@ class DBG
     private static $mode         = 0;
     private static $sql_query_cache = null;
     private static $memory_logs = array();
+    protected static $enable_profiling = 0;
     protected static $logPrefix = '';
+    protected static $logHash= '';
 
 
     public function __construct()
@@ -117,6 +120,11 @@ class DBG
      */
     public static function activate($mode = null)
     {
+        // generate a hash to be used for associating all logs to the same request
+        if (empty(self::$logHash)) {
+            self::$logHash = base_convert(microtime(), 10, 36);
+        }
+
         if (!self::$fileskiplength) {
             self::$fileskiplength = strlen(dirname(dirname(dirname(dirname(__FILE__))))) + 1;
         }
@@ -156,7 +164,7 @@ class DBG
         );
         return join(' | ', $flags);
     }
-    
+
     public static function activateIf($condition, $mode = null) {
         if (
             (!is_callable($condition) && $condition) ||
@@ -165,15 +173,15 @@ class DBG
             static::activate($mode);
         }
     }
-    
+
     public static function isIp($ip) {
         return $_SERVER['REMOTE_ADDR'] == $ip;
     }
-    
+
     public static function hasCookie($cookieName) {
         return isset($_COOKIE[$cookieName]);
     }
-    
+
     public static function hasCookieValue($cookieName, $cookieValue) {
         if (!static::hasCookie($cookieName)) {
             return false;
@@ -253,6 +261,13 @@ class DBG
         } else {
             self::disable_all();
         }
+
+        // set profiling mode
+        if (self::$mode & DBG_PROFILE) {
+            self::enable_profiling();
+        } else {
+            self::disable_profiling();
+        }
     }
 
 
@@ -280,7 +295,7 @@ class DBG
 // DO NOT OVERRIDE DEFAULT BEHAVIOR FROM INSIDE THE CLASS!
 // Call a method to do this from the outside.
 //        self::setup('dbg.log', 'w');
-        if (self::setup('dbg.log')) {
+        if (self::setup(dirname(__FILE__, 4) . '/tmp/log/dbg.log')) {
             self::$log_file = true;
         }
     }
@@ -341,6 +356,30 @@ class DBG
 
 
     /**
+     * Enable profiling
+     */
+    protected static function enable_profiling()
+    {
+        if (self::$enable_profiling) return;
+
+        self::$enable_profiling = true;
+        self::enable_time();
+    }
+
+
+    /**
+     * Disables profiling
+     */
+    protected static function disable_profiling()
+    {
+        if (!self::$enable_profiling) return;
+
+        self::disable_time();
+        self::$enable_profiling = false;
+    }
+
+
+    /**
      * Enables logging to memory
      *
      * Disables logging to a file and firephp in turn.
@@ -394,7 +433,7 @@ class DBG
             $f = self::_cleanfile($callers[0]['file']);
             $l = $callers[0]['line'];
             $d = date('H:i:s');
-            self::_log("TIME AT: $f:$l $d (diff: $diff_last, startdiff: $diff_start)".(!empty($comment) ? ' -- '.$comment : ''), 'info');
+            self::_log("TIME AT: $f:$l $d (diff: $diff_last, startdiff: $diff_start)".(!empty($comment) ? ' -- '.$comment : ''), 'info', null, false);
         }
     }
 
@@ -423,13 +462,13 @@ class DBG
             $suffix = '.'.++$nr;
         }*/
         if ($file == 'php://output') {
-			self::$dbg_fh = fopen($file, $mode);
+            self::$dbg_fh = fopen($file, $mode);
             if (self::$dbg_fh) {
                 return true;
             } else {
                 return false;
             }
-		} elseif (class_exists('\Cx\Lib\FileSystem\File')) {
+        } elseif (class_exists('\Cx\Lib\FileSystem\File')) {
             try {
                 self::$dbg_fh = new \Cx\Lib\FileSystem\File($file.$suffix);
                 self::$dbg_fh->touch();
@@ -605,7 +644,7 @@ class DBG
             $callers = debug_backtrace();
             $f = self::_cleanfile($callers[$level]['file']);
             $l = $callers[$level]['line'];
-            self::_log("TRACE:  $f : $l");
+            self::_log("TRACE:  $f : $l", 'log', null, false);
         }
     }
 
@@ -627,6 +666,8 @@ class DBG
 
     static function dump($val)
     {
+        global $_CONFIG;
+
         if (!self::$enable_dump) return;
 
         self::_escapeDoctrineDump($val);
@@ -638,31 +679,29 @@ class DBG
         if ($val === null) {
             $out = 'NULL';
         } else {
-            $out = var_export($val, true);
+            $out = stripslashes(var_export($val, true));
         }
         $out = str_replace("\n", "\n        ", $out);
         if (!self::$log_file && !self::$log_memory && php_sapi_name() != 'cli') {
             // we're logging directly to the browser
             // can't use contrexx_raw2xhtml() here, because it might not
             // have been loaded till now
-            self::_log('DUMP:   <p><pre>'.htmlentities($out, ENT_QUOTES, CONTREXX_CHARSET).'</pre></p>');
+            self::_log(
+                'DUMP:   <p><pre>' . htmlentities(
+                    $out,
+                    ENT_QUOTES,
+                    $_CONFIG['coreCharacterEncoding']
+                ) . '</pre></p>'
+            );
         } else {
             self::_log('DUMP:   '.$out);
         }
     }
-    
+
     private static function _escapeDoctrineDump(&$val)
     {
-        if (   $val instanceof \Cx\Model\Base\EntityBase
-            || $val instanceof \Doctrine\DBAL\Statement
-            || $val instanceof \Doctrine\DBAL\Connection
-            || $val instanceof \Cx\Core_Modules\MultiSite\Model\Entity\Domain
-            || $val instanceof \Cx\Core\Core\Model\Entity\EntityBase
-            || $val instanceof \Doctrine\ORM\Mapping\ClassMetadata
-            || $val instanceof \Cx\Core\Core\Controller\Cx
-            || $val instanceof \Cx\Core\Html\Sigma
-            || $val instanceof \Cx\Core\Core\Model\Entity\SystemComponentController
-        ) {
+        // TODO: implement own dump-method that is able to handle recursive references
+        if (is_object($val)) {
             $val = \Doctrine\Common\Util\Debug::export($val, 2);
         } else if (is_array($val)) {
             foreach ($val as &$entry) {
@@ -680,17 +719,17 @@ class DBG
             // remove call to this method (DBG::stack())
             array_shift($callers);
 
-            self::_log("TRACE:  === STACKTRACE BEGIN ===");
+            self::_log("TRACE:  === STACKTRACE BEGIN ===", 'log', null, false);
             $err = error_reporting(E_ALL ^ E_NOTICE);
             foreach ($callers as $c) {
                 $file  = (isset($c['file']) ? self::_cleanfile($c['file']) : 'n/a');
                 $line  = (isset ($c['line']) ? $c['line'] : 'n/a');
                 $class = isset($c['class']) ? $c['class'] : null;
                 $func  = $c['function'];
-                self::_log("        $file : $line (".(empty($class) ? $func : "$class::$func").")");
+                self::_log("        $file : $line (".(empty($class) ? $func : "$class::$func").")", 'log', null, false);
             }
             error_reporting($err);
-            self::_log("        === STACKTRACE END ====");
+            self::_log("        === STACKTRACE END ====", 'log', null, false);
             if (!self::$log_file && !self::$log_firephp && !self::$log_memory) echo '</pre>';
         }
     }
@@ -771,9 +810,87 @@ class DBG
             } else {
                 self::_log("PHP: <strong>$type</strong>$suppressed: $errstr in <strong>$errfile</strong> on line <strong>$errline</strong>");
             }
+
+            // Catch infinite loop produced by var_export()
+            if ($errstr == 'var_export does not handle circular references') {
+                self::log('Cancelled script execution to prevent memory overflow caused by var_export()');
+                self::stack();
+                exit;
+            }
         }
     }
 
+    /**
+     * Writes the last line of a request to the log
+     * @param \Cx\Core\Core\Controlller\Cx $cx Cx instance of the request
+     * @param bool $cached Whether this request is answered from cache
+     * @param string $outputModule (optional) Name of the output module
+     */
+    public static function writeFinishLine(
+        \Cx\Core\Core\Controller\Cx $cx,
+        bool $cached,
+        string $outputModule = ''
+    ) {
+        $requestInfo = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+        $requestIp = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '';
+        $requestIpParts = explode('.', $requestIp);
+        end($requestIpParts);
+        $requestIpParts[key($requestIpParts)] = '[...]';
+        $requestIp = implode('.', $requestIpParts);
+        $requestHost = isset($_SERVER['REMOTE_HOST']) ? $_SERVER['REMOTE_HOST'] : $requestIp;
+        $requestUserAgent = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
+        $cachedStr = $cached ? 'cached' : 'uncached';
+        $userHash = '';
+        $stats = $cx->getComponent(
+            'Stats'
+        );
+        if ($stats) {
+            $counter = $stats->getCounterInstance();
+            if ($counter) {
+                $userHash = $counter->getUniqueUserId();
+            }
+        }
+
+        // fetch parsed response code
+        if ($cx->getResponse()) {
+            $httpResponseCode = $cx->getResponse()->getCode();
+        } else {
+            // as fallback fetch response code from set headers
+            $httpResponseCode = http_response_code();
+        }
+
+        register_shutdown_function(
+            function() use (
+                $cx,
+                $requestInfo,
+                $requestIp,
+                $requestHost,
+                $requestUserAgent,
+                $cachedStr,
+                $userHash,
+                $outputModule,
+                $httpResponseCode
+            ) {
+                $parsingTime = $cx->stopTimer();
+                $format = '(Cx: %1$s) Request parsing completed after %2$s "%3$s" "%4$s" "%5$s" "%6$s" "%7$s" "%8$s" "%9$s" "%10$s" "%11$s"';
+                $log = sprintf(
+                    $format,
+                    $cx->getId(),
+                    $parsingTime,
+                    $cachedStr,
+                    $requestInfo,
+                    $requestIp,
+                    $requestHost,
+                    $requestUserAgent,
+                    memory_get_peak_usage(true),
+                    $userHash,
+                    $outputModule,
+                    $httpResponseCode
+                );
+                \DBG::log($log);
+            }
+        );
+    }
 
     static function log($text, $firephp_action='log', $additional_args=null)
     {
@@ -783,12 +900,18 @@ class DBG
     }
 
 
-    private static function _log($text, $firephp_action='log', $additional_args=null)
+    private static function _log($text, $firephp_action='log', $additional_args=null, $profile=true)
     {
         if (!self::isLogWorthy($text)) return;
 
+        if ($profile && self::$enable_profiling) {
+            self::time();
+        }
+
         if (self::$logPrefix !== '') {
-            $text = '(' . self::$logPrefix . ') ' . $text;
+            $text = '"(' . self::$logPrefix . ' - ' . self::$logHash . ')" ' . $text;
+        } else {
+            $text = '"(' . self::$logHash . ')" ' . $text;
         }
 
         if (self::$log_firephp
@@ -797,7 +920,7 @@ class DBG
         } elseif (self::$log_file) {
             // this constant might not exist when updating from older versions
             if (defined('ASCMS_DATE_FORMAT_INTERNATIONAL_DATETIME')) {
-                $dateFormat = ASCMS_DATE_FORMAT_INTERNATIONAL_DATETIME;	
+                $dateFormat = ASCMS_DATE_FORMAT_INTERNATIONAL_DATETIME;
             } else {
                 $dateFormat = 'Y-m-d H:i:s';
             }
@@ -814,13 +937,17 @@ class DBG
         } elseif (self::$log_memory) {
             // this constant might not exist when updating from older versions
             if (defined('ASCMS_DATE_FORMAT_INTERNATIONAL_DATETIME')) {
-                $dateFormat = ASCMS_DATE_FORMAT_INTERNATIONAL_DATETIME;	
+                $dateFormat = ASCMS_DATE_FORMAT_INTERNATIONAL_DATETIME;
             } else {
                 $dateFormat = 'Y-m-d H:i:s';
             }
             self::$memory_logs[] = date($dateFormat).' '.$text;
         } else {
-            echo $text.'<br />';
+            if (php_sapi_name() == 'cli') {
+                echo $text . PHP_EOL;
+            } else {
+                echo $text . '<br />';
+            }
             // force log message output
             if (ob_get_level()) {
                 ob_flush();
@@ -868,6 +995,8 @@ class DBG
 
     public static function logSQL($sql, $forceOutput = false)
     {
+        global $_CONFIG;
+
         $error = preg_match('#^[0-9]+:#', $sql);
 
         if ($error) {
@@ -904,10 +1033,19 @@ class DBG
                     break;
             }
         }
-        if (!self::$log_file && !self::$log_firephp && !self::$log_memory) {
+        if (
+            !self::$log_file &&
+            !self::$log_firephp &&
+            !self::$log_memory &&
+            php_sapi_name() != 'cli'
+        ) {
             // can't use contrexx_raw2xhtml() here, because it might not
             // have been loaded till now
-            $sql = htmlentities($sql, ENT_QUOTES, CONTREXX_CHARSET);
+            $sql = htmlentities(
+                $sql,
+                ENT_QUOTES,
+                $_CONFIG['coreCharacterEncoding']
+            );
         }
 
         self::_log('SQL: '.$sql, $status);
@@ -930,19 +1068,30 @@ class DBG
      * Reset the text that is being put in front of log messags
      */
     public static function resetLogPrefix() {
-        self::$setLogPrefix();
+        self::setLogPrefix();
+    }
+
+    public static function getLogHash() {
+        return self::$logHash;
     }
 }
 
 function DBG_log_adodb($msg)
 {
+    global $_CONFIG;
+
     if (strpos($msg, 'password') !== false) {
         DBG::logSQL('*LOGIN (query suppressed)*');
         return;
     }
 
-    $msg = trim(html_entity_decode(strip_tags($msg), ENT_QUOTES, CONTREXX_CHARSET));
+    $msg = trim(
+        html_entity_decode(
+            strip_tags($msg),
+            ENT_QUOTES,
+            $_CONFIG['coreCharacterEncoding']
+        )
+    );
     $sql = preg_replace('#^\([^\)]+\):\s*#', '', $msg);
     DBG::logSQL($sql);
 }
-

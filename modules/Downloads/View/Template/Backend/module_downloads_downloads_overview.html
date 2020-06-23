@@ -38,7 +38,7 @@ function downloadsUpdateSortOrder(event,elForm,idMultiAction)
             <form action="index.php" method="get">
                 <input type="hidden" name="cmd" value="Downloads" />
                 <input type="hidden" name="act" value="downloads" />
-                <input type="text" class="search" name="search_term" value="{DOWNLOADS_SEARCH_TERM}" onfocus="if(this.value=='{TXT_DOWNLOADS_SEARCH_DOWNLOAD}'){this.value='';}" onblur="if(this.value==''){this.value='{TXT_DOWNLOADS_SEARCH_DOWNLOAD}';}" style="width: 240px;" />
+                <input type="text" class="search" name="search_term" placeholder="{TXT_DOWNLOADS_SEARCH_DOWNLOAD}" value="{DOWNLOADS_SEARCH_TERM}" style="width: 240px;" />
                 {DOWNLOADS_CATEGORY_MENU}
                 <input type="submit" value="{TXT_DOWNLOADS_SEARCH}" />
             </form>
@@ -88,7 +88,7 @@ function downloadsUpdateSortOrder(event,elForm,idMultiAction)
             <!-- BEGIN downloads_download_order_no_modify -->
             {DOWNLOADS_DOWNLOAD_ORDER}
             <!-- END downloads_download_order_no_modify -->
-        </td>        
+        </td>
         <td nowrap="nowrap">
             <!-- BEGIN downloads_download_modify_link_open -->
             <a href="index.php?cmd=Downloads&amp;act=download&amp;id={DOWNLOADS_DOWNLOAD_ID}" title="{TXT_DOWNLOADS_EDIT}">

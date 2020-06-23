@@ -54,9 +54,9 @@ namespace Cx\Modules\Feed\Controller;
  */
 class Feed extends FeedLibrary
 {
-	/**
-	 * @var    \Cx\Core\Html\Sigma
-	 */
+    /**
+     * @var    \Cx\Core\Html\Sigma
+     */
     public $_objTpl;
     public $pageTitle;
     public $statusMessage;
@@ -301,7 +301,7 @@ class Feed extends FeedLibrary
             $filename = $this->feedpath.$objResult->fields['filename'];
 
             //rss class
-            $rss = new \XML_RSS($filename);
+            $rss = new \Cx\Modules\Feed\Model\Entity\RSSFeedParser($filename);
             $rss->parse();
             //channel info
             $out_title = strip_tags($rss->channel['title']);
@@ -325,11 +325,14 @@ class Feed extends FeedLibrary
             //items
             $x = 0;
             foreach ($rss->getItems() as $value){
-                if($x < $objResult->fields['articles']){
+                if ($x < $objResult->fields['articles']) {
+                    $feedLink = !empty($value['guid'])
+                                  ? $value['guid']
+                                  : (!empty($value['link']) ? $value['link'] : '');
                     $this->_objTpl->setVariable(array(
                         'FEED_ROWCLASS' => $x % 2 ? 'row2' : 'row1',
                         'FEED_DATE'     => date('d.m.Y', strtotime($value['pubdate'])),
-                        'FEED_LINK'     => $value['link'],
+                        'FEED_LINK'     => $feedLink,
                         'FEED_NAME'     => $value['title'],
                     ));
                     $this->_objTpl->parse('feed_output_news');

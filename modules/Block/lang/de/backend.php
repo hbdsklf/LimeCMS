@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
  * @author      Cloudrexx Development Team <info@cloudrexx.com>
@@ -128,10 +128,27 @@ $_ARRAYLANG['TXT_BLOCK_CATEGORY_SEPERATOR'] = "Trennzeichen für Rubrik Platzhal
 $_ARRAYLANG['TXT_BLOCK_DISPLAY_TIME'] = "Anzeigedauer";
 $_ARRAYLANG['TXT_BLOCK_CONTENT'] = "Inhalt";
 $_ARRAYLANG['TXT_BLOCK_ORDER']   = "Reihenfolge";
-$_ARRAYLANG['TXT_BLOCK_INCLUDED_IN_GLOBAL_BLOCK'] = "Anzeige im globalen Platzhalter";
-$_ARRAYLANG['TXT_BLOCK_DISPLAY_SELECTED_PAGE'] = "Inhaltscontainer wird nur auf den folgenden Seiten angezeigt:";
-$_ARRAYLANG['TXT_BLOCK_DISPLAY_ALL_PAGE'] = "Inhaltscontainer wird auf jeder Seite angezeigt.";
+$_ARRAYLANG['TXT_BLOCK_DISPLAY_SELECTED_PAGE'] = "Dieser Inhaltscontainer wird auf den folgenden Seiten im globalen Platzhalter [[BLOCK_GLOBAL]] angezeigt:";
+$_ARRAYLANG['TXT_BLOCK_DISPLAY_ALL_PAGE'] = "Dieser Inhaltscontainer wird auf jeder Seite im globalen Platzhalter [[BLOCK_GLOBAL]] angezeigt";
 $_ARRAYLANG['TXT_BLOCK_USE_WYSIWYG_EDITOR'] = "WYSIWYG-Editor verwenden";
-$_ARRAYLANG['TXT_BLOCK_RANDOM_INFO'] = "Blöcke im Zufallsgenerator werden entsprechend zufällig angezeigt.";
+$_ARRAYLANG['TXT_BLOCK_RANDOM_INFO_INCLUDED'] = "Dieser Inhaltscontainer wird im Zufallsplatzhalter %s angezeigt";
+$_ARRAYLANG['TXT_BLOCK_RANDOM_INFO_EXCLUDED'] = "Dieser Inhaltscontainer wird nicht im Zufallsplatzhalter %s angezeigt";
 $_ARRAYLANG['TXT_BLOCK_SEPERATOR'] = "Trennzeichen zwischen den Inhaltscontainern";
-?>
+$_ARRAYLANG['TXT_BLOCK_TARGETING'] = 'Targeting';
+$_ARRAYLANG['TXT_BLOCK_TARGETING_SHOW_PANE'] = 'Wer soll diesen Inhaltscontainer sehen?';
+$_ARRAYLANG['TXT_BLOCK_TARGETING_ALL_USERS'] = 'Alle Besucher';
+$_ARRAYLANG['TXT_BLOCK_TARGETING_VISITOR_CONDITION_BELOW'] = 'Besucher welche die folgenden Kriterien erfüllen';
+$_ARRAYLANG['TXT_BLOCK_TARGETING_INCLUDE'] = 'Einschliesslich';
+$_ARRAYLANG['TXT_BLOCK_TARGETING_EXCLUDE'] = 'Ausschliesslich';
+$_ARRAYLANG['TXT_BLOCK_TARGETING_TYPE_LOCATION'] = 'Land eingeben';
+$_ARRAYLANG['TXT_BLOCK_TARGETING_GEOIP_DISABLED_WARNING'] = 'Achtung: Die standortbezogenen Dienste sind aktuell deaktiviert. Sofern diese nicht aktiviert werden, führt die Verwendung dieser Funktion dazu, dass dieser Inhaltscontainer auf der Website nicht mehr angezeigt wird. <a target="_blank" title="Standortbezogene Dienste jetzt aktivieren" href="index.php?cmd=GeoIp">Standortbezogene Dienste jetzt aktivieren</a>';
+$_ARRAYLANG['TXT_BLOCK_INCLUSION'] = 'Einbindung';
+$_ARRAYLANG['TXT_BLOCK_LOCATION_BASED_DISPLAY_INFO'] = 'Dieser Inhaltscontainer wird allen Besuchern angezeigt';
+$_ARRAYLANG['TXT_BLOCK_TARGETING_INFO_INCLUDE'] = 'Dieser Inhaltscontainer wird <strong>nur</strong> Besuchern der folgenden Länder angezeigt:';
+$_ARRAYLANG['TXT_BLOCK_TARGETING_INFO_EXCLUDE'] = 'Dieser Inhaltscontainer wird allen Besuchern <strong>ausser</strong> jene der folgenden Ländern angezeigt:';
+$_ARRAYLANG['TXT_BLOCK_DISPLAY_GLOBAL_INACTIVE'] = 'Dieser Inhaltscontainer wird im globalen Platzhalter [[BLOCK_GLOBAL]] nicht angezeigt';
+$_ARRAYLANG['TXT_BLOCK_DIRECT_INFO_SHOW_ALL_PAGES'] = 'Dieser Inhaltscontainer wird auf jeder Seite im eigenen Platzhalter %s angezeigt';
+$_ARRAYLANG['TXT_BLOCK_DIRECT_INFO_SHOW_SELECTED_PAGES'] = 'Dieser Inhaltscontainer wird auf den folgenden Seiten im eigenen Platzhalter %s angezeigt:';
+$_ARRAYLANG['TXT_BLOCK_MARK_PARSED_BLOCK'] = 'Inhaltscontainer mit HTML-Kommentar umschließen';
+$_ARRAYLANG['TXT_BLOCK_MARK_PARSED_BLOCK_INFO'] = 'Aktivieren Sie diese Option, um die Inhaltscontainer bei der Website-Ausgabe (Frontend) mit einem HTML-Kommentar zu versehen. Ist diese Option aktiv, werden alle Inhaltscontainer mit einem HTML-Kommentar wie folgt umschlossen: <br />
+&lt;!-- start BLOCK_1 --&gt;Inhalt des Containers&lt;!-- end BLOCK_1 --&gt;';

@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,19 +24,19 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * This file loads everything needed to load Cloudrexx. Just require this file
  * and execute \init($mode); while $mode is optional. $mode can be one of
  * 'frontend', 'backend', 'cli' and 'minimal'
- * 
+ *
  * This is just a wrapper to load the cloudrexx class
  * It is used in order to display a proper error message on hostings without
  * PHP 5.3 or newer.
- * 
+ *
  * DO NOT USE NAMESPACES WITHIN THIS FILE or else the error message won't be
  * displayed on these hostings.
- * 
+ *
  * Checks PHP version, loads debugger and initial config, checks if installed
  * and loads the Cloudrexx class
  *
@@ -47,10 +47,10 @@
  * @version     3.1.0
  */
 
-// Check php version (5.3 or newer is required)
+// Check php version (7.0 or newer is required)
 $php = phpversion();
-if (version_compare($php, '5.3.0') < 0) {
-    die('Das Cloudrexx CMS ben&ouml;tigt mindestens PHP in der Version 5.3.<br />Auf Ihrem System l&auml;uft PHP '.$php);
+if (version_compare($php, '7.0.0') < 0) {
+    die('Das Cloudrexx CMS ben&ouml;tigt mindestens PHP in der Version 7.0.<br />Auf Ihrem System l&auml;uft PHP '.$php);
 }
 
 global $_PATHCONFIG;

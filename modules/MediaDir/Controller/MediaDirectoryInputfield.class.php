@@ -90,23 +90,37 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
         $this->arrInputfields = self::getInputfields();
     }
 
-    function getInputfields()
+    /**
+     * Get list of inputfields (as array) of either all active forms or only
+     * those from a specific form if argument $formId is set.
+     *
+     * @param   integer ID of form to only return the inputfields of that
+     *                  specific form.
+     * @return  array   List of inputfields
+     */
+    public function getInputfields($formId = 0)
     {
-        global $_ARRAYLANG, $_CORELANG, $objDatabase, $_LANGID, $objInit;
+        global $_ARRAYLANG, $objDatabase;
 
-        if(intval($this->intFormId)!=0) {
-            $whereFormId = "AND (input.form='".$this->intFormId."')";
-        } else {
-            $whereFormId = null;
+        $langId = static::getOutputLocale()->getId();
+
+        $whereFormId  = 'AND (`form`.`active` = 1)';
+        $joinFormsTbl = 'LEFT JOIN `' . DBPREFIX .'module_' . $this->moduleTablePrefix . '_forms` as form
+                        ON (`form`.`id` = `input`.`form`)';
+        if (!$formId && $this->intFormId) {
+            $formId = $this->intFormId;
+        }
+        if ($formId) {
+            $joinFormsTbl = '';
+            $whereFormId  = 'AND (`input`.`form` = "' . $formId . '")';
         }
 
-        if($this->bolExpSearch) {
-            $whereExpSearch = "AND (input.search='1')";
-        } else {
-            $whereExpSearch = null;
+        $whereExpSearch = null;
+        if ($this->bolExpSearch) {
+            $whereExpSearch = 'AND (`input`.`search` = "1")';
         }
 
-        $objInputfields = $objDatabase->Execute("
+        $objInputfields = $objDatabase->Execute('
             SELECT
                 input.`id` AS `id`,
                 input.`order` AS `order`,
@@ -123,27 +137,25 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
                 verifications.`regex` AS `pattern`,
                 types.`name` AS `type_name`,
                 types.`multi_lang` AS `type_multi_lang`,
-                types.`dynamic` AS `type_dynamic`,
                 types.`exp_search` As `exp_search`
             FROM
-                ".DBPREFIX."module_".$this->moduleTablePrefix."_inputfields AS input,
-                ".DBPREFIX."module_".$this->moduleTablePrefix."_inputfield_names AS names,
-                ".DBPREFIX."module_".$this->moduleTablePrefix."_inputfield_verifications AS verifications,
-                ".DBPREFIX."module_".$this->moduleTablePrefix."_inputfield_types AS types
+                `' . DBPREFIX . 'module_' . $this->moduleTablePrefix . '_inputfields` AS input
+                ' . $joinFormsTbl . '
+                LEFT JOIN `' . DBPREFIX . 'module_' . $this->moduleTablePrefix . '_inputfield_names` AS names
+                    ON (`names`.`field_id` = `input`.`id`)
+                LEFT JOIN `' . DBPREFIX . 'module_' . $this->moduleTablePrefix . '_inputfield_verifications` AS verifications
+                    ON (`input`.`verification` = `verifications`.`id`)
+                LEFT JOIN `' . DBPREFIX . 'module_' . $this->moduleTablePrefix . '_inputfield_types` AS types
+                    ON (`input`.`type` = `types`.`id`)
             WHERE
-                (names.field_id=input.id)
-            AND
-                (input.verification=verifications.id)
-            AND
-                (input.type=types.id)
-                ".$whereFormId."
-                ".$whereExpSearch."
-            AND
-                (names.lang_id='".$_LANGID."')
+                (`names`.`lang_id` = ' . $langId . ')
+                ' . $whereFormId . '
+                ' . $whereExpSearch . '
             ORDER BY
-                input.`order` ASC, input.`id` ASC
-        ");
+                `input`.`order` ASC, `input`.`id` ASC
+        ');
 
+        $arrInputfields = array();
         if ($objInputfields !== false) {
             while (!$objInputfields->EOF) {
                 $arrInputfield = array();
@@ -183,7 +195,6 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
                 $arrInputfield['type'] = intval($objInputfields->fields['type']);
                 $arrInputfield['type_name'] = htmlspecialchars($objInputfields->fields['type_name'], ENT_QUOTES, CONTREXX_CHARSET);
                 $arrInputfield['type_multi_lang'] = intval($objInputfields->fields['type_multi_lang']);
-                $arrInputfield['type_dynamic'] = intval($objInputfields->fields['type_dynamic']);
                 $arrInputfield['show_in'] = intval($objInputfields->fields['show_in']);
                 $arrInputfield['verification'] = intval($objInputfields->fields['verification']);
                 $arrInputfield['regex'] = $objInputfields->fields['pattern'];
@@ -200,22 +211,24 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
         }
 
         $arrCategorySelector['id'] = 1;
-        $arrCategorySelector['order'] = !empty($this->intFormId) ? $this->arrSettings['categorySelectorOrder'][$this->intFormId] : 0;
-        $arrCategorySelector['name'][0] = $_ARRAYLANG['TXT_MEDIADIR_CATEGORIES'];
+        $arrCategorySelector['order'] = $formId ? $this->arrSettings['categorySelectorOrder'][$formId] : 0;
+        $arrCategorySelector['name'] = array(0 => $_ARRAYLANG['TXT_MEDIADIR_CATEGORIES']);
         $arrCategorySelector['type_name'] = '';
         $arrCategorySelector['required'] = 1;
         $arrCategorySelector['type'] = 0;
-        $arrCategorySelector['search'] = !empty($this->intFormId) ? $this->arrSettings['categorySelectorExpSearch'][$this->intFormId] : 0;
+        // in frontend, categorySelectorExpSearch is only set for active forms
+        $arrCategorySelector['search'] = $formId ? $this->arrSettings['categorySelectorExpSearch'][$formId] : 0;
         $arrInputfields[1] = $arrCategorySelector;
 
         if($this->arrSettings['settingsShowLevels']) {
             $arrLevelSelector['id'] = 2;
-            $arrLevelSelector['order'] = !empty($this->intFormId) ? $this->arrSettings['levelSelectorOrder'][$this->intFormId] : 0;
-            $arrLevelSelector['name'][0] = $_ARRAYLANG['TXT_MEDIADIR_LEVELS'];
+            $arrLevelSelector['order'] = $formId ? $this->arrSettings['levelSelectorOrder'][$formId] : 0;
+            $arrLevelSelector['name'] = array(0 => $_ARRAYLANG['TXT_MEDIADIR_LEVELS']);
             $arrLevelSelector['type_name'] = '';
             $arrLevelSelector['required'] = 1;
             $arrLevelSelector['type'] = 0;
-            $arrLevelSelector['search'] = !empty($this->intFormId) ? $this->arrSettings['levelSelectorExpSearch'][$this->intFormId] : 0;
+            // in frontend, levelSelectorExpSearch is only set for active forms
+            $arrLevelSelector['search'] = $formId ? $this->arrSettings['levelSelectorExpSearch'][$formId] : 0;
             $arrInputfields[2] = $arrLevelSelector;
         }
 
@@ -227,16 +240,16 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
     function sortInputfields($a, $b)
     {
         if ($a['order'] == $b['order']) {
-	        return ($a['id'] < $b['id']) ? -1 : 1;
-	    }
-	    return ($a['order'] < $b['order']) ? -1 : 1;
+            return ($a['id'] < $b['id']) ? -1 : 1;
+        }
+        return ($a['order'] < $b['order']) ? -1 : 1;
     }
 
 
 
-    function listInputfields($objTpl, $intView, $intEntryId)
+    public function listInputfields($objTpl, $intView, $intEntryId = null)
     {
-        global $_ARRAYLANG, $_CORELANG, $objDatabase, $_LANGID, $objInit;
+        global $_ARRAYLANG, $_CORELANG, $objDatabase, $objInit;
 
         usort($this->arrInputfields, array(__CLASS__, "sortInputfields"));
 
@@ -255,10 +268,10 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
 
                 $i=0;
                 $intLastId = 0;
-                foreach ($this->arrInputfields as $key => $arrInputfield) {
+                foreach ($this->arrInputfields as $arrInputfield) {
                     $strMustfield = $arrInputfield['required']==1 ? 'checked="checked"' : '';
                     $strExpSearch = $arrInputfield['search']==1 ? 'checked="checked"' : '';
-                    
+
                     if($arrInputfield['id'] > $intLastId) {
                         $intLastId = $arrInputfield['id'];
                     }
@@ -285,7 +298,7 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
                         ));
 
                         //fieldname
-                        foreach ($this->arrFrontendLanguages as $key => $arrLang) {
+                        foreach ($this->arrFrontendLanguages as $arrLang) {
                             $objTpl->setVariable(array(
                                 $this->moduleLangVar.'_INPUTFIELD_NAME_LANG_ID' => $arrLang['id'],
                                 $this->moduleLangVar.'_INPUTFIELD_NAME_LANG_SHORTCUT' => $arrLang['lang'],
@@ -296,7 +309,7 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
                         }
 
                         //default values
-                        foreach ($this->arrFrontendLanguages as $key => $arrLang) {
+                        foreach ($this->arrFrontendLanguages as $arrLang) {
                             $objTpl->setVariable(array(
                                 $this->moduleLangVar.'_INPUTFIELD_DEFAULTVALUE_LANG_ID' => $arrLang['id'],
                                 $this->moduleLangVar.'_INPUTFIELD_DEFAULTVALUE_LANG_SHORTCUT' => $arrLang['lang'],
@@ -307,7 +320,7 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
                         }
 
                         //infotext
-                        foreach ($this->arrFrontendLanguages as $key => $arrLang) {
+                        foreach ($this->arrFrontendLanguages as $arrLang) {
                             $objTpl->setVariable(array(
                                 $this->moduleLangVar.'_INPUTFIELD_INFO_LANG_ID' => $arrLang['id'],
                                 $this->moduleLangVar.'_INPUTFIELD_INFO_LANG_SHORTCUT' => $arrLang['lang'],
@@ -331,26 +344,26 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
                             ));
                             $objTpl->parse($this->moduleNameLC.'InputfieldLanguagesList');
                         }
-                        
+
                         if ($arrInputfield['exp_search'] == 0) {
                             $objTpl->hideBlock($this->moduleNameLC . 'InputfieldAdvancedSearch');
                         } else {
                             $objTpl->touchBlock($this->moduleNameLC . 'InputfieldAdvancedSearch');
-                        }   
-                        
+                        }
+
                         $objTpl->parse($this->moduleNameLC.'Inputfield');
                     } else {
-                    	if(($arrInputfield['id'] == 2 && $objForms->arrForms[$this->intFormId]['formUseLevel']) || ($arrInputfield['id'] == 1 && $objForms->arrForms[$this->intFormId]['formUseCategory'])) {
+                        if(($arrInputfield['id'] == 2 && $objForms->arrForms[$this->intFormId]['formUseLevel']) || ($arrInputfield['id'] == 1 && $objForms->arrForms[$this->intFormId]['formUseCategory'])) {
 
-	                        $objTpl->setVariable(array(
-	                            $this->moduleLangVar.'_SETTINGS_SELECTOR_ID' => $arrInputfield['id'],
-	                            $this->moduleLangVar.'_SETTINGS_SELECTOR_NAME' => $arrInputfield['name'][0],
-	                            $this->moduleLangVar.'_SETTINGS_SELECTOR_ORDER' => $arrInputfield['order'],
-	                            $this->moduleLangVar.'_SETTINGS_SELECTOR_EXP_SEARCH' => $strExpSearch,
-	                        ));
+                            $objTpl->setVariable(array(
+                                $this->moduleLangVar.'_SETTINGS_SELECTOR_ID' => $arrInputfield['id'],
+                                $this->moduleLangVar.'_SETTINGS_SELECTOR_NAME' => $arrInputfield['name'][0],
+                                $this->moduleLangVar.'_SETTINGS_SELECTOR_ORDER' => $arrInputfield['order'],
+                                $this->moduleLangVar.'_SETTINGS_SELECTOR_EXP_SEARCH' => $strExpSearch,
+                            ));
 
-	                        $objTpl->parse($this->moduleNameLC.'Selector');
-                    	}
+                            $objTpl->parse($this->moduleNameLC.'Selector');
+                        }
                     }
 
                     $i++;
@@ -361,10 +374,10 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
                 break;
             case 2:
                 //modify (add/edit) View
-                $objAddStep       = new MediaDirectoryAddStep($this->moduleName);
-		$i                = 0;
+                $i = 0;
                 $isFileInputFound = false;
-                foreach ($this->arrInputfields as $key => $arrInputfield) {
+                $langId = static::getOutputLocale()->getId();
+                foreach ($this->arrInputfields as $arrInputfield) {
                     $strInputfield = null;
 
                     if($arrInputfield['required'] == 1) {
@@ -375,7 +388,7 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
 
                     if(!empty($arrInputfield['type'])) {
                         if (   !$isFileInputFound
-                            && in_array($arrInputfield['type_name'], array('image', 'file', 'downloads'))
+                            && in_array($arrInputfield['type_name'], array('image', 'file'))
                         ) {
                             $isFileInputFound = true;
                         }
@@ -385,34 +398,22 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
                         try {
                             $objInputfield = safeNew($strInputfieldClass, $this->moduleName);
 
-                            switch($strType) {
-                                case 'add_step':
-                                    $objAddStep->addNewStep(empty($arrInputfield['name'][$_LANGID]) ? $arrInputfield['name'][0].$strRequiered : $arrInputfield['name'][$_LANGID]);
-                                    $strInputfield = $objInputfield->getInputfield(1, $arrInputfield, $intEntryId, $objAddStep);
-                                    break;
-                                case 'field_group':
-                                    //to do
-                                    break;
-                                default:
-                                    if($arrInputfield['show_in'] == 1) {
-                                        $bolGetInputfield = true;
-                                    } else {
-                                        if($objInit->mode == 'backend' && $arrInputfield['show_in'] == 3) {
-                                            $bolGetInputfield = true;
-                                        } else if ($objInit->mode == 'frontend' && $arrInputfield['show_in'] == 2) {
-                                            $bolGetInputfield = true;
-                                        } else {
-                                            $bolGetInputfield = false;
-                                        }
-                                    }
+                            if($arrInputfield['show_in'] == 1) {
+                                $bolGetInputfield = true;
+                            } else {
+                                if($objInit->mode == 'backend' && $arrInputfield['show_in'] == 3) {
+                                    $bolGetInputfield = true;
+                                } else if ($objInit->mode == 'frontend' && $arrInputfield['show_in'] == 2) {
+                                    $bolGetInputfield = true;
+                                } else {
+                                    $bolGetInputfield = false;
+                                }
+                            }
 
-                                    if($bolGetInputfield) {
-                                        $strInputfield = $objInputfield->getInputfield(1, $arrInputfield, $intEntryId);
-                                    } else {
-                                        $strInputfield = null;
-                                    }
-
-                                    break;
+                            if($bolGetInputfield) {
+                                $strInputfield = $objInputfield->getInputfield(1, $arrInputfield, $intEntryId);
+                            } else {
+                                $strInputfield = null;
                             }
 
                             if($strInputfield != null) {
@@ -426,71 +427,53 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
                     } else {
                         $objForms = new MediaDirectoryForm($this->intFormId, $this->moduleName);
 
-		                /*if($objInit->mode == 'backend') {
-		                    $strStyle = 'style="overflow: auto; border: 1px solid #0A50A1; background-color: #ffffff; width: 298px; height: 200px; float: left; list-style: none; padding: 0px; margin: 0px 5px 0px 0px;"';
-		                } else {
-		                    $strStyle = 'style="overflow: auto; float: left; list-style: none; padding: 0px; margin: 0px 5px 0px 0px;"';
-		                }*/
+                        /*if($objInit->mode == 'backend') {
+                            $strStyle = 'style="overflow: auto; border: 1px solid #0A50A1; background-color: #ffffff; width: 298px; height: 200px; float: left; list-style: none; padding: 0px; margin: 0px 5px 0px 0px;"';
+                        } else {
+                            $strStyle = 'style="overflow: auto; float: left; list-style: none; padding: 0px; margin: 0px 5px 0px 0px;"';
+                        }*/
 
                         if(($arrInputfield['id'] == 2 && $objForms->arrForms[$this->intFormId]['formUseLevel']) || ($arrInputfield['id'] == 1 && $objForms->arrForms[$this->intFormId]['formUseCategory'])) {
-	                        if($arrInputfield['id'] == 2) {
-	                            $objLevel = new MediaDirectoryLevel(null, null, 1, $this->moduleName);
+                            if($arrInputfield['id'] == 2) {
+                                $objLevel = new MediaDirectoryLevel(null, null, 1, $this->moduleName);
                                     $arrSelectorOptions = $objLevel->listLevels($objTpl, 4, null, null, $intEntryId);
-	                            $strSelectedOptionsName = "selectedLevels";
-	                            $strNotSelectedOptionsName = "deselectedLevels";
-	                        } else {
-	                            $objCategory = new MediaDirectoryCategory(null, null, 1, $this->moduleName);
-	                            $arrSelectorOptions = $objCategory->listCategories($objTpl, 4, null, null, $intEntryId);
-	                            $strSelectedOptionsName = "selectedCategories";
-	                            $strNotSelectedOptionsName = "deselectedCategories";
-	                        }
-                        	
-                        	$strInputfield .= '<div class="mediadirSelector container-fluid"><div class="row"><div class="col-md-offset-3">';
-	                        $strInputfield .= '<div class="col-md-4 col-sm-12 col-xs-12 mediadirSelectorLeft"><div class="row"><select id="'.$strNotSelectedOptionsName.'" name="'.$strNotSelectedOptionsName.'[]" size="12" multiple="multiple">';
-	                        $strInputfield .= $arrSelectorOptions['not_selected'];
-	                        $strInputfield .= '</select></div></div>';
-	                        $strInputfield .= '<div class="mediadirSelectorCenter col-md-2 col-sm-12 col-xs-12">';
-	                        $strInputfield .= '<input class="btn btn-default" value=" &gt;&gt; " name="addElement" onclick="moveElement(document.entryModfyForm.elements[\''.$strNotSelectedOptionsName.'\'],document.entryModfyForm.elements[\''.$strSelectedOptionsName.'\'],addElement,removeElement);" type="button">';
-	                        $strInputfield .= '<br />';
-	                        $strInputfield .= '<input class="btn btn-default" value=" &lt;&lt; " name="removeElement" onclick="moveElement(document.entryModfyForm.elements[\''.$strSelectedOptionsName.'\'],document.entryModfyForm.elements[\''.$strNotSelectedOptionsName.'\'],removeElement,addElement);" type="button">';
-	                        $strInputfield .= '</div>';
-	                        $strInputfield .= '<div class="col-md-4 col-sm-12 col-xs-12 mediadirSelectorRight"><div class="row"><select id="'.$strSelectedOptionsName.'" name="'.$strSelectedOptionsName.'[]" size="12" multiple="multiple">';
-	                        $strInputfield .= $arrSelectorOptions['selected'];
-	                        $strInputfield .= '</select></div></div>';
-	                        $strInputfield .= '</div></div></div>';
-	                        
+                                $strSelectedOptionsName = "selectedLevels";
+                                $strNotSelectedOptionsName = "deselectedLevels";
+                            } else {
+                                $objCategory = new MediaDirectoryCategory(null, null, 1, $this->moduleName);
+                                $arrSelectorOptions = $objCategory->listCategories($objTpl, 4, null, null, $intEntryId);
+                                $strSelectedOptionsName = "selectedCategories";
+                                $strNotSelectedOptionsName = "deselectedCategories";
+                            }
+
+                            $strInputfield .= '<div class="mediadirSelector container-fluid"><div class="row"><div class="col-md-offset-3">';
+                            $strInputfield .= '<div class="col-md-4 col-sm-12 col-xs-12 mediadirSelectorLeft"><div class="row"><select id="'.$strNotSelectedOptionsName.'" name="'.$strNotSelectedOptionsName.'[]" size="12" multiple="multiple">';
+                            $strInputfield .= $arrSelectorOptions['not_selected'];
+                            $strInputfield .= '</select></div></div>';
+                            $strInputfield .= '<div class="mediadirSelectorCenter col-md-2 col-sm-12 col-xs-12">';
+                            $strInputfield .= '<input class="btn btn-default" value=" &gt;&gt; " name="addElement" onclick="moveElement(document.entryModfyForm.elements[\''.$strNotSelectedOptionsName.'\'],document.entryModfyForm.elements[\''.$strSelectedOptionsName.'\'],addElement,removeElement);" type="button">';
+                            $strInputfield .= '<br />';
+                            $strInputfield .= '<input class="btn btn-default" value=" &lt;&lt; " name="removeElement" onclick="moveElement(document.entryModfyForm.elements[\''.$strSelectedOptionsName.'\'],document.entryModfyForm.elements[\''.$strNotSelectedOptionsName.'\'],removeElement,addElement);" type="button">';
+                            $strInputfield .= '</div>';
+                            $strInputfield .= '<div class="col-md-4 col-sm-12 col-xs-12 mediadirSelectorRight"><div class="row"><select id="'.$strSelectedOptionsName.'" name="'.$strSelectedOptionsName.'[]" size="12" multiple="multiple">';
+                            $strInputfield .= $arrSelectorOptions['selected'];
+                            $strInputfield .= '</select></div></div>';
+                            $strInputfield .= '</div></div></div>';
+
                             $this->makeJavascriptInputfieldArray($arrInputfield['id'], $strSelectedOptionsName, 1, 1, "selector");
-                            $this->arrJavascriptFormOnSubmit[$arrInputfield['id']] = "selectAll(document.entryModfyForm.elements['".$strSelectedOptionsName."[]']); "; 
+                            $this->arrJavascriptFormOnSubmit[$arrInputfield['id']] = "selectAll(document.entryModfyForm.elements['".$strSelectedOptionsName."[]']); ";
                         }
                     }
 
-                    if($arrInputfield['type_name'] == 'add_step' && $objInit->mode != 'backend') {
+                    if($strInputfield != null) {
                         $objTpl->setVariable(array(
-                            $this->moduleLangVar.'_INPUTFIELD_ADDSTEP' => $strInputfield,
+                            'TXT_'.$this->moduleLangVar.'_INPUTFIELD_NAME' => empty($arrInputfield['name'][$langId]) ? $arrInputfield['name'][0].$strRequiered : $arrInputfield['name'][$langId].$strRequiered,
+                            $this->moduleLangVar.'_INPUTFIELD_FIELD' => $strInputfield,
+                            $this->moduleLangVar.'_INPUTFIELD_ROW_CLASS' => $i%2==0 ? 'row1' : 'row2',
                         ));
 
-                        $objTpl->parse($this->moduleNameLC.'InputfieldAddStep');
-                    } else {
-                        if($strInputfield != null) {
-                            if($arrInputfield['type_name'] == 'title') {
-                                $strStartTitle = '<h2>';
-                                $strEndTitle = '</h2>';
-                            } else {  
-                                $strStartTitle = '';
-                                $strEndTitle = '';
-                            }  
-                            
-                            $objTpl->setVariable(array(
-                                'TXT_'.$this->moduleLangVar.'_INPUTFIELD_NAME' => $strStartTitle.(empty($arrInputfield['name'][$_LANGID]) ? $arrInputfield['name'][0].$strRequiered : $arrInputfield['name'][$_LANGID].$strRequiered).$strEndTitle,
-                                $this->moduleLangVar.'_INPUTFIELD_FIELD' => $strInputfield,
-                                $this->moduleLangVar.'_INPUTFIELD_ROW_CLASS' => $i%2==0 ? 'row1' : 'row2',
-                            ));
-
-                            if($arrInputfield['type_name'] != 'add_step') {
-                                $i++;
-                                $objTpl->parse($this->moduleNameLC.'InputfieldList');
-                            }
-                        }
+                        $i++;
+                        $objTpl->parse($this->moduleNameLC.'InputfieldList');
                     }
 
                     if($objInit->mode != 'backend') {
@@ -513,19 +496,10 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
                     ));
                 }
 
-                if(!empty($objAddStep->arrSteps) && $objInit->mode != 'backend') {
-                    $objAddStep->getStepNavigation($objTpl);
-                    $objTpl->parse($this->moduleNameLC.'EntryAddStepNavigation');
-
-                    $objTpl->setVariable(array(
-                        $this->moduleLangVar.'_INPUTFIELD_ADDSTEP_TERMINATOR' => "</div>",
-                    ));
-                }
-
                 break;
             case 3:
                 //frontend View
-                foreach ($this->arrInputfields as $key => $arrInputfield) {
+                foreach ($this->arrInputfields as $arrInputfield) {
                     $intInputfieldId = intval($arrInputfield['id']);
                     $intInputfieldType = intval($arrInputfield['type']);
 
@@ -543,6 +517,19 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
                                 }
 
                                 if(!empty($arrInputfieldContent)) {
+                                    // Workaround as inputfields have placeholder prefix hard-coded to: MEDIADIR_
+                                    // Set placeholder prefix according to configured option $this->moduleLangVar
+                                    if ($this->moduleLangVar != 'MEDIADIR') {
+                                        foreach ($arrInputfieldContent as $key => $value) {
+                                            $arrInputfieldContent[preg_replace('/^(TXT_)?MEDIADIR/', '\1' . $this->moduleLangVar, $key)] = $value;
+                                            unset($arrInputfieldContent[$key]);
+                                        }
+                                    }
+
+                                    if (\Cx\Core\Core\Controller\Cx::instanciate()->getMode() == \Cx\Core\Core\Controller\Cx::MODE_FRONTEND && \Cx\Core\Setting\Controller\Setting::getValue('blockStatus', 'Config')) {
+                                        $arrInputfieldContent[$this->moduleLangVar.'_INPUTFIELD_VALUE'] = preg_replace('/\\[\\[(BLOCK_[A-Z0-9_-]+)\\]\\]/', '{\\1}', $arrInputfieldContent[$this->moduleLangVar.'_INPUTFIELD_VALUE']);
+                                        \Cx\Modules\Block\Controller\Block::setBlocks($arrInputfieldContent[$this->moduleLangVar.'_INPUTFIELD_VALUE'], \Cx\Core\Core\Controller\Cx::instanciate()->getPage());
+                                    }
                                     foreach ($arrInputfieldContent as $strPlaceHolder => $strContent) {
                                         $objTpl->setVariable(array(
                                             strtoupper($strPlaceHolder) => $strContent
@@ -573,7 +560,7 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
             case 4:
                 //Exp Search View
                 $strInputfields = '';
-                foreach ($this->arrInputfields as $key => $arrInputfield) {
+                foreach ($this->arrInputfields as $arrInputfield) {
                     if($this->checkFieldTypeIsExpSeach($arrInputfield['type'])) {
                         if(!empty($arrInputfield['type'])) {
                             $strType = $arrInputfield['type_name'];
@@ -601,69 +588,89 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
     /**
      * Update form inputfields
      *
-     * Before calling this method Remove the existing form inputfield entries from db 
+     * Before calling this method Remove the existing form inputfield entries from db
      * for avoiding the duplicate entries in db.
      *
      * @param integer $intFieldId            Form InputField id
-     * @param array   $arrFieldNames         Form inputField Names array, the key is refered as the language id    
+     * @param array   $arrFieldNames         Form inputField Names array, the key is refered as the language id
      * @param array   $arrFieldDefaultValues Form inputField Default values array, the key is refered as the language id
      * @param array   $arrFieldInfos         Form inputField Information values  array the key is refered as the language id
      *
      * @return boolean true | false
      */
-    public function updateInputFields($intFieldId, $arrFieldNames, $arrFieldDefaultValues, $arrFieldInfos) 
+    public function updateInputFields($intFieldId, $arrFieldNames, $arrFieldDefaultValues, $arrFieldInfos, $existingLocaleIds = array())
     {
-        global $_LANGID, $objDatabase;
+        global $objDatabase;
 
-        foreach ($this->arrFrontendLanguages as $key => $arrLang) {
+        foreach ($this->arrFrontendLanguages as $arrLang) {
+            $sourceLocaleId = $this->getSourceLocaleIdForTargetLocale($arrLang['id'], $existingLocaleIds);
+
+            // init output locale values
             if (empty($arrFieldNames[0])){
                 $arrFieldNames[0] = '';
             }
-            $strFieldName = $arrFieldNames[$arrLang['id']];
-            $strFieldDefaultValue = $arrFieldDefaultValues[$arrLang['id']];
-            $strFieldInfo = $arrFieldInfos[$arrLang['id']];
+            if (empty($arrFieldDefaultValues[0])){
+                $arrFieldDefaultValues[0] = '';
+            }
+            if (empty($arrFieldInfos[0])){
+                $arrFieldInfos[0] = '';
+            }
 
-            if ($arrLang['id'] == $_LANGID) {
-                if ($this->arrInputfields[$intFieldId]['name'][0] == $arrFieldNames[0] && $this->arrInputfields[$intFieldId]['name'][$arrLang['id']] != $arrFieldNames[$arrLang['id']]) {
-                    $strFieldName = $arrFieldNames[$_LANGID];
-                }
-                if ($this->arrInputfields[$intFieldId]['default_value'][0] == $strFieldDefaultValue && $this->arrInputfields[$intFieldId]['default_value'][$arrLang['id']] != $arrFieldDefaultValues[$arrLang['id']]) {
-                    $strFieldDefaultValue = $arrFieldDefaultValues[$_LANGID];
-                }
+            if (
+                (
+                    !$existingLocaleIds ||
+                    in_array($arrLang['id'], $existingLocaleIds)
+                ) &&
+                isset($arrFieldNames[$arrLang['id']])
+            ) {
+                $strFieldName = $arrFieldNames[$arrLang['id']];
+            } else {
+                $strFieldName = $arrFieldNames[$sourceLocaleId];
+            }
 
-                if ($this->arrInputfields[$intFieldId]['info'][0] == $arrFieldInfos[0] && $this->arrInputfields[$intFieldId]['info'][$arrLang['id']] != $arrFieldInfos[$arrLang['id']]) {
-                    $strFieldInfo = $arrFieldInfos[$_LANGID];
-                }
+            if (
+                (
+                    !$existingLocaleIds ||
+                    in_array($arrLang['id'], $existingLocaleIds)
+                ) &&
+                isset($arrFieldDefaultValues[$arrLang['id']])
+            ) {
+                $strFieldDefaultValue = $arrFieldDefaultValues[$arrLang['id']];
+            } else {
+                $strFieldDefaultValue = $arrFieldDefaultValues[$sourceLocaleId];
+            }
 
-                if ($this->arrInputfields[$intFieldId]['name'][0] != $arrFieldNames[0] && $this->arrInputfields[$intFieldId]['name'][$arrLang['id']] == $arrFieldNames[$arrLang['id']] ||
-                        $this->arrInputfields[$intFieldId]['name'][0] != $arrFieldNames[0] && $this->arrInputfields[$intFieldId]['name'][$arrLang['id']] != $arrFieldNames[$arrLang['id']] ||
-                        $this->arrInputfields[$intFieldId]['name'][0] == $arrFieldNames[0] && $this->arrInputfields[$intFieldId]['name'][$arrLang['id']] == $arrFieldNames[$arrLang['id']]) {
+            if (
+                (
+                    !$existingLocaleIds ||
+                    in_array($arrLang['id'], $existingLocaleIds)
+                ) &&
+                isset($arrFieldInfos[$arrLang['id']])
+            ) {
+                $strFieldInfo = $arrFieldInfos[$arrLang['id']];
+            } else {
+                $strFieldInfo = $arrFieldInfos[$sourceLocaleId];
+            }
+
+            if ($arrLang['id'] == static::getOutputLocale()->getId()) {
+                if (
+                    // value of output locale has changed
+                    $this->arrInputfields[$intFieldId]['name'][0] != $arrFieldNames[0]
+                ) {
                     $strFieldName = $arrFieldNames[0];
                 }
 
-                if ($this->arrInputfields[$intFieldId]['default_value'][0] != $arrFieldDefaultValues[0] && $this->arrInputfields[$intFieldId]['default_value'][$arrLang['id']] == $arrFieldDefaultValues[$arrLang['id']] ||
-                        $this->arrInputfields[$intFieldId]['default_value'][0] != $arrFieldDefaultValues[0] && $this->arrInputfields[$intFieldId]['default_value'][$arrLang['id']] != $arrFieldDefaultValues[$arrLang['id']] ||
-                        $this->arrInputfields[$intFieldId]['default_value'][0] == $arrFieldDefaultValues[0] && $this->arrInputfields[$intFieldId]['default_value'][$arrLang['id']] == $arrFieldDefaultValues[$arrLang['id']]) {
+                if (
+                    $this->arrInputfields[$intFieldId]['default_value'][0] != $arrFieldDefaultValues[0]
+                ) {
                     $strFieldDefaultValue = $arrFieldDefaultValues[0];
                 }
 
-                if ($this->arrInputfields[$intFieldId]['info'][0] != $arrFieldInfos[0] && $this->arrInputfields[$intFieldId]['info'][$arrLang['id']] == $arrFieldInfos[$arrLang['id']] ||
-                        $this->arrInputfields[$intFieldId]['info'][0] != $arrFieldInfos[0] && $this->arrInputfields[$intFieldId]['info'][$arrLang['id']] != $arrFieldInfos[$arrLang['id']] ||
-                        $this->arrInputfields[$intFieldId]['info'][0] == $arrFieldInfos[0] && $this->arrInputfields[$intFieldId]['info'][$arrLang['id']] == $arrFieldInfos[$arrLang['id']]) {
+                if (
+                    $this->arrInputfields[$intFieldId]['info'][0] != $arrFieldInfos[0]
+                ) {
                     $strFieldInfo = $arrFieldInfos[0];
                 }
-            }
-
-            if (empty($strFieldName)) {
-                $strFieldName = $arrFieldNames[0];
-            }
-
-            if (empty($strFieldDefaultValue)) {
-                $strFieldDefaultValue = $arrFieldDefaultValues[0];
-            }
-
-            if (empty($strFieldInfo)) {
-                $strFieldInfo = $arrFieldInfos[0];
             }
 
             $objSaveInputfieldName = $objDatabase->Execute('
@@ -687,14 +694,14 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
 
     function saveInputfields($arrData)
     {
-        global $_ARRAYLANG, $_CORELANG, $objDatabase, $_LANGID;
+        global $_ARRAYLANG, $_CORELANG, $objDatabase;
 
         $objDatabase->Execute("DELETE FROM ".DBPREFIX."module_".$this->moduleTablePrefix."_inputfields WHERE form='".$this->intFormId."'");
         $objDatabase->Execute("DELETE FROM ".DBPREFIX."module_".$this->moduleTablePrefix."_inputfield_names WHERE form_id='".$this->intFormId."'");
-        
+
         $inputfieldId = isset($arrData['inputfieldId']) ? $arrData['inputfieldId'] : array();
-        
-        foreach ($inputfieldId as $intKey => $intFieldId) {
+
+        foreach ($inputfieldId as $intFieldId) {
             $intFieldId = intval($intFieldId);
             $intFieldOrder = intval($arrData['inputfieldOrder'][$intFieldId]);
             $arrFieldNames = contrexx_input2raw($arrData['inputfieldName'][$intFieldId]);
@@ -735,17 +742,17 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
                 return false;
             }
         }
-        
+
         $selectorOrder = $selectorOrder2 = $selectorExpSearch = $selectorExpSearch2 = 0;
         if (isset($arrData['selectorOrder'])) {
-            $selectorOrder = isset($arrData['selectorOrder'][1]) ? $arrData['selectorOrder'][1] : 0; 
+            $selectorOrder = isset($arrData['selectorOrder'][1]) ? $arrData['selectorOrder'][1] : 0;
             $selectorOrder2 = isset($arrData['selectorOrder'][2]) ? $arrData['selectorOrder'][2] : 0;
         }
         if (isset($arrData['selectorExpSearch'])) {
             $selectorExpSearch = isset($arrData['selectorExpSearch'][1]) ? $arrData['selectorExpSearch'][1] : 0;
             $selectorExpSearch2 = isset($arrData['selectorExpSearch'][2]) ? $arrData['selectorExpSearch'][2] : 0;
-        }        
-        
+        }
+
         $objCategorySelector = $objDatabase->Execute("UPDATE ".DBPREFIX."module_".$this->moduleTablePrefix."_order_rel_forms_selectors SET `selector_order`='".  contrexx_input2int($selectorOrder)."', `exp_search`='".intval($selectorExpSearch)."' WHERE `selector_id`='9' AND `form_id`='".$this->intFormId."'");
         $objLevelSelector = $objDatabase->Execute("UPDATE ".DBPREFIX."module_".$this->moduleTablePrefix."_order_rel_forms_selectors SET `selector_order`='".  contrexx_input2int($selectorOrder2)."', `exp_search`='".intval($selectorExpSearch2)."' WHERE `selector_id`='10' AND `form_id`='".$this->intFormId."'");
 
@@ -760,7 +767,7 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
 
     function addInputfield()
     {
-        global $objDatabase, $_LANGID;
+        global $objDatabase;
 
         $objOrderInputfield = $objDatabase->Execute("
             SELECT
@@ -791,13 +798,12 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
         ");
 
         $intInsertId = $objDatabase->Insert_ID();
-        $objDatabase->debug = 1;
         //insert blank field name
         $objAddInputfieldName = $objDatabase->Execute("
             INSERT INTO
                 ".DBPREFIX."module_".$this->moduleTablePrefix."_inputfield_names
             SET
-                `lang_id` = '".intval($_LANGID)."',
+                `lang_id` = '".intval(static::getOutputLocale()->getId())."',
                 `form_id` = '".$this->intFormId."',
                 `field_id` = '".intval($intInsertId)."',
                 `field_name` = '',
@@ -838,14 +844,18 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
             $intNeighborId = $this->arrInputfields[$intNeighborKey]['id'];
             $intNeighborOrder = $intOrder;
 
-            $arrElements = array();
+            $arrElements = array(
+                array(
+                    'id'    => $intFieldId,
+                    'order' => $intNewOrder,
+                ),
+                array(
+                    'id'    => $intNeighborId,
+                    'order' => $intNeighborOrder,
+                )
+            );
 
-            $arrElements[0]['id'] = $intFieldId;
-            $arrElements[0]['order'] = $intNewOrder;
-            $arrElements[1]['id'] = $intNeighborId;
-            $arrElements[1]['order'] = $intNeighborOrder;
-
-            foreach ($arrElements as $key => $arrData) {
+            foreach ($arrElements as $arrData) {
                 if($arrData['id'] == 1) {
                     $objDatabase->Execute("UPDATE ".DBPREFIX."module_".$this->moduleTablePrefix."_order_rel_forms_selectors SET `selector_order`='".intval($arrData['order'])."' WHERE `selector_id`='9' AND `form_id`='".$this->intFormId."'");
                 } else if ($arrData['id'] == 2) {
@@ -914,9 +924,15 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
 
 
 
-    function refreshInputfields($objTpl, $intEntryId)
+    /**
+     * Refresh the Input fields
+     *
+     * @param \Cx\Core\Html\Sigma $objTpl Template object
+     * @return string Parsed Template content
+     */
+    function refreshInputfields($objTpl)
     {
-        global $_ARRAYLANG, $_CORELANG, $objDatabase, $_LANGID;
+        global $_ARRAYLANG, $_CORELANG, $objDatabase;
 
         $objTpl->loadTemplateFile('module_'.$this->moduleNameLC.'_settings_inputfields.html',true,true);
 
@@ -932,7 +948,7 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
 
         $i = 0;
         $intLastId = 0;
-        foreach ($this->arrInputfields as $key => $arrInputfield) {
+        foreach ($this->arrInputfields as $arrInputfield) {
             $strMustfield = $arrInputfield['required']==1 ? 'checked="checked"' : '';
             $strExpSearch = $arrInputfield['search']==1 ? 'checked="checked"' : '';
 
@@ -962,7 +978,7 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
                 ));
 
                 //fieldname
-                foreach ($this->arrFrontendLanguages as $key => $arrLang) {
+                foreach ($this->arrFrontendLanguages as $arrLang) {
                     $objTpl->setVariable(array(
                         $this->moduleLangVar.'_INPUTFIELD_NAME_LANG_ID' => $arrLang['id'],
                         $this->moduleLangVar.'_INPUTFIELD_NAME_LANG_SHORTCUT' => $arrLang['lang'],
@@ -973,7 +989,7 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
                 }
 
                 //default values
-                foreach ($this->arrFrontendLanguages as $key => $arrLang) {
+                foreach ($this->arrFrontendLanguages as $arrLang) {
                     $objTpl->setVariable(array(
                         $this->moduleLangVar.'_INPUTFIELD_DEFAULTVALUE_LANG_ID' => $arrLang['id'],
                         $this->moduleLangVar.'_INPUTFIELD_DEFAULTVALUE_LANG_SHORTCUT' => $arrLang['lang'],
@@ -986,13 +1002,13 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
 
 
                 //infotext
-                foreach ($this->arrFrontendLanguages as $key => $arrLang) {
+                foreach ($this->arrFrontendLanguages as $arrLang) {
                     $objTpl->setVariable(array(
-	                    $this->moduleLangVar.'_INPUTFIELD_INFO_LANG_ID' => $arrLang['id'],
-	                    $this->moduleLangVar.'_INPUTFIELD_INFO_LANG_SHORTCUT' => $arrLang['lang'],
-	                    $this->moduleLangVar.'_INPUTFIELD_INFO_LANG_NAME' => $arrLang['name'],
-	                    $this->moduleLangVar.'_SETTINGS_INPUTFIELD_INFO' => isset($arrInputfield['info'][$arrLang['id']]) ? $arrInputfield['info'][$arrLang['id']] : '',
-	                ));
+                        $this->moduleLangVar.'_INPUTFIELD_INFO_LANG_ID' => $arrLang['id'],
+                        $this->moduleLangVar.'_INPUTFIELD_INFO_LANG_SHORTCUT' => $arrLang['lang'],
+                        $this->moduleLangVar.'_INPUTFIELD_INFO_LANG_NAME' => $arrLang['name'],
+                        $this->moduleLangVar.'_SETTINGS_INPUTFIELD_INFO' => isset($arrInputfield['info'][$arrLang['id']]) ? $arrInputfield['info'][$arrLang['id']] : '',
+                    ));
                     $objTpl->parse($this->moduleNameLC.'InputfieldInfoList');
                 }
 
@@ -1017,17 +1033,17 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
                 }
                 $objTpl->parse($this->moduleNameLC.'Inputfield');
             } else {
-            	if(($arrInputfield['id'] == 2 && $objForms->arrForms[$this->intFormId]['formUseLevel']) || ($arrInputfield['id'] == 1 && $objForms->arrForms[$this->intFormId]['formUseCategory'])) {
+                if(($arrInputfield['id'] == 2 && $objForms->arrForms[$this->intFormId]['formUseLevel']) || ($arrInputfield['id'] == 1 && $objForms->arrForms[$this->intFormId]['formUseCategory'])) {
 
-	                $objTpl->setVariable(array(
-	                    $this->moduleLangVar.'_SETTINGS_SELECTOR_ID' => $arrInputfield['id'],
-	                    $this->moduleLangVar.'_SETTINGS_SELECTOR_NAME' => $arrInputfield['name'][0],
-	                    $this->moduleLangVar.'_SETTINGS_SELECTOR_ORDER' => $arrInputfield['order'],
-	                    $this->moduleLangVar.'_SETTINGS_SELECTOR_EXP_SEARCH' => $strExpSearch,
-	                ));
+                    $objTpl->setVariable(array(
+                        $this->moduleLangVar.'_SETTINGS_SELECTOR_ID' => $arrInputfield['id'],
+                        $this->moduleLangVar.'_SETTINGS_SELECTOR_NAME' => $arrInputfield['name'][0],
+                        $this->moduleLangVar.'_SETTINGS_SELECTOR_ORDER' => $arrInputfield['order'],
+                        $this->moduleLangVar.'_SETTINGS_SELECTOR_EXP_SEARCH' => $strExpSearch,
+                    ));
 
-	                $objTpl->parse($this->moduleNameLC.'Selector');
-            	}
+                    $objTpl->parse($this->moduleNameLC.'Selector');
+                }
             }
 
             $i++;
@@ -1055,6 +1071,7 @@ class MediaDirectoryInputfield extends MediaDirectoryLibrary
                 `id` ASC
         ");
 
+        $arrInputfieldTypes = array();
         if ($objInputfieldTypes !== false) {
             while (!$objInputfieldTypes->EOF) {
 
@@ -1086,7 +1103,7 @@ EOF;
 
     function getInputfieldJavascript()
     {
-    	$strInputfieldErrorMessage = $this->moduleNameLC."ErrorMessage";
+        $strInputfieldErrorMessage = $this->moduleNameLC."ErrorMessage";
 
         $strstrInputfieldJavascript = <<<EOF
 
@@ -1104,26 +1121,6 @@ function mediadirUploaderCallback(data) {
 
         uploaderInputBox.val(fileName);
         uploaderInputBox.trigger('keyup');
-    }
-}
-function selectAddStep(stepName){
-    if(document.getElementById(stepName).style.display != "block")
-    {
-        document.getElementById(stepName).style.display = "block";
-        strClass = document.getElementById(stepName).className;                  
-        document.getElementById(strClass+"_"+stepName).className = "active";
-
-        arrTags = document.getElementsByTagName("*");
-        for (i=0;i<arrTags.length;i++)
-            {
-                if(arrTags[i].className == strClass && arrTags[i] != document.getElementById(stepName))
-                {
-                    arrTags[i].style.display = "none";
-                    if (document.getElementById(strClass+"_"+arrTags[i].getAttribute("id"))) {
-                        document.getElementById(strClass+"_"+arrTags[i].getAttribute("id")).className = "";
-                    }
-                }
-            }
     }
 }
 
@@ -1146,10 +1143,10 @@ function checkAllFields() {
                 name =  inputFields[field][0];
                 value = document.getElementById(name).value;
                 if (value == "") {
-                	isOk = false;
-                	document.getElementById(name).style.border = "#ff0000 1px solid";
+                    isOk = false;
+                    document.getElementById(name).style.border = "#ff0000 1px solid";
                 } else {
-                	document.getElementById(name).style.borderColor = '';
+                    document.getElementById(name).style.borderColor = '';
                 }
                 break;
 EOF;
@@ -1165,28 +1162,28 @@ EOF;
     }
 
     if (!isOk) {
-		document.getElementById('$strInputfieldErrorMessage').style.display = "block";
-	}
+        document.getElementById('$strInputfieldErrorMessage').style.display = "block";
+    }
 
-	return isOk;
+    return isOk;
 }
 
 function isRequiredGlobal(required, value) {
-	if (required == 1) {
-		if (value == "") {
-			return true;
-		}
-	}
+    if (required == 1) {
+        if (value == "") {
+            return true;
+        }
+    }
 
-	return false;
+    return false;
 }
 
 function matchType(pattern, value) {
-	var reg = new RegExp(pattern);
-	if (value.match(reg)) {
-		return true;
-	}
-	return false;
+    var reg = new RegExp(pattern);
+    if (value.match(reg)) {
+        return true;
+    }
+    return false;
 }
 
 EOF;
@@ -1210,6 +1207,7 @@ EOF;
                 `id` ASC
         ");
 
+        $arrInputfieldVerifications = array();
         if ($objInputfieldVerifications !== false) {
             while (!$objInputfieldVerifications->EOF) {
 
@@ -1224,22 +1222,26 @@ EOF;
 
     /**
      * Returns available context options
-     * 
+     *
      * @return array available contexts
      */
     public static function getInputContexts()
     {
         global $_ARRAYLANG;
-        
+
         $arrContexts = array(
-          'none'    => $_ARRAYLANG["TXT_MEDIADIR_INPUTFIELD_CONTEXT_NONE"],
-          'title'   => $_ARRAYLANG["TXT_MEDIADIR_INPUTFIELD_CONTEXT_TITLE"],
-          'address' => $_ARRAYLANG["TXT_MEDIADIR_INPUTFIELD_CONTEXT_ADDRESS"],
-          'zip'     => $_ARRAYLANG["TXT_MEDIADIR_INPUTFIELD_CONTEXT_ZIP"],
-          'city'    => $_ARRAYLANG["TXT_MEDIADIR_INPUTFIELD_CONTEXT_CITY"],
-          'country' => $_ARRAYLANG["TXT_MEDIADIR_INPUTFIELD_CONTEXT_COUNTRY"],
+          'none'     => $_ARRAYLANG["TXT_MEDIADIR_INPUTFIELD_CONTEXT_NONE"],
+          'title'    => $_ARRAYLANG["TXT_MEDIADIR_INPUTFIELD_CONTEXT_TITLE"],
+          'content'  => $_ARRAYLANG['TXT_MEDIADIR_INPUTFIELD_CONTEXT_CONTENT'],
+          'address'  => $_ARRAYLANG["TXT_MEDIADIR_INPUTFIELD_CONTEXT_ADDRESS"],
+          'zip'      => $_ARRAYLANG["TXT_MEDIADIR_INPUTFIELD_CONTEXT_ZIP"],
+          'city'     => $_ARRAYLANG["TXT_MEDIADIR_INPUTFIELD_CONTEXT_CITY"],
+          'country'  => $_ARRAYLANG["TXT_MEDIADIR_INPUTFIELD_CONTEXT_COUNTRY"],
+          'image'    => $_ARRAYLANG["TXT_MEDIADIR_INPUTFIELD_CONTEXT_IMAGE"],
+          'keywords' => $_ARRAYLANG["TXT_MEDIADIR_INPUTFIELD_CONTEXT_KEYWORDS"],
+          'slug'    => $_ARRAYLANG["TXT_MEDIADIR_INPUTFIELD_CONTEXT_SLUG"],
         );
-        
+
         return $arrContexts;
     }
 
@@ -1247,7 +1249,7 @@ EOF;
     {
         global $_ARRAYLANG, $_CORELANG, $objDatabase, $objTemplate;
 
-        foreach ($this->arrInputfields as $key => $arrInputfield) {
+        foreach ($this->arrInputfields as $arrInputfield) {
             if($arrInputfield['id'] != 1 && $arrInputfield['id'] != 2 && $arrInputfield['type'] != 16 && $arrInputfield['type'] != 18) {
                 $strType = $arrInputfield['type_name'];
                 $strInputfieldClass = "\Cx\Modules\MediaDir\Model\Entity\MediaDirectoryInputfield".ucfirst($strType);
@@ -1265,8 +1267,8 @@ EOF;
                 $arrPlaceholders = $objInputfield->arrPlaceholders;
                 $strPlaceholders = null;
 
-                foreach ($arrPlaceholders as $key => $strPlaceholder) {
-                    $strPlaceholders .= '[['.strtoupper($strPlaceholder).']]&nbsp;';
+                foreach ($arrPlaceholders as $strPlaceholder) {
+                    $strPlaceholders .= '<li>[['.strtoupper($strPlaceholder).']]</li>';
                 }
 
 

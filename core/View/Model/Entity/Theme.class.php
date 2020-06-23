@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * Theme
  *
@@ -44,38 +44,49 @@ namespace Cx\Core\View\Model\Entity;
  * @package     cloudrexx
  * @subpackage  core_view
  */
-class Theme extends \Cx\Model\Base\EntityBase
+class Theme extends \Cx\Core_Modules\Widget\Model\Entity\WidgetParseTarget
 {
     private $id = null;
     private $themesname;
     private $foldername;
     private $expert;
-    
+
     private $defaults = array();
     private $db;
     private $componentData;
-    
+
     private $configurableLibraries;
-    
+
     const THEME_TYPE_WEB = 'web';
     const THEME_TYPE_PRINT = 'print';
     const THEME_TYPE_MOBILE = 'mobile';
     const THEME_TYPE_APP = 'app';
     const THEME_TYPE_PDF = 'pdf';
-    
+
     const THEME_PREVIEW_FILE = '/images/preview.gif'; // path from theme folder
     const THEME_DEFAULT_PREVIEW_FILE = '/core/Core/View/Media/theme_preview.gif'; // path from the document root
     const THEME_COMPONENT_FILE = '/component.yml'; // path from theme folder
 
+    /**
+     * @var array The channel enum values
+     */
+    public static $channels = array(
+        'default', // web
+        self::THEME_TYPE_MOBILE,
+        self::THEME_TYPE_PRINT,
+        self::THEME_TYPE_PDF,
+        self::THEME_TYPE_APP,
+    );
+
     public function __construct($id = null, $themesname = null, $foldername = null, $expert = 1) {
         $this->db = \Env::get('db');
-        
+
         $this->setId($id);
         $this->setThemesname($themesname);
         $this->setFoldername($foldername);
         $this->setExpert($expert);
     }
-    
+
     /**
      * @return string the version number of template
      */
@@ -90,7 +101,7 @@ class Theme extends \Cx\Model\Base\EntityBase
         }
         return $version;
     }
-    
+
     /**
      * @return string the publisher of template
      */
@@ -100,7 +111,7 @@ class Theme extends \Cx\Model\Base\EntityBase
         }
         return $this->componentData['publisher'];
     }
-    
+
     /**
      * @return string the description
      */
@@ -119,16 +130,16 @@ class Theme extends \Cx\Model\Base\EntityBase
         }
         $versionInformation = current($this->componentData['versions']);
         $releaseDate = isset($versionInformation['releaseDate']) ? $versionInformation['releaseDate'] : time();
-        
+
         if (preg_match("/^(0[1-9]|[1-2][0-9]|3[0-1]).(0[1-9]|1[0-2]).[0-9]{4}$/", $releaseDate)) {
-            $releaseDate = $this->getDateTimestamp($releaseDate);            
+            $releaseDate = $this->getDateTimestamp($releaseDate);
         }
-        
+
         $objReleaseDate = new \DateTime(date('Y-m-d', $releaseDate));
 
         return $objReleaseDate;
     }
-    
+
     /**
      * @return string the subtype of the theme
      */
@@ -138,40 +149,22 @@ class Theme extends \Cx\Model\Base\EntityBase
         }
         return $this->componentData['subtype'];
     }
-    
+
     function getDateTimestamp($date) {
         //date format is dd.mm.yyyy
-        $date = str_replace(".", "", $date); 
+        $date = str_replace(".", "", $date);
         $posYear = 4;
-        $posMonth = 2;  
+        $posMonth = 2;
         $posDay = 0;
-        
+
         $year = substr($date, $posYear,4);
         $month = substr($date, $posMonth,2);
-        $day = substr($date, $posDay,2);      
-        
-        $timestamp = mktime(0,0,0,$month,$day,$year); 
+        $day = substr($date, $posDay,2);
+
+        $timestamp = mktime(0,0,0,$month,$day,$year);
         return $timestamp;
     }
-    
-    /**
-     * @return string the preview image source web path
-     */
-    public function getPreviewImage() {
-        $websiteFilePath  = \Env::get('cx')->getWebsiteThemesPath() . '/' . $this->foldername . self::THEME_PREVIEW_FILE;
-        $codeBaseFilePath = \Env::get('cx')->getCodeBaseThemesPath() . '/' . $this->foldername . self::THEME_PREVIEW_FILE;
-        $filePath         = file_exists($websiteFilePath) 
-                            ? $websiteFilePath
-                            : ( file_exists($codeBaseFilePath)
-                                ? $codeBaseFilePath
-                                : ''
-                              );
-        if ($filePath && file_exists($filePath)) {
-            return \Env::get('cx')->getWebsiteThemesWebPath() . '/' . $this->foldername . self::THEME_PREVIEW_FILE;
-        }
-        return \Env::get('cx')->getCodeBaseOffsetPath(). self::THEME_DEFAULT_PREVIEW_FILE;
-    }
-    
+
     /**
      * @return string the extra description includes the names of end devices, where
      * the theme is set as default
@@ -191,79 +184,66 @@ class Theme extends \Cx\Model\Base\EntityBase
         }
         return null;
     }
-    
+
     /**
      * Returns the array of active languages of theme by given type
-     * 
+     *
      * @param string $type the type of output device
-     * 
+     *
      * @return array array of languages active for this theme
      */
     public function getLanguagesByType($type) {
         switch ($type) {
             case self::THEME_TYPE_PRINT:
-                $dbField = 'print_themes_id';
-                break;
             case self::THEME_TYPE_MOBILE:
-                $dbField = 'mobile_themes_id';
-                break;
             case self::THEME_TYPE_APP:
-                $dbField = 'app_themes_id';
-                break;
             case self::THEME_TYPE_PDF:
-                $dbField = 'pdf_themes_id';
+                $channel = $type;
                 break;
-            default:
-                $dbField = 'themesid';
+            default: // web
+                $channel = 'default';
                 break;
         }
-        
+
         $languagesWithThisTheme = array();
-        $query = 'SELECT `id`
-                    FROM `'.DBPREFIX.'languages`
-                  WHERE
-                    `frontend` = 1
-                    AND 
-                    `'. $dbField .'` = "'. $this->id .'"';
-        
-        $result = $this->db->Execute($query);
-        if ($result !== false) {
-            while(!$result->EOF){
-                $languagesWithThisTheme[] = $result->fields['id'];
-                $result->MoveNext();
-            }
+        $frontendRepo = \Cx\Core\Core\Controller\Cx::instanciate()
+            ->getDb()
+            ->getEntityManager()
+            ->getRepository('Cx\Core\View\Model\Entity\Frontend');
+        $criteria = array(
+            'theme' => $this->id,
+            'channel' => $channel
+        );
+        $frontends = $frontendRepo->findBy($criteria);
+        foreach ($frontends as $frontend) {
+            $locale = $frontend->getLocaleRelatedByIso1s();
+            $languagesWithThisTheme[$locale->getId()] = $locale->getShortForm();
         }
-        
+
         return $languagesWithThisTheme;
     }
-    
+
     /**
      * @return string the language abbreviations of activated languages
      * with this template, separated by comma
      */
-    public function getLanguages() {
+    public function getLanguages()
+    {
         $languagesWithThisTheme = array();
-        $query = 'SELECT `name`
-                    FROM `'.DBPREFIX.'languages`
-                  WHERE
-                    `frontend` = 1
-                    AND (
-                        `themesid` = '.$this->id.'
-                        OR `mobile_themes_id` = '.$this->id.'
-                        OR `print_themes_id` = '.$this->id.'
-                        OR `pdf_themes_id` = '.$this->id.'
-                        OR `app_themes_id` = '.$this->id.'
-                    )';
-        $result = $this->db->Execute($query);
-        if ($result !== false) {
-            while(!$result->EOF){
-                $languagesWithThisTheme[] = $result->fields['name'];
-                $result->MoveNext();
-            }
+        $frontendRepo = \Cx\Core\Core\Controller\Cx::instanciate()
+            ->getDb()
+            ->getEntityManager()
+            ->getRepository('Cx\Core\View\Model\Entity\Frontend');
+        $criteria = array(
+            'theme' => $this->id
+        );
+        $frontends = $frontendRepo->findBy($criteria);
+        foreach($frontends as $frontend) {
+            $languagesWithThisTheme[] = $frontend->getLocaleRelatedByIso1s()->getShortForm();
         }
         return implode(', ', $languagesWithThisTheme);
     }
-    
+
     /**
      * @return array all dependencies (javascript libraries) which cloudrexx should
      * load when showing this template
@@ -292,7 +272,7 @@ class Theme extends \Cx\Model\Base\EntityBase
         }
         return in_array($type, $this->defaults);
     }
-    
+
     /**
      * Checks whether the template is a valid component with component.yml file
      * @return bool true if a component.yml exists
@@ -300,7 +280,7 @@ class Theme extends \Cx\Model\Base\EntityBase
     public function isComponent() {
         return !empty($this->componentData);
     }
-           
+
     /**
      * Compares two dependencies so they are loaded in the correct order.
      * @param array $a the dependency A
@@ -312,14 +292,14 @@ class Theme extends \Cx\Model\Base\EntityBase
         $aVersion = $a['minimumVersionNumber'];
         $bName = $b['name'];
         $bVersion = $b['minimumVersionNumber'];
-        
+
         $aDependencies =
                 isset($this->configurableLibraries[$aName]['versions'][$aVersion]['dependencies']) ?
                     $this->configurableLibraries[$aName]['versions'][$aVersion]['dependencies'] : array();
-        $bDependencies = 
+        $bDependencies =
                 isset($this->configurableLibraries[$bName]['versions'][$bVersion]['dependencies']) ?
                     isset($this->configurableLibraries[$bName]['versions'][$bVersion]['dependencies']) : array();
-        
+
         // b is a dependency of a, b have to be loaded in front of a
         if (isset($aDependencies[$bName])) {
             return 1;
@@ -343,11 +323,11 @@ class Theme extends \Cx\Model\Base\EntityBase
     public function getFoldername() {
         return $this->foldername;
     }
-    
+
     public function getExpert() {
         return $this->expert;
     }
-    
+
     public function getComponentData() {
         return $this->componentData;
     }
@@ -367,18 +347,98 @@ class Theme extends \Cx\Model\Base\EntityBase
     public function setExpert($expert) {
         $this->expert = intval($expert);
     }
-    
+
     public function setComponentData($componentData) {
         $this->componentData = $componentData;
     }
-    
+
     public function setDependencies($dependencies = array()) {
         $this->configurableLibraries = \JS::getConfigurableLibraries();
         usort($dependencies, array($this, 'sortDependencies'));
         $this->componentData['dependencies'] = $dependencies;
     }
-    
+
     public function addDefault($type) {
         $this->defaults[] = $type;
+    }
+
+    /**
+     * Get the themes file path
+     *
+     * @param type $filePath
+     * @return string
+     */
+    public function getFilePath($filePath)
+    {
+        if (empty($filePath)) {
+            return '';
+        }
+        $fileSystem = \Cx\Core\Core\Controller\Cx::instanciate()
+            ->getMediaSourceManager()
+            ->getMediaType('themes')
+            ->getFileSystem();
+        $file = new \Cx\Core\ViewManager\Model\Entity\ViewManagerFile($filePath, $fileSystem);
+
+        return $fileSystem->getFullPath($file) . $file->getFullName();
+    }
+
+    /**
+     * Preview image source web path
+     *
+     * @return string the preview image source web path
+     */
+    public function getPreviewImage()
+    {
+        $filePath = $this->getFilePath('/' . $this->getFoldername() . \Cx\Core\View\Model\Entity\Theme::THEME_PREVIEW_FILE);
+        if ($filePath && file_exists($filePath)) {
+            return $this->cx->getWebsiteThemesWebPath() . '/' . $this->getFoldername() . \Cx\Core\View\Model\Entity\Theme::THEME_PREVIEW_FILE;
+        }
+        return $this->cx->getCodeBaseOffsetPath(). \Cx\Core\View\Model\Entity\Theme::THEME_DEFAULT_PREVIEW_FILE;
+    }
+
+    /**
+     * Dummy, we overwrite getContentTemplateForWidget() directly
+     * It is necessary to add this method since it's abstract in the parent
+     * class.
+     * @return string Empty string
+     */
+    public function getWidgetContentAttributeName($widgetName) { return ''; }
+
+    /**
+     * Returns the template in which the widget can be used
+     * @param string $widgetName Name of the Widget to get template for
+     * @param int $langId Language ID
+     * @param \Cx\Core\ContentManager\Model\Entity\Page $page Current page
+     * @param string $channel Current channel
+     * @return \Cx\Core\Html\Sigma Template which may contain the widget
+     */
+    protected function getContentTemplateForWidget($widgetName, $langId, $page, $channel) {
+        // get static files
+        $indexFile = $this->getFilePath($this->getFolderName() . '/index.html');
+        $sidebarFile = $this->getFilePath($this->getFolderName() . '/sidebar.html');
+        // get $contentFile of theme
+        $mainController = $this->getComponentController();
+        $contentFile = $mainController->getContentTemplateFileFromChannel(
+            $channel,
+            $mainController->getThemeFromChannel($channel, $page),
+            $page
+        );
+
+        $template = new \Cx\Core\Html\Sigma();
+        $template->loadTemplateFile($indexFile);
+        $template->addBlock(
+            'CONTENT_FILE',
+            'content_file',
+            file_get_contents($contentFile)
+        );
+        if ($template->placeholderExists('SIDEBAR_FILE')) {
+            $template->addBlock(
+                'SIDEBAR_FILE',
+                'sidebar_file',
+                file_get_contents($sidebarFile)
+            );
+        }
+
+        return $template;
     }
 }

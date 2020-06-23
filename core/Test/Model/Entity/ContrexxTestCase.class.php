@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * ContrexxTestCase
  *
@@ -46,18 +46,31 @@ namespace Cx\Core\Test\Model\Entity;
  * @package     cloudrexx
  * @subpackage  core_test
  */
-abstract class ContrexxTestCase extends \PHPUnit_Framework_TestCase {
+abstract class ContrexxTestCase extends \PHPUnit\Framework\TestCase {
     protected static $cx;
-    
+
     public function __construct() {
         //this is a workaround for the error
         //"PDOException: You cannot serialize or unserialize PDO instances"
         //which appears since changing the charset to utf8 on doctrine config.
         parent::__construct();
-        
+
         self::$cx = \Env::get('cx');
-        
+
         $this->backupGlobals = false;
         $this->backupStaticAttributes = false;
+    }
+
+    /**
+     * Returns the requested component's controller
+     *
+     * @param string $componentName Name of the component to fetch
+     * @return \Cx\Core\Core\Model\Entity\SystemComponentController|null
+     *      ComponentController or null if none was found
+     */
+    protected function getComponent(
+        string $componentName
+    ): ?\Cx\Core\Core\Model\Entity\SystemComponentController {
+        return static::$cx->getComponent($componentName);
     }
 }

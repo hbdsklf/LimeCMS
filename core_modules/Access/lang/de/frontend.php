@@ -5,7 +5,7 @@
  *
  * @link      http://www.cloudrexx.com
  * @copyright Cloudrexx AG 2007-2015
- * 
+ *
  * According to our dual licensing model, this program can be used either
  * under the terms of the GNU Affero General Public License, version 3,
  * or under a proprietary license.
@@ -24,7 +24,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
- 
+
 /**
  * @copyright   CLOUDREXX CMS - CLOUDREXX AG
  * @author      Cloudrexx Development Team <info@cloudrexx.com>
@@ -120,3 +120,27 @@ $_ARRAYLANG['TXT_ACCESS_SOCIALLOGIN_CONNECT'] = "Verbinden";
 $_ARRAYLANG['TXT_ACCESS_SOCIALLOGIN_CONNECTED'] = "verbunden";
 $_ARRAYLANG['TXT_ACCESS_SOCIALLOGIN_DISCONNECT'] = "Trennen";
 $_ARRAYLANG['TXT_ACCESS_SOCIALLOGIN_DISCONNECTED'] = "getrennt";
+
+$_ARRAYLANG['TXT_ACCESS_CLOSE'] = "Schließen";
+$_ARRAYLANG['TXT_ACCESS_SIGNUP_BY_FACEBOOK'] = 'Mit Facebook anmelden';
+$_ARRAYLANG['TXT_ACCESS_SIGNUP_BY_GOOGLE'] = 'Mit Google anmelden';
+$_ARRAYLANG['TXT_ACCESS_SIGNUP_BY_TWITTER'] = 'Mit Twitter anmelden';
+$_ARRAYLANG['TXT_ACCESS_OR'] = 'Oder';
+$_ARRAYLANG['TXT_ACCESS_SIGNUP_INTRODUCTION'] = 'Hier haben Sie die Möglichkeit sich für dieses Portal zu registrieren und ein Benutzerkonto zu eröffnen.';
+$_ARRAYLANG['TXT_ACCESS_PROVIDE_VALID_EMAIL'] = 'Sie müssen eine gültige E-Mail Adresse angeben, um Ihren Account zu nutzen';
+$_ARRAYLANG['TXT_ACCESS_SET_USERNAME'] = 'Bitte wählen Sie einen Benutzernamen';
+$_ARRAYLANG['TXT_ACCESS_SET_PASSWORD'] = 'Bitte gewünschtes Passwort eingeben';
+$_ARRAYLANG['TXT_ACCESS_CONFIRM_PASSWORD_DESC'] = 'Zur Bestätigung wiederholen Sie bitte Ihr Passwort';
+$_ARRAYLANG['TXT_ACCESS_NOTE'] = 'Hinweis';
+$_ARRAYLANG['TXT_ACCESS_PERSONAL_DATA'] = 'Persönliche Angaben';
+$_ARRAYLANG['TXT_ACCESS_ACCOUNT_DATA'] = 'Kontoangaben';
+$_ARRAYLANG['TXT_ACCESS_ADDITIONAL_DATA'] = 'Zusätzliche Angaben';
+$_ARRAYLANG['TXT_ACCESS_ADDITIONAL_DATA_DESC'] = 'Weitere Daten können nach erfolgreicher Registrierung im Benutzerprofil hinzugefügt werden.';
+$_ARRAYLANG['TXT_ACCESS_NEWSLETTER_SUBSCRIPTION'] = 'Newsletter abonnieren';
+$_ARRAYLANG['TXT_ACCESS_TERMS'] = 'AGBs';
+$_ARRAYLANG['TXT_ACCESS_REGISTERED_SINCE'] = "Registriert seit";
+$_ARRAYLANG['TXT_ACCESS_GROUPS'] = "Gruppen";
+$_ARRAYLANG['TXT_ACCESS_ATTRIBUTE'] = 'Eigenschaft';
+$_ARRAYLANG['TXT_ACCESS_OLD_VALUE'] = 'Alter Wert';
+$_ARRAYLANG['TXT_ACCESS_NEW_VALUE'] = 'Neuer Wert';
+$_ARRAYLANG['TXT_ACCESS_VALUE'] = 'Wert';

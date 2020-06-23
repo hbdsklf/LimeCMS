@@ -82,7 +82,7 @@ class PodcastManager extends PodcastLib
     var $_strOkMessage = '';
 
     private $act = '';
-    
+
     /**
     * PHP5 constructor
     *
@@ -93,10 +93,10 @@ class PodcastManager extends PodcastLib
     {
         global $objTemplate, $_ARRAYLANG;
 
-        $this->_objTpl = new \Cx\Core\Html\Sigma(ASCMS_MODULE_PATH.'/Podcast/View/Template/Backend');
+        $this->_objTpl = new \Cx\Core\Html\Sigma(\Cx\Core\Core\Controller\Cx::instanciate()->getCodeBaseModulePath().'/Podcast/View/Template/Backend');
         \Cx\Core\Csrf\Controller\Csrf::add_placeholder($this->_objTpl);
         $this->_objTpl->setErrorHandling(PEAR_ERROR_DIE);
-        
+
         $this->_youTubeIdRegex = '#.*[\?&]v=('.$this->_youTubeAllowedCharacters.'{'.$this->_youTubeIdLength.'}).*#';
         parent::__construct();
     }
@@ -232,7 +232,7 @@ class PodcastManager extends PodcastLib
         $categoryId = false;
         $arrCategory = false;
 
-        if (isset($_GET['categoryId']) && ($arrCategory = &$this->_getCategory(intval($_GET['categoryId']))) !== false) {
+        if (isset($_GET['categoryId']) && ($arrCategory = $this->_getCategory(intval($_GET['categoryId']))) !== false) {
             $categoryId = intval($_GET['categoryId']);
             $this->_objTpl->setVariable('PODCAST_MEDIA_TITLE_TXT', sprintf($_ARRAYLANG['TXT_PODCAST_MEDIA_OF_CATEGORY'], $arrCategory['title']));
         } else {
@@ -240,8 +240,8 @@ class PodcastManager extends PodcastLib
         }
 
         $pos = isset($_GET['pos']) ? intval($_GET['pos']) : 0;
-        $arrMedia = &$this->_getMedia($categoryId, false, $_CONFIG['corePagingLimit'], $pos);
-        $mediaCount = &$this->_getMediaCount($categoryId);
+        $arrMedia = $this->_getMedia($categoryId, false, $_CONFIG['corePagingLimit'], $pos);
+        $mediaCount = $this->_getMediaCount($categoryId);
 
         if ($mediaCount > $_CONFIG['corePagingLimit']) {
             $paging = getPaging($mediaCount, $pos, '&cmd=Podcast&categoryId='.$categoryId, $_ARRAYLANG['TXT_PODCAST_MEDIA']);
@@ -249,7 +249,7 @@ class PodcastManager extends PodcastLib
         }
 
         if ($mediaCount > 0) {
-            $arrTemplates = &$this->_getTemplates();
+            $arrTemplates = $this->_getTemplates();
 
             foreach ($arrMedia as $mediumId => $arrMedium) {
                 $this->_objTpl->setVariable(array(
@@ -293,7 +293,7 @@ class PodcastManager extends PodcastLib
         global $_ARRAYLANG;
 
         $mediumId = isset($_GET['id']) ? intval($_GET['id']) : 0;
-        if (($arrMedium = &$this->_getMedium($mediumId)) === false) {
+        if (($arrMedium = $this->_getMedium($mediumId)) === false) {
             return $this->_media();
         }
 
@@ -305,7 +305,7 @@ class PodcastManager extends PodcastLib
             'TXT_PODCAST_BACK'      => $_ARRAYLANG['TXT_PODCAST_BACK']
         ));
 
-        $arrTemplate = &$this->_getTemplate($arrMedium['template_id']);
+        $arrTemplate = $this->_getTemplate($arrMedium['template_id']);
         $this->_objTpl->setVariable(array(
             'PODCAST_MEDIUM_TITLE'          => $arrMedium['title'],
             'PODCAST_MEDIUM_INCLUDE_CODE'   => $this->_getHtmlTag($arrMedium, $arrTemplate['template'])
@@ -329,7 +329,7 @@ class PodcastManager extends PodcastLib
 
         if (count($arrRemoveMediumIds) > 0) {
             foreach ($arrRemoveMediumIds as $mediumId) {
-                if (($arrMedium = &$this->_getMedium($mediumId)) !== false) {
+                if (($arrMedium = $this->_getMedium($mediumId)) !== false) {
                     if (!$this->_deleteMedium($mediumId)) {
                         $deleteStatus = false;
                     }
@@ -363,7 +363,7 @@ class PodcastManager extends PodcastLib
     {
         global $_ARRAYLANG, $_CONFIG;
 
-        $categoryCount = &$this->_getCategoriesCount();
+        $categoryCount = $this->_getCategoriesCount();
         if ($categoryCount == 0) {
             return $this->_modifyCategory();
         }
@@ -395,9 +395,9 @@ class PodcastManager extends PodcastLib
             'TXT_PODCAST_DELETE_CATEGORY'   => $_ARRAYLANG['TXT_PODCAST_DELETE_CATEGORY']
         ));
 
-        $arrCategories = &$this->_getCategories(false, true);
+        $arrCategories = $this->_getCategories(false, true);
         foreach ($arrCategories as $categoryId => $arrCategory) {
-            $mediaCount = &$this->_getMediaCount($categoryId);
+            $mediaCount = $this->_getMediaCount($categoryId);
 
             $this->_objTpl->setVariable(array(
                 'PODCAST_ROW_CLASS'                 => $rowNr % 2 == 1 ? 'row1' : 'row2',
@@ -476,10 +476,10 @@ class PodcastManager extends PodcastLib
                     }
                 }
             }
-        } elseif ($categoryId > 0 && ($arrCategory = &$this->_getCategory($categoryId)) !== false) {
+        } elseif ($categoryId > 0 && ($arrCategory = $this->_getCategory($categoryId)) !== false) {
             $categoryTitle = &$arrCategory['title'];
             $categoryDescription = &$arrCategory['description'];
-            $categoryAssociatedLangIds = &$this->_getLangIdsOfCategory($categoryId);
+            $categoryAssociatedLangIds = $this->_getLangIdsOfCategory($categoryId);
             $categoryStatus = &$arrCategory['status'];
         }
 
@@ -527,7 +527,7 @@ class PodcastManager extends PodcastLib
 
         $categoryId = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
-        if (($arrCategory = &$this->_getCategory($categoryId)) !== false) {
+        if (($arrCategory = $this->_getCategory($categoryId)) !== false) {
             if ($this->_getMediaCount($categoryId) == 0) {
                 if ($this->_deleteCategory($categoryId)) {
                     $this->_strOkMessage = sprintf($_ARRAYLANG['TXT_PODCAST_DELETE_CATEGORY_SUCCESSFULL_MSG'], $arrCategory['title']);
@@ -555,13 +555,13 @@ class PodcastManager extends PodcastLib
 
         $limitPos = isset($_GET['pos']) ? intval($_GET['pos']) : 0;
 
-        if (($templateCount = &$this->_getTemplateCount()) > $_CONFIG['corePagingLimit']) {
+        if (($templateCount = $this->_getTemplateCount()) > $_CONFIG['corePagingLimit']) {
             $paging = getPaging($templateCount, $limitPos, '&cmd=Podcast&act=templates', $_ARRAYLANG['TXT_PODCAST_TEMPLATES']);
 
             $this->_objTpl->setVariable('PODCAST_PAGING', $paging."<br /><br />\n");
         }
 
-        $arrTemplates = &$this->_getTemplates(true, $limitPos);
+        $arrTemplates = $this->_getTemplates(true, $limitPos);
         if (count($arrTemplates) > 0) {
             $this->_objTpl->setVariable(array(
                 'TXT_PODCAST_TEMPLATES'                 => $_ARRAYLANG['TXT_PODCAST_TEMPLATES'],
@@ -659,7 +659,7 @@ class PodcastManager extends PodcastLib
                     }
                 }
             }
-        } elseif ($templateId > 0 && ($arrTemplate = &$this->_getTemplate($templateId)) !== false) {
+        } elseif ($templateId > 0 && ($arrTemplate = $this->_getTemplate($templateId)) !== false) {
             $description = $arrTemplate['description'];
             $template = $arrTemplate['template'];
             $extensions = $arrTemplate['extensions'];
@@ -691,7 +691,7 @@ class PodcastManager extends PodcastLib
 
         $templateId = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
-        if (($arrTemplate = &$this->_getTemplate($templateId)) !== false) {
+        if (($arrTemplate = $this->_getTemplate($templateId)) !== false) {
             if (!$this->_isTemplateInUse($templateId)) {
                 if ($this ->_deleteTemplate($templateId)) {
                     $this->_strOkMessage = sprintf($_ARRAYLANG['TXT_PODCAST_TEMPLATE_DELETED_SUCCESSFULL'], $arrTemplate['description']);
@@ -716,11 +716,11 @@ class PodcastManager extends PodcastLib
 
         $mediumId = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
-        if (($arrMedium = &$this->_getMedium($mediumId)) === false) {
+        if (($arrMedium = $this->_getMedium($mediumId)) === false) {
             return $this->_media();
         }
 
-        $arrTemplate = &$this->_getTemplate($arrMedium['template_id']);
+        $arrTemplate = $this->_getTemplate($arrMedium['template_id']);
 
         $this->_objTpl->loadTemplatefile('module_podcast_medium_source_code.html');
         $this->_pageTitle = $_ARRAYLANG['TXT_PODCAST_SOURCE_CODE'];
@@ -756,7 +756,7 @@ class PodcastManager extends PodcastLib
             'TXT_PODCAST_LATEST_MEDIA_COUNT'    => $_ARRAYLANG['TXT_PODCAST_LATEST_MEDIA_COUNT'],
             'TXT_PODCAST_FEED_TITLE'            => $_ARRAYLANG['TXT_PODCAST_FEED_TITLE'],
             'TXT_PODCAST_FEED_DESCRIPTION'      => $_ARRAYLANG['TXT_PODCAST_FEED_DESCRIPTION'],
-            'TXT_PODCAST_FEED_IMAGE'            => $_ARRAYLANG['TXT_PODCAST_FEED_IMAGE'],            
+            'TXT_PODCAST_FEED_IMAGE'            => $_ARRAYLANG['TXT_PODCAST_FEED_IMAGE'],
             'TXT_PODCAST_FEED_LINK'             => $_ARRAYLANG['TXT_PODCAST_FEED_LINK'],
             'TXT_PODCAST_SAVE'                  => $_ARRAYLANG['TXT_PODCAST_SAVE'],
             'TXT_PODCAST_PLACEHOLDERS'          => $_ARRAYLANG['TXT_PODCAST_PLACEHOLDERS'],
@@ -790,7 +790,7 @@ class PodcastManager extends PodcastLib
             'PODCAST_BROWSE'                    => self::getMediaBrowserButton(
                                                             $_ARRAYLANG['TXT_PODCAST_BROWSE'],
                                                             array(
-                                                                'data-cx-mb-views' => 'filebrowser',
+                                                                'views' => 'filebrowser',
                                                                 'type' => 'button',
                                                                 'style'=> 'width:110px;'
                                                             ),
@@ -838,7 +838,7 @@ class PodcastManager extends PodcastLib
             'PODCAST_SETTINGS_FEED_DESCRIPTION'             => $this->_arrSettings['feed_description'],
             'PODCAST_SETTINGS_FEED_IMAGE'                   => $this->_arrSettings['feed_image'],
             'PODCAST_SETTINGS_TAB'                          => $selectedTab,
-            'PODCAST_SETTINGS_FEED_URL'                     => ASCMS_PROTOCOL.'://'.$_CONFIG['domainUrl'].ASCMS_FEED_WEB_PATH.'/podcast.xml'
+            'PODCAST_SETTINGS_FEED_URL'                     => ASCMS_PROTOCOL.'://'.$_CONFIG['domainUrl'].\Cx\Core\Core\Controller\Cx::instanciate()->getWebsiteFeedWebPath().'/podcast.xml'
         ));
 
         if(!in_array($selectedTab, $arrSettingsTabs)){
@@ -865,14 +865,20 @@ class PodcastManager extends PodcastLib
             $mediumCategories = $this->_getHomecontentCategories();
         }
 
-        $arrCategories = &$this->_getCategories();
+        $arrCategories = $this->_getCategories();
         $categoryNr = 0;
         $arrLanguages = \FWLanguage::getLanguageArray();
 
         foreach ($arrCategories as $categoryId => $arrCategory) {
             $column = $categoryNr % 3;
-            $arrCatLangIds = &$this->_getLangIdsOfCategory($categoryId);
-            array_walk($arrCatLangIds, create_function('&$cat, $k, $arrLanguages', '$cat = $arrLanguages[$cat]["lang"];'), $arrLanguages);
+            $arrCatLangIds = $this->_getLangIdsOfCategory($categoryId);
+            array_walk(
+                $arrCatLangIds,
+                function (&$cat, $k, $arrLanguages) {
+                    $cat = $arrLanguages[$cat]['lang'];
+                },
+                $arrLanguages
+            );
             $arrCategory['title'] .= ' ('.implode(', ', $arrCatLangIds).')';
             $this->_objTpl->setVariable(array(
                 'PODCAST_CATEGORY_ID'                   => $categoryId,
@@ -892,7 +898,7 @@ class PodcastManager extends PodcastLib
         if (isset($_POST['setHomeContent'])) {
             $setHomeContent = intval($_POST['setHomeContent']);
             if (!\Cx\Core\Setting\Controller\Setting::isDefined('podcastHomeContent')) {
-                $status = \Cx\Core\Setting\Controller\Setting::add('podcastHomeContent', $setHomeContent, 1, 
+                $status = \Cx\Core\Setting\Controller\Setting::add('podcastHomeContent', $setHomeContent, 1,
                     \Cx\Core\Setting\Controller\Setting::TYPE_RADIO, '1:TXT_ACTIVATED,0:TXT_DEACTIVATED', 'component');
             } else {
                 \Cx\Core\Setting\Controller\Setting::set('podcastHomeContent', $setHomeContent);
