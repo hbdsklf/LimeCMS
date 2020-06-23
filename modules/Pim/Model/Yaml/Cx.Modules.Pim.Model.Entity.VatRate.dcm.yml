@@ -24,3 +24,4 @@ Cx\Modules\Pim\Model\Entity\VatRate:
     products:
       targetEntity: Cx\Modules\Pim\Model\Entity\Product
       mappedBy: vatRate
+  

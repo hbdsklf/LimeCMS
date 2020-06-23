@@ -45,13 +45,13 @@ namespace Cx\Modules\Pim\Controller;
  * @subpackage  module_pim
  */
 class BackendController extends \Cx\Core\Core\Model\Entity\SystemComponentBackendController {
-
+    
     /**
      * Template object
      */
     protected $template;
-
-
+    
+    
     /**
      * Returns a list of available commands (?act=XY)
      * @return array List of acts
@@ -59,10 +59,10 @@ class BackendController extends \Cx\Core\Core\Model\Entity\SystemComponentBacken
     public function getCommands() {
         return array('Price', 'VatRate');
     }
-
+    
     /**
      * Use this to parse your backend page
-     *
+     * 
      * You will get the template located in /View/Template/{CMD}.html
      * You can access Cx class using $this->cx
      * To show messages, use \Message class
@@ -87,7 +87,7 @@ class BackendController extends \Cx\Core\Core\Model\Entity\SystemComponentBacken
         } else {
             $this->parseEntityClassPage($template, 'Cx\Modules\Pim\Model\Entity\Product', 'Product');
         }
-
+                
         \Message::show();
     }
 

@@ -340,7 +340,7 @@ class Product extends \Cx\Model\Base\EntityBase {
 
     /**
      * Get cancellationUnit
-     *
+     * 
      * @return string $cancellationUnit
      */
     public function getCancellationUnit()
@@ -350,7 +350,7 @@ class Product extends \Cx\Model\Base\EntityBase {
 
     /**
      * Set cancellationQuantifier
-     *
+     * 
      * @param integer $cancellationQuantifier
      */
     public function setCancellationQuantifier($cancellationQuantifier)
@@ -360,7 +360,7 @@ class Product extends \Cx\Model\Base\EntityBase {
 
     /**
      * Get cancellationQuantifier
-     *
+     * 
      * @return integer $cancellationQuantifier
      */
     public function getCancellationQuantifier()
@@ -370,7 +370,7 @@ class Product extends \Cx\Model\Base\EntityBase {
 
     /**
      * Set noteEntity
-     *
+     * 
      * @param string $noteEntity
      */
     public function setNoteEntity($noteEntity) {
