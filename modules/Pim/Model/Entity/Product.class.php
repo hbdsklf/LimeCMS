@@ -142,6 +142,12 @@ class Product extends \Cx\Model\Base\EntityBase {
      */
     protected $upgrades;
 
+    /**
+     *
+     * @var Cx\Modules\Pim\Model\Entity\VatRate $vatRate
+     */
+    protected $vatRate;
+
     protected $renewalOptions = array();
     protected $defaultRenewalOption = array();
 
@@ -594,10 +600,12 @@ class Product extends \Cx\Model\Base\EntityBase {
      * @param string $unit
      * @param integer $quantifier
      * @param \Cx\Modules\Crm\Model\Entity\Currency $currency
+     * @param boolean $withVat if it is true, return the product price with VAT
+     *                otherwise return the product price without VAT
      *
      * @return \Cx\Core\Core\Controller\Cx|float|int
      */
-    public function getPaymentAmount($unit = self::UNIT_MONTH, $quantifier = 1, $currency = null) {
+    public function getPaymentAmount($unit = self::UNIT_MONTH, $quantifier = 1, $currency = null, $withVat = false) {
         $paymentAmount = 0;
         $prices = $this->getPrices();
         $amount = 0;
@@ -624,7 +632,49 @@ class Product extends \Cx\Model\Base\EntityBase {
                 }
                 break;
         }
+        //if $withVat is true, calculate the product price with VAT
+        if ($withVat) {
+            $paymentAmount = $this->getAmountWithVat($paymentAmount);
+        }
+
         return $paymentAmount;
+    }
+
+    /**
+     * get the product amount with VAT
+     *
+     * @param decimal $productPrice
+     *
+     * @return decimal
+     */
+    public function getAmountWithVat($productPrice)
+    {
+        if (empty($productPrice)) {
+            return 0.00;
+        }
+
+        $vatAmount = $this->getVatRate() ? ($productPrice * $this->getVatRate()->getRate() * 0.01) : 0.00;
+        return $productPrice + $vatAmount;
+    }
+
+    /**
+     * Get the VatRate
+     * 
+     * @return Cx\Modules\Pim\Model\Entity\VatRate $vatRate
+     */
+    public function getVatRate()
+    {
+        return $this->vatRate;
+    }
+
+    /**
+     * Set the VatRate
+     * 
+     * @param mixed $vatRate Cx\Modules\Pim\Model\Entity\VatRate | null
+     */
+    public function setVatRate($vatRate)
+    {
+        $this->vatRate = $vatRate;
     }
 
     public function __toString()
