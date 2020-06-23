@@ -4396,9 +4396,6 @@ INSERT INTO `contrexx_module_u2u_settings` (`id`, `name`, `value`) VALUES (3,'wy
 INSERT INTO `contrexx_module_u2u_settings` (`id`, `name`, `value`) VALUES (4,'subject','Eine neue Nachricht von [senderName]');
 INSERT INTO `contrexx_module_u2u_settings` (`id`, `name`, `value`) VALUES (5,'from','Cloudrexx U2U Nachrichtensystem');
 INSERT INTO `contrexx_module_u2u_settings` (`id`, `name`, `value`) VALUES (6,'email_message','Hallo <strong>[receiverName]</strong>,<br />\r\n<br />\r\n<strong>[senderName]</strong> hat Ihnen eine private Nachricht gesendet. Um die Nachricht zu lesen, folgen Sie bitte folgendem Link:<br />\r\n<br />\r\nhttp://[domainName]/index.php?section=u2u&amp;cmd=notification<br />\r\n&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <br />\r\n<br />');
-INSERT INTO  `contrexx_module_order_vat_rate` (`id` , `rate` , `vat_class`) VALUES (1 ,  '8.00',  'Schweiz');
-INSERT INTO  `contrexx_module_order_vat_rate` (`id` , `rate` , `vat_class`) VALUES (2 ,  '3.60',  'Schweiz ermässigt 1')
-INSERT INTO  `contrexx_module_order_vat_rate` (`id` , `rate` , `vat_class`) VALUES (3 ,  '2.40',  'Schweiz ermässigt 2');
 INSERT INTO `contrexx_modules` (`id`, `name`, `distributor`, `description_variable`, `status`, `is_required`, `is_core`, `is_active`, `is_licensed`, `additional_data`) VALUES (0,'','Cloudrexx AG','','n',0,1,0,0,NULL);
 INSERT INTO `contrexx_modules` (`id`, `name`, `distributor`, `description_variable`, `status`, `is_required`, `is_core`, `is_active`, `is_licensed`, `additional_data`) VALUES (1,'core','Cloudrexx AG','TXT_CORE_MODULE_DESCRIPTION','n',1,1,1,1,NULL);
 INSERT INTO `contrexx_modules` (`id`, `name`, `distributor`, `description_variable`, `status`, `is_required`, `is_core`, `is_active`, `is_licensed`, `additional_data`) VALUES (2,'Stats','Cloudrexx AG','TXT_STATS_MODULE_DESCRIPTION','n',0,1,1,1,NULL);
