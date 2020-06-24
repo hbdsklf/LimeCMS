@@ -914,16 +914,15 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
                 foreach ($positionalArgumentKeys as $index) {
                     if ($primaryKeyNames) {
                         $keyName = array_shift($primaryKeyNames);
+                        $elementId[$keyName] = '';
                     }
                     // Presume surplus values to be path components, and append
-                    // them to the last primary key value, separated by DS.
+                    // them to the last primary key value, separated by slashes.
                     // $keyName is supposedly "filename" in this case.
-                    $elementId[$keyName] =
-                        (empty($elementId[$keyName])
-                            ? ''
-                            : $elementId[$keyName] . DIRECTORY_SEPARATOR
-                        )
-                        . $arguments[$index];
+                    if (!empty($elementId[$keyName])) {
+                        $elementId[$keyName] .= '/';
+                    }
+                    $elementId[$keyName] .= $arguments[$index];
                 }
             }
 
