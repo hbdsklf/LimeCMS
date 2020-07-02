@@ -2804,6 +2804,10 @@ class CrmLibrary
                 $this->contact->datasource     = 2;
                 $this->contact->account_id     = $userAccountId;
 
+                if (!empty($arrFormData['email'])) {
+                    $this->contact->email = $arrFormData['email'];
+                }
+
                 //set profile picture
                 if (!empty ($arrFormData['picture'][0])) {
                     $picture = $arrFormData['picture'][0];
@@ -2877,6 +2881,32 @@ class CrmLibrary
                 }
 
                 if ($this->contact->save()) {
+                    // update primary email
+                    if (!empty($arrFormData['email'])) {
+                        // get current email-type of primary email address
+                        $result = $objDatabase->Execute("
+                            SELECT `email_type` FROM `".DBPREFIX."module_{$this->moduleNameLC}_customer_contact_emails`
+                            WHERE `contact_id` = {$this->contact->id}
+                              AND `is_primary` = '1'
+                        ");
+                        $emailType = 0;
+                        if ($result != false && !$result->EOF) {
+                            $emailType = $result->fields['email_type'];
+                        }
+                        $objDatabase->Execute("
+                            DELETE FROM `".DBPREFIX."module_{$this->moduleNameLC}_customer_contact_emails`
+                            WHERE `contact_id` = {$this->contact->id}
+                              AND `is_primary` = '1'
+                        ");
+                        $objDatabase->Execute("
+                            INSERT INTO `".DBPREFIX."module_{$this->moduleNameLC}_customer_contact_emails`
+                            SET
+                                email      = '". contrexx_raw2db($arrFormData['email']) ."',
+                                email_type = '" . $emailType . "',
+                                is_primary = '1',
+                                contact_id = '{$this->contact->id}'
+                        ");
+                    }
 
                     // insert website
                     if (!empty ($arrFormData['website'][0])) {
