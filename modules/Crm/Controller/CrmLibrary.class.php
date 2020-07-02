@@ -2884,6 +2884,36 @@ class CrmLibrary
                         $crmCompany->storeEMail();
                     }
 
+                    // update primary address in case it was the same
+                    if (
+                        isset($arrFormData['address'][0]) &&
+                        isset($arrFormData['city'][0]) &&
+                        isset($arrFormData['zip'][0]) &&
+                        isset($arrFormData['country'][0]) && (
+                            (
+                                trim($this->contact->address) == trim($crmCompany->address) &&
+                                trim($this->contact->city) == trim($crmCompany->city) &&
+                                trim($this->contact->state) == trim($crmCompany->state) &&
+                                trim($this->contact->zip) == trim($crmCompany->zip) &&
+                                trim($this->contact->country) == trim($crmCompany->country)
+                            ) || (
+                                empty(trim($crmCompany->address)) &&
+                                empty(trim($crmCompany->city)) &&
+                                empty(trim($crmCompany->state)) &&
+                                empty(trim($crmCompany->zip)) &&
+                                empty(trim($crmCompany->country))
+                            )
+                        )
+                    ) {
+                        $crmCompany->address = $arrFormData['address'][0] ?? $crmCompany->address;
+                        $crmCompany->city = $arrFormData['city'][0] ?? $crmCompany->city;
+                        $crmCompany->state = $arrFormData['state'][0] ?? $crmCompany->state;
+                        $crmCompany->zip = $arrFormData['zip'][0] ?? $crmCompany->zip;
+                        $country = \Cx\Core\Country\Controller\Country::getById($arrFormData['country'][0]);
+                        $crmCompany->country = $country['name'] ?? $crmCompany->country;
+                        $crmCompany->updatePrimaryAddress();
+                    }
+
                     // set primary phone
                     if (
                         isset($arrFormData['phone_office'][0]) && (
