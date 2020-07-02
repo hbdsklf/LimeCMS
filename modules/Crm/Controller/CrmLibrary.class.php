@@ -2874,38 +2874,21 @@ class CrmLibrary
                     // being added as a new object without having an ID yet
                     if (empty($crmCompany->email)) {
                         $crmCompany->email = $this->contact->email;
-                        $crmCompany->storeEMail();
+                        $crmCompany->updatePrimaryEmail(1);
                     }
 
                     $this->contact->contact_customer = $crmCompany->id;
                 }
 
                 if ($this->contact->save()) {
-                    // update primary email
-                    if (!empty($arrFormData['email'])) {
-                        // get current email-type of primary email address
-                        $result = $objDatabase->Execute("
-                            SELECT `email_type` FROM `".DBPREFIX."module_{$this->moduleNameLC}_customer_contact_emails`
-                            WHERE `contact_id` = {$this->contact->id}
-                              AND `is_primary` = '1'
-                        ");
-                        $emailType = 0;
-                        if ($result != false && !$result->EOF) {
-                            $emailType = $result->fields['email_type'];
-                        }
-                        $objDatabase->Execute("
-                            DELETE FROM `".DBPREFIX."module_{$this->moduleNameLC}_customer_contact_emails`
-                            WHERE `contact_id` = {$this->contact->id}
-                              AND `is_primary` = '1'
-                        ");
-                        $objDatabase->Execute("
-                            INSERT INTO `".DBPREFIX."module_{$this->moduleNameLC}_customer_contact_emails`
-                            SET
-                                email      = '". contrexx_raw2db($arrFormData['email']) ."',
-                                email_type = '" . $emailType . "',
-                                is_primary = '1',
-                                contact_id = '{$this->contact->id}'
-                        ");
+                    // set primary email
+                    if (
+                        isset($arrFormData['email']) &&
+                        $arrFormData['email'] != $this->contact->email
+                    ) {
+                        // re-set email again as it has been reset by CrmContact::save()
+                        $this->contact->email = $arrFormData['email'];
+                        $this->contact->updatePrimaryEmail(0);
                     }
 
                     // insert website
