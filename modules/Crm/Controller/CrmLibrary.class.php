@@ -2944,30 +2944,21 @@ class CrmLibrary
                         $db = $objDatabase->Execute($query);
                     }
 
-                    //insert address
-                    if (!empty ($arrFormData['address'][0]) || !empty ($arrFormData['city'][0]) || !empty ($arrFormData['zip'][0]) || !empty ($arrFormData['country'][0])) {
-                        $addressExists = $objDatabase->SelectLimit("SELECT 1 FROM `".DBPREFIX."module_{$this->moduleNameLC}_customer_contact_address` WHERE is_primary = '1' AND contact_id = '{$this->contact->id}'");
+                    // set primary address
+                    if (
+                        isset($arrFormData['address'][0]) ||
+                        isset($arrFormData['city'][0]) ||
+                        isset($arrFormData['state'][0]) ||
+                        isset($arrFormData['zip'][0]) ||
+                        isset($arrFormData['country'][0])
+                    ) {
                         $country = \Cx\Core\Country\Controller\Country::getById($arrFormData['country'][0]);
-                        if ($addressExists && $addressExists->RecordCount()) {
-                            $query = "UPDATE `".DBPREFIX."module_{$this->moduleNameLC}_customer_contact_address` SET
-                                    address      = '". contrexx_input2db($arrFormData['address'][0]) ."',
-                                    city         = '". contrexx_input2db($arrFormData['city'][0]) ."',
-                                    zip          = '". contrexx_input2db($arrFormData['zip'][0]) ."',
-                                    country      = '". $country['name'] ."',
-                                    Address_Type = '2'
-                                 WHERE is_primary   = '1' AND contact_id   = '{$this->contact->id}'";
-                        } else {
-                            $query = "INSERT INTO `".DBPREFIX."module_{$this->moduleNameLC}_customer_contact_address` SET
-                                    address      = '". contrexx_input2db($arrFormData['address'][0]) ."',
-                                    city         = '". contrexx_input2db($arrFormData['city'][0]) ."',
-                                    state        = '". contrexx_input2db($arrFormData['city'][0]) ."',
-                                    zip          = '". contrexx_input2db($arrFormData['zip'][0]) ."',
-                                    country      = '". $country['name'] ."',
-                                    Address_Type = '2',
-                                    is_primary   = '1',
-                                    contact_id   = '{$this->contact->id}'";
-                        }
-                        $objDatabase->Execute($query);
+                        $this->contact->address = $arrFormData['address'][0] ?? $this->contact->address;
+                        $this->contact->city = $arrFormData['city'][0] ?? $this->contact->city;
+                        $this->contact->state = $arrFormData['state'][0] ?? $this->contact->state;
+                        $this->contact->zip = $arrFormData['zip'][0] ?? $this->contact->zip;
+                        $this->contact->country = $country['name'] ?? $this->contact->country;
+                        $this->contact->updatePrimaryAddress();
                     }
 
                     // set primary phone
