@@ -2867,10 +2867,6 @@ class CrmLibrary
                         $crmCompany->industryType = $industryType;
                     }
 
-                    if(isset($arrFormData["phone_office"])){
-                        $crmCompany->phone = $arrFormData["phone_office"];
-                    }
-
                     // store/update the company profile
                     $crmCompany->save();
 
@@ -2888,6 +2884,18 @@ class CrmLibrary
                         $crmCompany->storeEMail();
                     }
 
+                    // set primary phone
+                    if (
+                        isset($arrFormData['phone_office'][0]) && (
+                            $this->contact->phone == $crmCompany->phone ||
+                            empty($crmCompany->phone)
+                        )
+                    ) {
+                        $crmCompany->phone = $arrFormData['phone_office'][0];
+                        $crmCompany->updatePrimaryPhone();
+                    }
+
+                    // assign company to person
                     $this->contact->contact_customer = $crmCompany->id;
                 }
 
