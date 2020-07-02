@@ -387,17 +387,38 @@ class CrmContact
     }
 
     /**
-     * store the email address
-     *
-     * @global array $_ARRAYLANG
-     * @access public
-     * @author Adrian Berger <ab@comvation.com>
-     * @return void
+     * Update the primary email address of the crm contact
      */
-    function storeEMail(){
-        global $objDatabase;
-        $objDatabase->Execute("INSERT INTO `".DBPREFIX."module_crm_customer_contact_emails`
-                                        SET `email` = '".contrexx_input2db($this->email)."',
-                                            `email_type` = 1, `is_primary` = '1', contact_id = {$this->id}");
+    public function updatePrimaryEmail($defaultEmailType = 0) {
+        $db = \Cx\Core\Core\Controller\Cx::instanciate()->getDb()->getAdoDb();
+
+        // fetch type of existing primary email address
+        $result = $db->Execute("
+            SELECT `email_type`
+            FROM `".DBPREFIX."module_{$this->moduleName}_customer_contact_emails`
+            WHERE `contact_id` = {$this->id}
+            AND `is_primary` = '1'
+        ");
+        $emailType = $defaultEmailType;
+        if ($result != false && !$result->EOF) {
+            $emailType = $result->fields['email_type'];
+        }
+
+        // drop existing primary email address
+        $db->Execute("
+            DELETE FROM `".DBPREFIX."module_{$this->moduleName}_customer_contact_emails`
+            WHERE `contact_id` = {$this->id}
+            AND `is_primary` = '1'
+        ");
+
+        // add a new primary email address
+        $db->Execute("
+            INSERT INTO `".DBPREFIX."module_{$this->moduleName}_customer_contact_emails`
+            SET
+            email      = '". contrexx_raw2db($this->email) ."',
+            email_type = '" . $emailType . "',
+            is_primary = '1',
+            contact_id = '{$this->id}'
+        ");
     }
 }
