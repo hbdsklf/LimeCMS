@@ -2804,7 +2804,12 @@ class CrmLibrary
                 $this->contact->datasource     = 2;
                 $this->contact->account_id     = $userAccountId;
 
+                $oldEmail = '';
+                // set new email address
                 if (!empty($arrFormData['email'])) {
+                    // remember old email address
+                    $oldEmail = $this->contact->email;
+
                     $this->contact->email = $arrFormData['email'];
                 }
 
@@ -2872,7 +2877,13 @@ class CrmLibrary
                     // setting & storing the primary email address must be done after
                     // the company has been saved for the case where the company is
                     // being added as a new object without having an ID yet
-                    if (empty($crmCompany->email)) {
+                    if (
+                        // set email in case the company has no email set yet
+                        empty($crmCompany->email) ||
+                        // or in case the email changed and the company used
+                        // the same old email address
+                        $crmCompany->email == $oldEmail
+                    ) {
                         $crmCompany->email = $this->contact->email;
                         $crmCompany->storeEMail();
                     }
