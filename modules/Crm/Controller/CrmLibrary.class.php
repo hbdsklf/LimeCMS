@@ -2353,16 +2353,19 @@ class CrmLibrary
 
         //update/insert additional fields
         //company
+        $company = '';
         if (!empty($result['company'])) {
             $company = $objDatabase->getOne("SELECT customer_name FROM `".DBPREFIX."module_{$this->moduleNameLC}_contacts` WHERE id = '".$result['company']."'");
         }
         //get default website
+        $website = '';
         foreach ($result['contactwebsite'] as $value) {
             if (!empty($value['value']) && $value['primary'] == '1') {
                 $website = contrexx_raw2db($value['value']);
             }
         }
         //get default phone
+        $phone = '';
         foreach ($result['contactphone'] as $value) {
             if (!empty($value['value']) && $value['primary'] == '1')
                 $phone = contrexx_input2db($value['value']);
@@ -2846,7 +2849,7 @@ class CrmLibrary
                     $customerType = $arrFormData[
                                         \Cx\Core\Setting\Controller\Setting::getValue('user_profile_attribute_customer_type','Crm')
                                     ]
-                                    [0];
+                                    [0] ?? false;
                     if ($customerType !== false) {
                         $crmCompany->customerType = $customerType;
                     }
@@ -2854,7 +2857,7 @@ class CrmLibrary
                     $companySize = $arrFormData[
                                         \Cx\Core\Setting\Controller\Setting::getValue('user_profile_attribute_company_size','Crm')
                                     ]
-                                    [0];
+                                    [0] ?? false;
                     if($companySize !== false){
                         $crmCompany->companySize = $companySize;
                     }
@@ -2862,7 +2865,7 @@ class CrmLibrary
                     $industryType = $arrFormData[
                                         \Cx\Core\Setting\Controller\Setting::getValue('user_profile_attribute_industry_type','Crm')
                                     ]
-                                    [0];
+                                    [0] ?? false;
                     if($industryType !== false){
                         $crmCompany->industryType = $industryType;
                     }
