@@ -432,7 +432,7 @@ class CrmContact
             WHERE `contact_id` = {$this->id}
             AND `is_primary` = '1'
         ");
-        $addressType = 1;
+        $addressType = 2;
         if ($result != false && !$result->EOF) {
             $addressType = $result->fields['Address_type'];
         }
