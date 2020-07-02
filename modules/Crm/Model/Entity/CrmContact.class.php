@@ -400,4 +400,37 @@ class CrmContact
                                         SET `email` = '".contrexx_input2db($this->email)."',
                                             `email_type` = 1, `is_primary` = '1', contact_id = {$this->id}");
     }
+
+    public function updatePrimaryPhone() {
+        $db = \Cx\Core\Core\Controller\Cx::instanciate()->getDb()->getAdoDb();
+
+        // fetch type of existing primary phone
+        $result = $db->Execute("
+            SELECT `phone_type`
+            FROM `".DBPREFIX."module_{$this->moduleName}_customer_contact_phone`
+            WHERE `contact_id` = {$this->id}
+            AND `is_primary` = '1'
+        ");
+        $phoneType = 1;
+        if ($result != false && !$result->EOF) {
+            $phoneType = $result->fields['phone_type'];
+        }
+
+        // drop existing primary phone
+        $db->Execute("
+            DELETE FROM `".DBPREFIX."module_{$this->moduleName}_customer_contact_phone`
+            WHERE `contact_id` = {$this->id}
+            AND `is_primary` = '1'
+        ");
+
+        // add a new primary phone
+        $db->Execute("
+            INSERT INTO `".DBPREFIX."module_{$this->moduleName}_customer_contact_phone`
+            SET
+            phone      = '". contrexx_raw2db($this->phone) ."',
+            phone_type = '" . $phoneType . "',
+            is_primary = '1',
+            contact_id = '{$this->id}'
+        ");
+    }
 }

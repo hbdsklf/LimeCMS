@@ -2962,22 +2962,13 @@ class CrmLibrary
                         $objDatabase->Execute($query);
                     }
 
-                    // insert Phone
-                    $contactPhone = array();
-                    if (!empty($arrFormData['phone_office'][0])) {
-                        $phoneExists = $objDatabase->SelectLimit("SELECT 1 FROM `".DBPREFIX."module_{$this->moduleNameLC}_customer_contact_phone` WHERE is_primary = '1' AND contact_id = '{$this->contact->id}'");
-                        $fields = array(
-                            'phone'         => $arrFormData['phone_office'][0],
-                            'phone_type'    => '1',
-                            'is_primary'    => '1',
-                            'contact_id'    => $this->contact->id
-                        );
-                        if ($phoneExists && $phoneExists->RecordCount()) {
-                            $query  = \SQL::update("module_{$this->moduleNameLC}_customer_contact_phone", $fields, array('escape' => true))." WHERE is_primary = '1' AND `contact_id` = {$this->contact->id}";
-                        } else {
-                            $query  = \SQL::insert("module_{$this->moduleNameLC}_customer_contact_phone", $fields, array('escape' => true));
-                        }
-                        $objDatabase->Execute($query);
+                    // set primary phone
+                    if (
+                        isset($arrFormData['phone_office'][0]) &&
+                        $arrFormData['phone_office'][0] != $this->contact->phone
+                    ) {
+                        $this->contact->phone = $arrFormData['phone_office'][0];
+                        $this->contact->updatePrimaryPhone();
                     }
                 }
                 \Cx\Core\Setting\Controller\Setting::init($prevSection, $prevGroup, $prevEngine);
