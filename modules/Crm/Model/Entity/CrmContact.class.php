@@ -421,4 +421,73 @@ class CrmContact
             contact_id = '{$this->id}'
         ");
     }
+
+    public function updatePrimaryAddress() {
+        $db = \Cx\Core\Core\Controller\Cx::instanciate()->getDb()->getAdoDb();
+
+        // fetch type of existing primary address
+        $result = $db->Execute("
+            SELECT `Address_type`
+            FROM `".DBPREFIX."module_{$this->moduleName}_customer_contact_address`
+            WHERE `contact_id` = {$this->id}
+            AND `is_primary` = '1'
+        ");
+        $addressType = 1;
+        if ($result != false && !$result->EOF) {
+            $addressType = $result->fields['Address_type'];
+        }
+
+        // drop existing primary address
+        $db->Execute("
+            DELETE FROM `".DBPREFIX."module_{$this->moduleName}_customer_contact_address`
+            WHERE `contact_id` = {$this->id}
+            AND `is_primary` = '1'
+        ");
+
+        // add a new primary address
+        $db->Execute("
+            INSERT INTO `".DBPREFIX."module_{$this->moduleName}_customer_contact_address`
+            SET address      = '". contrexx_raw2db($this->address) ."',
+                city         = '". contrexx_raw2db($this->city) ."',
+                state        = '". contrexx_raw2db($this->state) ."',
+                zip          = '". contrexx_raw2db($this->zip) ."',
+                country      = '". contrexx_raw2db($this->country) ."',
+                Address_Type = '" . $addressType . "',
+                is_primary   = '1',
+                contact_id   = '{$this->id}'
+        ");
+    }
+
+    public function updatePrimaryPhone() {
+        $db = \Cx\Core\Core\Controller\Cx::instanciate()->getDb()->getAdoDb();
+
+        // fetch type of existing primary phone
+        $result = $db->Execute("
+            SELECT `phone_type`
+            FROM `".DBPREFIX."module_{$this->moduleName}_customer_contact_phone`
+            WHERE `contact_id` = {$this->id}
+            AND `is_primary` = '1'
+        ");
+        $phoneType = 1;
+        if ($result != false && !$result->EOF) {
+            $phoneType = $result->fields['phone_type'];
+        }
+
+        // drop existing primary phone
+        $db->Execute("
+            DELETE FROM `".DBPREFIX."module_{$this->moduleName}_customer_contact_phone`
+            WHERE `contact_id` = {$this->id}
+            AND `is_primary` = '1'
+        ");
+
+        // add a new primary phone
+        $db->Execute("
+            INSERT INTO `".DBPREFIX."module_{$this->moduleName}_customer_contact_phone`
+            SET
+            phone      = '". contrexx_raw2db($this->phone) ."',
+            phone_type = '" . $phoneType . "',
+            is_primary = '1',
+            contact_id = '{$this->id}'
+        ");
+    }
 }
