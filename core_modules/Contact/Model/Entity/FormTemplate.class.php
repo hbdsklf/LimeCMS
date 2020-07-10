@@ -632,7 +632,8 @@ class FormTemplate extends \Cx\Model\Base\EntityBase {
                 $checkboxSelected = '';
                 if (
                     $fieldValue == 1 ||
-                    !empty($_POST['contactFormField_' . $fieldId])
+                    !empty($_POST['contactFormField_' . $fieldId]) ||
+                    !empty($_GET[$fieldId])
                 ) {
                     $checkboxSelected = 'checked="checked"';
                 }
