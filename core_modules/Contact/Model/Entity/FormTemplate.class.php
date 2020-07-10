@@ -1001,7 +1001,9 @@ class FormTemplate extends \Cx\Model\Base\EntityBase {
             }
             $valueFromGet = '';
             if (isset($_GET[$fieldId])) {
-                $valueFromGet = contrexx_input2raw($_GET[$fieldId]);
+                $valueFromGet = contrexx_input2raw(
+                    $_GET[$fieldId]
+                );
             }
 
             $isOptionInPost = !empty($valueFromPost) && (
@@ -1015,12 +1017,17 @@ class FormTemplate extends \Cx\Model\Base\EntityBase {
                     )
                 )
             );
-            $isOptionInGet =
-                !empty($valueFromGet) &&
+            $isOptionInGet = !empty($valueFromGet) && (
                 (
-                    $option == $valueFromGet ||
-                    strcasecmp($option, $valueFromGet) == 0
-                );
+                    is_array($valueFromGet) &&
+                    in_array($option, $valueFromGet)
+                ) || (
+                    !is_array($valueFromGet) && (
+                        $option == $valueFromGet ||
+                        strcasecmp($option, $valueFromGet) == 0
+                    )
+                )
+            );
             $isOptionInAccessAttr =
                 $isSpecialType &&
                 isset($profileData[strtoupper($accessAttrId)]) &&
