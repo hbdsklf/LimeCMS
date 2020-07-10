@@ -1094,7 +1094,9 @@ class Config
             $domain = $_CONFIG['domainUrl'];
         }
 
-        $nameServer = \Cx\Core\Setting\Controller\Setting::getValue('dnsServer', 'Config');
+        // check if we have a nameserver for DNS resolution set
+        // TODO: see CLX-3407
+        $nameServer = $_CONFIG['dnsServer'];
         if ($protocol == 'http') {
             $protocolPort = \Cx\Core\Setting\Controller\Setting::getValue('portBackendHTTP', 'Config');
         } else {
