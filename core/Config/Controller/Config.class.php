@@ -1118,6 +1118,11 @@ class Config
 
             // try to resolve domain name using default name server
             $dnsResolver = new \Net_DNS2_Resolver($options);
+            // UDP for port 53 might be disabled on some systems,
+            // therefore we shall use TCP isntead
+            // TODO: add settings option as UDP would be better in general
+            // as it is faster than TCP
+            $dnsResolver->use_tcp = true;
 
             try {
                 $result = $dnsResolver->query($domain, 'A');
