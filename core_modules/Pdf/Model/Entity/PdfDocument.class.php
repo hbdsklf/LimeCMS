@@ -158,6 +158,12 @@ class PdfDocument extends \mPDF
                 $this->title
             );
         }
+
+        // enforce pdf file extension
+        if (!preg_match('/\.pdf$/', $this->filePath)) {
+            $this->filePath .= '.pdf';
+        }
+
         $this->Output($this->filePath, $this->destination);
     }
 
