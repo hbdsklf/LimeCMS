@@ -2284,6 +2284,7 @@ namespace Cx\Core\Core\Controller {
                         $endcode
                     );
                     $objPDF->setContent($endcode);
+                    $objPDF->setDisposition($this->getResponse()->getContentDisposition());
                     $objPDF->Create();
                     exit;
                 }
