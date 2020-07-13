@@ -94,6 +94,24 @@ class PdfDocument extends \mPDF
     }
 
     /**
+     * Set the Content-Disposition of the response.
+     * Can be one of either 'inline' or 'attachment'.
+     *
+     * For more output options do use $this->setDestination().
+     */
+    public function setDisposition($disposition) {
+        switch ($disposition) {
+            case 'inline':
+                $this->destination = 'I';
+                break;
+
+            case 'attachment':
+                $this->destination = 'D';
+                break;
+        }
+    }
+
+    /**
      * Set the file path to store the PDF document
      *
      * @param string $filePath
