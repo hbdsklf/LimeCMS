@@ -139,12 +139,31 @@ class PdfDocument extends \mPDF
             }
         }
         $this->SetDisplayPreferences('HideWindowUI');
+
+        // remember title in case it has been set manually
+        // (through $this->SetTitle())
+        $title = $this->title;
+
         $this->WriteHTML($this->content);
+
+        // reset title as it may have been overwritten by
+        // $this->WriteHTML() which automatically set the title
+        // based on the HTML tag <title>
+        if ($title != '') {
+            $this->title = $title;
+        }
+
         if (empty($this->filePath)) {
             $this->filePath = \Cx\Lib\FileSystem\FileSystem::replaceCharacters(
                 $this->title
             );
         }
+
+        // enforce pdf file extension
+        if (!preg_match('/\.pdf$/', $this->filePath)) {
+            $this->filePath .= '.pdf';
+        }
+
         $this->Output($this->filePath, $this->destination);
     }
 
