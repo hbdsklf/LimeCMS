@@ -1506,6 +1506,9 @@ namespace Cx\Core\Core\Controller {
                 $this->request
             );
             $this->response->setContentType('text/html');
+            if (isset($_REQUEST['disposition'])) {
+                $this->response->setContentDisposition($_REQUEST['disposition']);
+            }
             //call post-init hooks
             $this->ch->callPostInitHooks();
         }
