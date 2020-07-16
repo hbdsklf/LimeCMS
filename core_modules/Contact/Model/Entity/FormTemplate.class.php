@@ -1245,7 +1245,50 @@ class FormTemplate extends \Cx\Model\Base\EntityBase {
                 $id = $_GET[$fieldId];
             }
 
+            // initialize upload instance
             $uploader = new \Cx\Core_Modules\Uploader\Model\Entity\Uploader($id);
+            $uploaderId = $uploader->getId();
+
+            // initialize the widget displaying the folder contents
+            $folderWidget = new \Cx\Core_Modules\MediaBrowser\Model\Entity\FolderWidget(
+                $session->getTempPath() . '/'. $uploaderId
+            );
+
+            // handle special case pdf-view which does not support javascript
+            if (\Env::get('init')->getCurrentChannel() == \Cx\Core\View\Model\Entity\Theme::THEME_TYPE_PDF) {
+                $jsonData =  new \Cx\Core\Json\JsonData();
+                $response = $jsonData->data(
+                    'MediaBrowser',
+                    'folderWidget',
+                    array(
+                        'get' => array(
+                            'id' => $folderWidget->getId(),
+                        ),
+                    )
+                );
+                if (
+                    !is_array($response['data']) ||
+                    empty($response['data'])
+                ) {
+                    $template->setVariable(array(
+                        'CONTACT_UPLOADER_FOLDER_WIDGET' => '',
+                    ));
+                    return '';
+                }
+
+                $ul = new \Cx\Core\Html\Model\Entity\HtmlElement('ul');
+                $ul->setClass('filelist');
+                foreach ($response['data'] as $file) {
+                    $li = new \Cx\Core\Html\Model\Entity\HtmlElement('li');
+                    $li->addChild(new \Cx\Core\Html\Model\Entity\TextElement(contrexx_raw2xhtml($file)));
+                    $ul->addChild($li);
+                }
+                $template->setVariable(array(
+                    'CONTACT_UPLOADER_FOLDER_WIDGET' => $ul,
+                ));
+                return '';
+            }
+
             // set instance name so we are able to catch the instance with js
             $uploader->setCallback('contactFormUploader_' . $fieldId);
 
@@ -1264,16 +1307,10 @@ class FormTemplate extends \Cx\Model\Base\EntityBase {
                 ));
                 $uploader->setUploadLimit(1);
             }
-            $uploaderId = $uploader->getId();
             $uploader->setOptions(array(
                 'id'     => 'contactUploader_' . $uploaderId,
                 'style'  => 'display: none'
             ));
-
-            // initialize the widget displaying the folder contents
-            $folderWidget = new \Cx\Core_Modules\MediaBrowser\Model\Entity\FolderWidget(
-                $session->getTempPath() . '/'. $uploaderId
-            );
 
             if ($parseLegacyPlaceholder) {
                 $placeholders = array(
