@@ -1224,21 +1224,6 @@ class FormTemplate extends \Cx\Model\Base\EntityBase {
     protected function handleUniqueId()
     {
         $this->cx->getComponent('Session')->getSession();
-
-        $id = 0;
-        if (isset($_REQUEST['unique_id'])) {
-            // an id is specified - we're handling a page reload
-            $id = intval($_REQUEST['unique_id']);
-        } else { // generate a new id
-            if (!isset($_SESSION['contact_last_id'])) {
-                $_SESSION['contact_last_id'] = 1;
-            } else {
-                $_SESSION['contact_last_id'] += 1;
-            }
-
-            $id = $_SESSION['contact_last_id'];
-        }
-        $this->template->setVariable('CONTACT_UNIQUE_ID', $id);
     }
 
     /**

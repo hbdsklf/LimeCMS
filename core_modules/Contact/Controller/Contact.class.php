@@ -827,9 +827,6 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
 
         // fill the html and plaintext body with the submitted form data
         foreach ($arrFormData['fields'] as $fieldId => $arrField) {
-            if($fieldId == 'unique_id') //generated for uploader. no interesting mail content.
-                continue;
-
             $htmlValue = '';
             $plaintextValue = '';
             $textAreaKeys = array();
