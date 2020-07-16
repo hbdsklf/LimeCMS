@@ -89,15 +89,20 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
     var $errorMsg = '';
 
     /**
-     * we're in legacy mode if true.
-     * this means file uploads are coming directly from inputs, rather than being
-     * handled by the cloudrexx upload core-module.
+     * Legacy file upload mode
+     *
+     * In legacy file upload mode, file uploads are coming directly from inputs,
+     * rather than being handled by the cloudrexx Uploader component.
+     *
      * Q: What is the legacyMode for?
      * A: With legacyMode we support the old submission forms that hadn't
-     *    been migrated to the new fileUploader structure.
-     * @var boolean
+     *    been migrated to the new Uploader component or if you want
+     *    to build a submission form without JavaScript.
+     *
+     * @var boolean TRUE if file uploads are handled the legacy way (through
+     *              HTTP Form POST).
      */
-    protected $legacyMode;
+    protected $legacyMode = false;
 
     /**
      * used by @link Contact::_uploadFiles() .
@@ -151,8 +156,6 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
         $this->hasFileField = $formTemplate->hasFileField();
 
         if (isset($_POST['submitContactForm']) || isset($_POST['Submit'])) { //form submitted
-            $this->checkLegacyMode();
-
             $showThanks = (isset($_GET['cmd']) && $_GET['cmd'] == 'thanks') ? true : false;
             $arrFormData = $this->_getContactFormData();
             if ($arrFormData) {
@@ -206,9 +209,27 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
             $arrFormData = array();
             $arrFormData['id'] = isset($_GET['cmd']) ? intval($_GET['cmd']) : 0;
             if ($this->getContactFormDetails($arrFormData['id'], $arrFormData['emails'], $arrFormData['subject'], $arrFormData['feedback'], $arrFormData['mailTemplate'], $arrFormData['showForm'], $arrFormData['useCaptcha'], $arrFormData['sendCopy'], $arrFormData['useEmailOfSender'], $arrFormData['htmlMail'], $arrFormData['sendAttachment'], $arrFormData['saveDataInCRM'], $arrFormData['crmCustomerGroups'], $arrFormData['sendMultipleReply'])) {
+                // get all fields of form
                 $arrFormData['fields'] = $this->getFormFields($arrFormData['id']);
-                foreach ($arrFormData['fields'] as $field) {
+
+                // generate list of all labels (of the fields)
+                // and check for legacy upload mode
+                foreach ($arrFormData['fields'] as $fieldId => $field) {
+                    // add label of field to list
                     $this->arrFormFields[] = $field['lang'][$_LANGID]['name'];
+
+                    // Check for legacy upload mode.
+                    // This is the case when for an upload-field no
+                    // form-data with name contactFormUploadId_<id> exists
+                    if (
+                        in_array(
+                            $field['type'],
+                            array('file', 'multi_file')
+                        ) &&
+                        !isset($_POST['contactFormUploadId_'.$fieldId])
+                    ) {
+                        $this->legacyMode = true;
+                    }
                 }
             } else {
                 $arrFormData['id'] = 0;
@@ -217,6 +238,10 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
                 $arrFormData['showForm'] = 1;
                 //$arrFormData['sendCopy'] = 0;
                 $arrFormData['htmlMail'] = 1;
+
+                // in case no form has been initialized,
+                // then file-handling is done the legacy way
+                $this->legacyMode = true;
             }
 // TODO: check if _uploadFiles does something dangerous with $arrFormData['fields'] (this is raw data!)
             $arrFormData['uploadedFiles'] = $this->_uploadFiles($arrFormData['fields']);
@@ -279,14 +304,6 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
     }
 
     /**
-     * Checks whether this is an old form and sets $this->legacyMode.
-     * @see Contact::$legacyMode
-     */
-    protected function checkLegacyMode() {
-        $this->legacyMode = !isset($_REQUEST['unique_id']);
-    }
-
-    /**
      * Handle uploads
      * @see Contact::_uploadFilesLegacy()
      * @param array $arrFields
@@ -296,18 +313,15 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
      * @return array A list of files that have been stored successfully in the system
      */
     protected function _uploadFiles($arrFields, $move = false) {
-        /* the field unique_id has been introduced with the new uploader.
-         * it helps us to tell whether we're handling an form generated
-         * before the new uploader using the classic input fields or
-         * if we have to treat the files already uploaded by the uploader.
-         */
-        if($this->legacyMode) {
+        if ($this->legacyMode) {
             //legacy function for old uploader
             return $this->_uploadFilesLegacy($arrFields);
         } else {
             //new uploader used
-            if(!$this->hasFileField) //nothing to do for us, no files
+            if (!$this->hasFileField) {
+                //nothing to do for us, no files
                 return array();
+            }
 
             $arrFiles = array(); //we'll collect name => path of all files here and return this
             $documentRootPath = \Env::get('cx')->getWebsiteDocumentRootPath();
@@ -527,7 +541,7 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
 
                     case 'file':
                     case 'multi_file':
-                        if(!$this->legacyMode && $isRequired) {
+                        if (!$this->legacyMode && $isRequired) {
                             //check if the user has uploaded any files
                             $tup = self::getTemporaryUploadPath($fieldId);
                             $path = !empty($tup[2]) ? $tup[0].'/'.$tup[2] : '';
@@ -637,8 +651,9 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
         //handle files and collect the filenames
         //for legacy mode this has already been done in the first
         //_uploadFiles() call in getContactPage().
-        if(!$this->legacyMode)
+        if (!$this->legacyMode) {
             $arrFormData['uploadedFiles'] = $this->_uploadFiles($arrFormData['fields'], true);
+        }
 
         $arrSettings = $this->getSettings();
         if (!$arrSettings['storeFormSubmissions']) {
