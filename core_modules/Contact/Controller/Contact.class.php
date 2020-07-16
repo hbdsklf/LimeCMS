@@ -313,6 +313,8 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
      * @return array A list of files that have been stored successfully in the system
      */
     protected function _uploadFiles($arrFields, $move = false) {
+        global $_ARRAYLANG;
+
         // handle legacy file upload
         if ($this->legacyMode) {
             return $this->_uploadFilesLegacy($arrFields);
@@ -331,7 +333,13 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
                 continue;
             }
 
+            // get upload directory data
             $tup = self::getTemporaryUploadPath($fieldId);
+            if (!$tup) {
+                $this->errorMsg .= $_ARRAYLANG['TXT_CONTACT_UPLOAD_INIT_FAILED'] . '<br />';
+                return false;
+            }
+
             $tmpUploadDir = !empty($tup[2]) ? $tup[1].'/'.$tup[2].'/' : ''; //all the files uploaded are in here
 
             $depositionTarget = ""; //target folder
@@ -551,21 +559,31 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
                             break;
                         }
 
-                        if ($isRequired) {
-                            //check if the user has uploaded any files
-                            $tup = self::getTemporaryUploadPath($fieldId);
-                            $path = !empty($tup[2]) ? $tup[0].'/'.$tup[2] : '';
-                            if (   empty($path)
-                               || !\Cx\Lib\FileSystem\FileSystem::exists($path)
-                               || count(@scandir($path)) == 2
-                            ) { //only . and .. present, directory is empty
-                                //no uploaded files in a mandatory field - no good.
-                                $error = true;
-                            }
+                        // abort in case upload is optional
+                        if (!$isRequired) {
+                            // we need to use a 'continue 2' here to first break out
+                            // of the switch and then move over to the next
+                            // iteration of the foreach loop
+                            continue 2;
                         }
-                        // we need to use a 'continue 2' here to first break out
-                        // of the switch and then move over to the next
-                        // iteration of the foreach loop
+
+                        //check if the user has uploaded any files
+                        $tup = self::getTemporaryUploadPath($fieldId);
+                        if (!$tup) {
+                            $this->errorMsg .= $_ARRAYLANG['TXT_CONTACT_UPLOAD_INIT_FAILED'] . '<br />';
+                            $error = true;
+                            continue 2;
+                        }
+
+                        // verify that any file has been uploaded
+                        $path = !empty($tup[2]) ? $tup[0].'/'.$tup[2] : '';
+                        if (   empty($path)
+                           || !\Cx\Lib\FileSystem\FileSystem::exists($path)
+                           || count(@scandir($path)) == 2
+                        ) { //only . and .. present, directory is empty
+                            //no uploaded files in a mandatory field - no good.
+                            $error = true;
+                        }
                         continue 2;
                         break;
 
@@ -610,7 +628,7 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
         }
 
         if ($error) {
-            $this->errorMsg = $_ARRAYLANG['TXT_FEEDBACK_ERROR'].'<br />';
+            $this->errorMsg .= $_ARRAYLANG['TXT_FEEDBACK_ERROR'].'<br />';
             return false;
         } else {
             return true;
@@ -666,7 +684,11 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
         //for legacy mode this has already been done in the first
         //_uploadFiles() call in getContactPage().
         if (!$this->legacyMode) {
-            $arrFormData['uploadedFiles'] = $this->_uploadFiles($arrFormData['fields'], true);
+            $uploadStatus = $this->_uploadFiles($arrFormData['fields'], true);
+            if ($uploadStatus === false) {
+                return false;
+            }
+            $arrFormData['uploadedFiles'] = $uploadStatus;
         }
 
         $arrSettings = $this->getSettings();
@@ -1204,9 +1226,7 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
                    : '';
         // verify the upload path
         if (!\Cx\Core_Modules\Uploader\Model\Entity\Uploader::isValidId($dirname)) {
-            throw new \Cx\Core_Modules\Contact\Controller\ContactException(
-                'Invalid Upload directory: ' . $dirname
-            );
+            return false;
         }
         $result = array(
             $tempPath,
