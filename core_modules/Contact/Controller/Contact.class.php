@@ -540,7 +540,13 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
 
                     case 'file':
                     case 'multi_file':
-                        if (!$this->legacyMode && $isRequired) {
+                        // process legacy uploads
+                        if ($this->legacyMode) {
+                            $value = isset($arrFields['uploadedFiles'][$fieldId]) ? $arrFields['uploadedFiles'][$fieldId] : '';
+                            break;
+                        }
+
+                        if ($isRequired) {
                             //check if the user has uploaded any files
                             $tup = self::getTemporaryUploadPath($fieldId);
                             $path = !empty($tup[2]) ? $tup[0].'/'.$tup[2] : '';
@@ -551,12 +557,11 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
                                 //no uploaded files in a mandatory field - no good.
                                 $error = true;
                             }
-                            // we need to use a 'continue 2' here to first break out of the switch and then move over to the next iteration of the foreach loop
-                            continue 2;
                         }
-
-                        // this is used for legacyMode
-                        $value = isset($arrFields['uploadedFiles'][$fieldId]) ? $arrFields['uploadedFiles'][$fieldId] : '';
+                        // we need to use a 'continue 2' here to first break out
+                        // of the switch and then move over to the next
+                        // iteration of the foreach loop
+                        continue 2;
                         break;
 
                     case 'text':
