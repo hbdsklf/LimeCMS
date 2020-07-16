@@ -1182,6 +1182,12 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
         $dirname = isset($_POST['contactFormUploadId_'.$fieldId])
                    ? contrexx_input2raw($_POST['contactFormUploadId_'.$fieldId])
                    : '';
+        // verify the upload path
+        if (!preg_match('/^[0-9a-z]+$/i', $dirname)) {
+            throw new \Cx\Core_Modules\Contact\Controller\ContactException(
+                'Invalid Upload directory: ' . $dirname
+            );
+        }
         $result = array(
             $tempPath,
             $tempWebPath,
