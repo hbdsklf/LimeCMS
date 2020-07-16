@@ -410,6 +410,11 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
                     );
                 }
             }
+
+            // drop the Uploader instance after completion
+            if ($move) {
+                \Cx\Core_Modules\Uploader\Model\Entity\Uploader::destroy($tup[2]);
+            }
         }
         //cleanup
 //TODO: this does not work for certain reloads - add cleanup routine
