@@ -410,6 +410,11 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
                     );
                 }
             }
+
+            // drop the Uploader instance after completion
+            if ($move) {
+                \Cx\Core_Modules\Uploader\Model\Entity\Uploader::destroy($tup[2]);
+            }
         }
         //cleanup
 //TODO: this does not work for certain reloads - add cleanup routine
@@ -1193,7 +1198,7 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
                    ? contrexx_input2raw($_POST['contactFormUploadId_'.$fieldId])
                    : '';
         // verify the upload path
-        if (!preg_match('/^[0-9a-z]+$/i', $dirname)) {
+        if (!\Cx\Core_Modules\Uploader\Model\Entity\Uploader::isValidId($dirname)) {
             throw new \Cx\Core_Modules\Contact\Controller\ContactException(
                 'Invalid Upload directory: ' . $dirname
             );
