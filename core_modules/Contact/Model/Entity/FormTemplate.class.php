@@ -462,9 +462,6 @@ class FormTemplate extends \Cx\Model\Base\EntityBase {
                 $this->template->parse($this->blockPrefix . 'list');
             }
         }
-        // This is done after parsing the fields in order to make use of the
-        // session if an uploader field initialized it.
-        $this->handleUniqueId();
 
         // Use stylesheet 'form.css' if the form is loaded for the preview in backend
         if (
@@ -1218,16 +1215,6 @@ class FormTemplate extends \Cx\Model\Base\EntityBase {
         }
 
         return $profileData;
-    }
-
-    /**
-     * generates an unique id for each form and user.
-     */
-    protected function handleUniqueId()
-    {
-        // Only use session if it's already present. If there's no session
-        // we skip identifying the user (uploader initializes session)
-        $this->cx->getComponent('Session')->getSession(false);
     }
 
     /**
