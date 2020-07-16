@@ -48,7 +48,37 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
     public function getControllerClasses() {
         // Return an empty array here to let the component handler know that there
         // does not exist a backend, nor a frontend controller of this component.
-        return array('Backend');
+        return array('Backend', 'EsiWidget');
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getControllersAccessableByJson() {
+        return array(
+            'EsiWidgetController',
+        );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function postInit(\Cx\Core\Core\Controller\Cx $cx)
+    {
+        $widgetController = $this->getComponent('Widget');
+        foreach (
+            array(
+                'PAGE_ID',
+                'PAGE_NODE_ID',
+            ) as $widgetName
+        ) {
+            $widgetController->registerWidget(
+                new \Cx\Core_Modules\Widget\Model\Entity\EsiWidget(
+                    $this,
+                    $widgetName
+                )
+            );
+        }
     }
 
     public function preResolve(\Cx\Core\Routing\Url $url) {
@@ -85,7 +115,10 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
             $url->getPath(),
             $originalUrl->getPath()
         );
-        if ($iterationPoint !== false) {
+        // if $iterationPoint is neither 'false' nor '0', then
+        // this means that $originalUrl->getPath() is found in
+        // $url->getPath() and is a potential infinite loop
+        if ($iterationPoint) {
             $redundancy = substr($url->getPath(), 0, $iterationPoint);
             if (substr_count($url->getPath(), $redundancy) > 2) {
                 \DBG::msg('Potential infinite loop detected');
@@ -140,6 +173,7 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
             $response = $request->send();
             http_response_code($response->getStatus());
             $content = $response->getBody();
+            $headers = array();
             foreach ($response->getHeader() as $key=>$value) {
                 if (in_array($key, array(
                     'content-encoding',
@@ -147,9 +181,15 @@ class ComponentController extends \Cx\Core\Core\Model\Entity\SystemComponentCont
                 ))) {
                     continue;
                 }
+                $headers[$key] = $value;
                 \Cx\Core\Csrf\Controller\Csrf::header($key . ':' . $value);
             }
             $continue = false;
+            $this->getComponent('Cache')->writeCacheFileForRequest(
+                null,
+                $headers,
+                $content
+            );
             die($content);
         } catch (\HTTP_Request2_Exception $e) {
             \DBG::dump($e);

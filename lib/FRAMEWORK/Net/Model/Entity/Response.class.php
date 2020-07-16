@@ -147,6 +147,34 @@ class Response {
      */
     public function setContentType($contentType) {
         $this->contentType = $contentType;
+        $this->headers['Content-Type'] = $contentType;
+    }
+
+    /**
+     * Set the Content-Disposition of the response.
+     * @param   string  $disposition    Either 'inline' or 'attachment'
+     */
+    public function setContentDisposition($disposition) {
+        if (!in_array(
+            $disposition,
+            array('inline', 'attachment')
+        )) {
+            return;
+        }
+        $this->headers['Content-Disposition'] = $disposition;
+    }
+
+    /**
+     * Get the Content-Disposition of the response.
+     * Defaults to 'inline' in case non has been set.
+     * @return string Either 'inline' or 'attachment'
+     */
+    public function getContentDisposition() {
+        if (!isset($this->headers['Content-Disposition'])) {
+            return 'inline';
+        }
+
+        return $this->headers['Content-Disposition'];
     }
 
     /**

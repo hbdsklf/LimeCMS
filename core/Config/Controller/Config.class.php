@@ -337,11 +337,6 @@ class Config
                 ),
             ),
             'component' => array(
-                'bannerStatus' => array(
-                    'type' => \Cx\Core\Setting\Controller\Setting::TYPE_RADIO,
-                    'value' => '0',
-                    'values' => '1:TXT_ACTIVATED,0:TXT_DEACTIVATED',
-                ),
                 'spamKeywords' => array(
                     'type' => \Cx\Core\Setting\Controller\Setting::TYPE_TEXTAREA,
                     'value' => 'sex, viagra',
@@ -1099,7 +1094,18 @@ class Config
             $domain = $_CONFIG['domainUrl'];
         }
 
-        $nameServer = \Cx\Core\Setting\Controller\Setting::getValue('dnsServer', 'Config');
+        // options for DNS resolving
+        $options = array();
+
+        // check if we have a nameserver for DNS resolution set
+        // TODO: see CLX-3407
+        $nameServer = $_CONFIG['dnsServer'];
+        if (!empty($nameServer)) {
+            $options = array(
+                'nameservers' => array($nameServer),
+            );
+        }
+
         if ($protocol == 'http') {
             $protocolPort = \Cx\Core\Setting\Controller\Setting::getValue('portBackendHTTP', 'Config');
         } else {
@@ -1111,9 +1117,12 @@ class Config
             $host = $domain;
 
             // try to resolve domain name using default name server
-            $dnsResolver = new \Net_DNS2_Resolver(array(
-                'nameservers' => array($nameServer),
-            ));
+            $dnsResolver = new \Net_DNS2_Resolver($options);
+            // UDP for port 53 might be disabled on some systems,
+            // therefore we shall use TCP isntead
+            // TODO: add settings option as UDP would be better in general
+            // as it is faster than TCP
+            $dnsResolver->use_tcp = true;
 
             try {
                 $result = $dnsResolver->query($domain, 'A');

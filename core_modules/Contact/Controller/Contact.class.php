@@ -89,15 +89,20 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
     var $errorMsg = '';
 
     /**
-     * we're in legacy mode if true.
-     * this means file uploads are coming directly from inputs, rather than being
-     * handled by the cloudrexx upload core-module.
+     * Legacy file upload mode
+     *
+     * In legacy file upload mode, file uploads are coming directly from inputs,
+     * rather than being handled by the cloudrexx Uploader component.
+     *
      * Q: What is the legacyMode for?
      * A: With legacyMode we support the old submission forms that hadn't
-     *    been migrated to the new fileUploader structure.
-     * @var boolean
+     *    been migrated to the new Uploader component or if you want
+     *    to build a submission form without JavaScript.
+     *
+     * @var boolean TRUE if file uploads are handled the legacy way (through
+     *              HTTP Form POST).
      */
-    protected $legacyMode;
+    protected $legacyMode = false;
 
     /**
      * used by @link Contact::_uploadFiles() .
@@ -151,8 +156,6 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
         $this->hasFileField = $formTemplate->hasFileField();
 
         if (isset($_POST['submitContactForm']) || isset($_POST['Submit'])) { //form submitted
-            $this->checkLegacyMode();
-
             $showThanks = (isset($_GET['cmd']) && $_GET['cmd'] == 'thanks') ? true : false;
             $arrFormData = $this->_getContactFormData();
             if ($arrFormData) {
@@ -206,9 +209,27 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
             $arrFormData = array();
             $arrFormData['id'] = isset($_GET['cmd']) ? intval($_GET['cmd']) : 0;
             if ($this->getContactFormDetails($arrFormData['id'], $arrFormData['emails'], $arrFormData['subject'], $arrFormData['feedback'], $arrFormData['mailTemplate'], $arrFormData['showForm'], $arrFormData['useCaptcha'], $arrFormData['sendCopy'], $arrFormData['useEmailOfSender'], $arrFormData['htmlMail'], $arrFormData['sendAttachment'], $arrFormData['saveDataInCRM'], $arrFormData['crmCustomerGroups'], $arrFormData['sendMultipleReply'])) {
+                // get all fields of form
                 $arrFormData['fields'] = $this->getFormFields($arrFormData['id']);
-                foreach ($arrFormData['fields'] as $field) {
+
+                // generate list of all labels (of the fields)
+                // and check for legacy upload mode
+                foreach ($arrFormData['fields'] as $fieldId => $field) {
+                    // add label of field to list
                     $this->arrFormFields[] = $field['lang'][$_LANGID]['name'];
+
+                    // Check for legacy upload mode.
+                    // This is the case when for an upload-field no
+                    // form-data with name contactFormUploadId_<id> exists
+                    if (
+                        in_array(
+                            $field['type'],
+                            array('file', 'multi_file')
+                        ) &&
+                        !isset($_POST['contactFormUploadId_'.$fieldId])
+                    ) {
+                        $this->legacyMode = true;
+                    }
                 }
             } else {
                 $arrFormData['id'] = 0;
@@ -217,6 +238,10 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
                 $arrFormData['showForm'] = 1;
                 //$arrFormData['sendCopy'] = 0;
                 $arrFormData['htmlMail'] = 1;
+
+                // in case no form has been initialized,
+                // then file-handling is done the legacy way
+                $this->legacyMode = true;
             }
 // TODO: check if _uploadFiles does something dangerous with $arrFormData['fields'] (this is raw data!)
             $arrFormData['uploadedFiles'] = $this->_uploadFiles($arrFormData['fields']);
@@ -279,14 +304,6 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
     }
 
     /**
-     * Checks whether this is an old form and sets $this->legacyMode.
-     * @see Contact::$legacyMode
-     */
-    protected function checkLegacyMode() {
-        $this->legacyMode = !isset($_REQUEST['unique_id']);
-    }
-
-    /**
      * Handle uploads
      * @see Contact::_uploadFilesLegacy()
      * @param array $arrFields
@@ -296,112 +313,108 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
      * @return array A list of files that have been stored successfully in the system
      */
     protected function _uploadFiles($arrFields, $move = false) {
-        /* the field unique_id has been introduced with the new uploader.
-         * it helps us to tell whether we're handling an form generated
-         * before the new uploader using the classic input fields or
-         * if we have to treat the files already uploaded by the uploader.
-         */
-        if($this->legacyMode) {
-            //legacy function for old uploader
+        // handle legacy file upload
+        if ($this->legacyMode) {
             return $this->_uploadFilesLegacy($arrFields);
-        } else {
-            //new uploader used
-            if(!$this->hasFileField) //nothing to do for us, no files
-                return array();
+        }
 
-            $arrFiles = array(); //we'll collect name => path of all files here and return this
-            $documentRootPath = \Env::get('cx')->getWebsiteDocumentRootPath();
-            foreach ($arrFields as $fieldId => $arrField) {
-                // skip non-upload fields
-                if (!in_array($arrField['type'], array('file', 'multi_file'))) {
-                    continue;
+        // abort in case the form does not contain any upload fields
+        if (!$this->hasFileField) {
+            return array();
+        }
+
+        $arrFiles = array(); //we'll collect name => path of all files here and return this
+        $documentRootPath = \Env::get('cx')->getWebsiteDocumentRootPath();
+        foreach ($arrFields as $fieldId => $arrField) {
+            // skip non-upload fields
+            if (!in_array($arrField['type'], array('file', 'multi_file'))) {
+                continue;
+            }
+
+            $tup = self::getTemporaryUploadPath($fieldId);
+            $tmpUploadDir = !empty($tup[2]) ? $tup[1].'/'.$tup[2].'/' : ''; //all the files uploaded are in here
+
+            $depositionTarget = ""; //target folder
+
+            //on the first call, _uploadFiles is called with move=false.
+            //this is done in order to get an array of the moved files' names, but
+            //the files are left in place.
+            //the second call is done with move=true - here we finally move the
+            //files.
+            //
+            //the target folder is created in the first call, because if we can't
+            //create the folder, the target path is left pointing at the path
+            //specified by $arrSettings['fileUploadDepositionPath'].
+            //
+            //to remember the target folder for the second call, it is stored in
+            //$this->depositionTarget.
+            if(!$move) { //first call - create folder
+                //determine where form uploads are stored
+                $arrSettings = $this->getSettings();
+                $depositionTarget = $arrSettings['fileUploadDepositionPath'].'/';
+
+                //find an unique folder name for the uploaded files
+                $folderName = date("Ymd").'_'.$fieldId;
+                $suffix = "";
+                if(file_exists($documentRootPath.$depositionTarget.$folderName)) {
+                    $suffix = 1;
+                    while(file_exists($documentRootPath.$depositionTarget.$folderName.'-'.$suffix))
+                        $suffix++;
+
+                    $suffix = '-'.$suffix;
                 }
+                $folderName .= $suffix;
 
-                $tup = self::getTemporaryUploadPath($fieldId);
-                $tmpUploadDir = !empty($tup[2]) ? $tup[1].'/'.$tup[2].'/' : ''; //all the files uploaded are in here
-
-                $depositionTarget = ""; //target folder
-
-                //on the first call, _uploadFiles is called with move=false.
-                //this is done in order to get an array of the moved files' names, but
-                //the files are left in place.
-                //the second call is done with move=true - here we finally move the
-                //files.
-                //
-                //the target folder is created in the first call, because if we can't
-                //create the folder, the target path is left pointing at the path
-                //specified by $arrSettings['fileUploadDepositionPath'].
-                //
-                //to remember the target folder for the second call, it is stored in
-                //$this->depositionTarget.
-                if(!$move) { //first call - create folder
-                    //determine where form uploads are stored
-                    $arrSettings = $this->getSettings();
-                    $depositionTarget = $arrSettings['fileUploadDepositionPath'].'/';
-
-                    //find an unique folder name for the uploaded files
-                    $folderName = date("Ymd").'_'.$fieldId;
-                    $suffix = "";
-                    if(file_exists($documentRootPath.$depositionTarget.$folderName)) {
-                        $suffix = 1;
-                        while(file_exists($documentRootPath.$depositionTarget.$folderName.'-'.$suffix))
-                            $suffix++;
-
-                        $suffix = '-'.$suffix;
-                    }
-                    $folderName .= $suffix;
-
-                    //try to make the folder and change target accordingly on success
-                    if(\Cx\Lib\FileSystem\FileSystem::make_folder($documentRootPath.$depositionTarget.$folderName)) {
-                        \Cx\Lib\FileSystem\FileSystem::makeWritable($documentRootPath.$depositionTarget.$folderName);
-                        $depositionTarget .= $folderName.'/';
-                    }
-                    $this->depositionTarget[$fieldId] = $depositionTarget;
+                //try to make the folder and change target accordingly on success
+                if(\Cx\Lib\FileSystem\FileSystem::make_folder($documentRootPath.$depositionTarget.$folderName)) {
+                    \Cx\Lib\FileSystem\FileSystem::makeWritable($documentRootPath.$depositionTarget.$folderName);
+                    $depositionTarget .= $folderName.'/';
                 }
-                else //second call - restore remembered target
-                {
-                    $depositionTarget = $this->depositionTarget[$fieldId];
-                }
+                $this->depositionTarget[$fieldId] = $depositionTarget;
+            }
+            else //second call - restore remembered target
+            {
+                $depositionTarget = $this->depositionTarget[$fieldId];
+            }
 
-                //move all files
-                if (empty($tmpUploadDir) || !\Cx\Lib\FileSystem\FileSystem::exists($tmpUploadDir)) {
-                   continue;
-                }
+            //move all files
+            if (empty($tmpUploadDir) || !\Cx\Lib\FileSystem\FileSystem::exists($tmpUploadDir)) {
+               continue;
+            }
 
-                $h = opendir(\Env::get('cx')->getWebsitePath().$tmpUploadDir);
-                while(false !== ($f = readdir($h))) {
-                    if($f != '..' && $f != '.') {
-                        //do not overwrite existing files.
-                        $prefix = '';
-                        while (file_exists($documentRootPath.$depositionTarget.$prefix.$f)) {
-                            if (empty($prefix)) {
-                                $prefix = 0;
-                            }
-                            $prefix ++;
+            $h = opendir(\Env::get('cx')->getWebsitePath().$tmpUploadDir);
+            while(false !== ($f = readdir($h))) {
+                if($f != '..' && $f != '.') {
+                    //do not overwrite existing files.
+                    $prefix = '';
+                    while (file_exists($documentRootPath.$depositionTarget.$prefix.$f)) {
+                        if (empty($prefix)) {
+                            $prefix = 0;
                         }
-
-                        if($move) {
-                            // move file
-                            try {
-                                $objFile = new \Cx\Lib\FileSystem\File($tmpUploadDir.$f);
-                                $objFile->move($documentRootPath.$depositionTarget.$prefix.$f, false);
-                            } catch (\Cx\Lib\FileSystem\FileSystemException $e) {
-                                \DBG::msg($e->getMessage());
-                            }
-                        }
-
-                        $arrFiles[$fieldId][] = array(
-                            'name'  => $f,
-                            'path'  => $depositionTarget.$prefix.$f,
-                        );
+                        $prefix ++;
                     }
+
+                    if($move) {
+                        // move file
+                        try {
+                            $objFile = new \Cx\Lib\FileSystem\File($tmpUploadDir.$f);
+                            $objFile->move($documentRootPath.$depositionTarget.$prefix.$f, false);
+                        } catch (\Cx\Lib\FileSystem\FileSystemException $e) {
+                            \DBG::msg($e->getMessage());
+                        }
+                    }
+
+                    $arrFiles[$fieldId][] = array(
+                        'name'  => $f,
+                        'path'  => $depositionTarget.$prefix.$f,
+                    );
                 }
             }
-            //cleanup
-//TODO: this does not work for certain reloads - add cleanup routine
-            //@rmdir($tmpUploadDir);
-            return $arrFiles;
         }
+        //cleanup
+//TODO: this does not work for certain reloads - add cleanup routine
+        //@rmdir($tmpUploadDir);
+        return $arrFiles;
     }
 
     /**
@@ -527,7 +540,7 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
 
                     case 'file':
                     case 'multi_file':
-                        if(!$this->legacyMode && $isRequired) {
+                        if (!$this->legacyMode && $isRequired) {
                             //check if the user has uploaded any files
                             $tup = self::getTemporaryUploadPath($fieldId);
                             $path = !empty($tup[2]) ? $tup[0].'/'.$tup[2] : '';
@@ -637,8 +650,9 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
         //handle files and collect the filenames
         //for legacy mode this has already been done in the first
         //_uploadFiles() call in getContactPage().
-        if(!$this->legacyMode)
+        if (!$this->legacyMode) {
             $arrFormData['uploadedFiles'] = $this->_uploadFiles($arrFormData['fields'], true);
+        }
 
         $arrSettings = $this->getSettings();
         if (!$arrSettings['storeFormSubmissions']) {
@@ -813,9 +827,6 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
 
         // fill the html and plaintext body with the submitted form data
         foreach ($arrFormData['fields'] as $fieldId => $arrField) {
-            if($fieldId == 'unique_id') //generated for uploader. no interesting mail content.
-                continue;
-
             $htmlValue = '';
             $plaintextValue = '';
             $textAreaKeys = array();
@@ -990,19 +1001,21 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
             }
         }
 
+        // set recipient(s) of notification mail to selected recipient group
+        // (if present and selected)
         if ($chosenMailRecipient !== null) {
-            if (!empty($chosenMailRecipient)) {
-                $objMail->AddAddress($chosenMailRecipient);
+            $arrFormData['emails'] = array_map(
+                'trim',
+                explode(',', $chosenMailRecipient)
+            );
+        }
+
+        // finally, send the notification mails
+        foreach ($arrFormData['emails'] as $sendTo) {
+            if (!empty($sendTo)) {
+                $objMail->AddAddress($sendTo);
                 $objMail->Send();
                 $objMail->ClearAddresses();
-            }
-        } else {
-            foreach ($arrFormData['emails'] as $sendTo) {
-                if (!empty($sendTo)) {
-                    $objMail->AddAddress($sendTo);
-                    $objMail->Send();
-                    $objMail->ClearAddresses();
-                }
             }
         }
 
@@ -1169,6 +1182,12 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
         $dirname = isset($_POST['contactFormUploadId_'.$fieldId])
                    ? contrexx_input2raw($_POST['contactFormUploadId_'.$fieldId])
                    : '';
+        // verify the upload path
+        if (!preg_match('/^[0-9a-z]+$/i', $dirname)) {
+            throw new \Cx\Core_Modules\Contact\Controller\ContactException(
+                'Invalid Upload directory: ' . $dirname
+            );
+        }
         $result = array(
             $tempPath,
             $tempWebPath,

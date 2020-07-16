@@ -252,6 +252,41 @@ class MediaDirectoryLevel extends MediaDirectoryLibrary
         }
     }
 
+    /**
+     * Returns a list with IDs of all visible levels that contain published data
+     *
+     * Published data is identified as levels having any of the following options
+     * set to activated:
+     * - levelShowEntries
+     * - levelShowCategories
+     *
+     * @return  array   List of IDs of levels
+     */
+    public static function getIdsWithPublishedData() {
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $db = $cx->getDb()->getAdoDb();
+        $result = $db->Execute('
+            SELECT `id`
+            FROM `' . DBPREFIX . 'module_mediadir_levels`
+            WHERE `active` = 1
+            AND (
+                `show_categories` = 1 OR
+                `show_entries` = 1
+            )
+        ');
+        if (!$result || $result->EOF) {
+            return array();
+        }
+
+        $ids = array();
+        while (!$result->EOF) {
+            $ids[] = $result->fields['id'];
+            $result->MoveNext();
+        }
+
+        return $ids;
+    }
+
     function listLevels($objTpl, $intView, $intLevelId=null, $arrParentIds=null, $intEntryId=null, $arrExistingBlocks=null, $strClass=null, $cmd = null)
     {
         global $_ARRAYLANG, $_CORELANG, $objDatabase;
@@ -404,6 +439,7 @@ class MediaDirectoryLevel extends MediaDirectoryLibrary
                         $this->moduleLangVar.'_CATEGORY_LEVEL_LINK' => $strIndexHeaderTag.'<a href="'.$this->getAutoSlugPath(null, $categoryId, $arrLevel['levelId'], true).'">'.contrexx_raw2xhtml($arrLevel['levelName'][0]).'</a>',
                         $this->moduleLangVar.'_CATEGORY_LEVEL_LINK_SRC' => $this->getAutoSlugPath(null, $categoryId, $arrLevel['levelId'], true),
                         $this->moduleLangVar.'_CATEGORY_LEVEL_DESCRIPTION' => $arrLevel['levelDescription'][0],
+                        $this->moduleLangVar.'_CATEGORY_LEVEL_META_DESCRIPTION' => contrexx_raw2xhtml($arrLevel['levelMetaDesc'][0]),
                         $this->moduleLangVar.'_CATEGORY_LEVEL_PICTURE' => '<img src="'.$arrLevel['levelPicture'].'" border="0" alt="'.contrexx_raw2xhtml($arrLevel['levelName'][0]).'" />',
                         $this->moduleLangVar.'_CATEGORY_LEVEL_PICTURE_SOURCE' => $arrLevel['levelPicture'],
                         $this->moduleLangVar.'_CATEGORY_LEVEL_NUM_ENTRIES' => isset($arrLevel['levelNumEntries']) ? $arrLevel['levelNumEntries'] : '',
@@ -541,6 +577,7 @@ class MediaDirectoryLevel extends MediaDirectoryLibrary
                     $this->moduleLangVar.'_CATEGORY_LEVEL_LINK' => '<a href="'.$this->getAutoSlugPath(null, $categoryId, $intLevelId).'">'.contrexx_raw2xhtml($arrLevels[$intLevelId]['levelName'][0]).'</a>',
                     $this->moduleLangVar.'_CATEGORY_LEVEL_LINK_SRC' => $this->getAutoSlugPath(null, $categoryId, $intLevelId),
                     $this->moduleLangVar.'_CATEGORY_LEVEL_DESCRIPTION' => $arrLevels[$intLevelId]['levelDescription'][0],
+                    $this->moduleLangVar.'_CATEGORY_LEVEL_META_DESCRIPTION' => contrexx_raw2xhtml($arrLevels[$intLevelId]['levelMetaDesc'][0]),
                     $this->moduleLangVar.'_CATEGORY_LEVEL_PICTURE' => '<img src="'.$thumbImage.'" border="0" alt="'.contrexx_raw2xhtml($arrLevels[$intLevelId]['levelName'][0]).'" />',
                     $this->moduleLangVar.'_CATEGORY_LEVEL_PICTURE_SOURCE' => $arrLevels[$intLevelId]['levelPicture'],
                     $this->moduleLangVar.'_CATEGORY_LEVEL_NUM_ENTRIES' => isset($arrLevels[$intLevelId]['levelNumEntries']) ? $arrLevels[$intLevelId]['levelNumEntries'] : 0,

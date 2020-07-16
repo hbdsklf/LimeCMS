@@ -223,6 +223,42 @@ class MediaDirectoryCategory extends MediaDirectoryLibrary
         }
     }
 
+    /**
+     * Returns a list with IDs of all visible categories that contain published
+     * data
+     *
+     * Published data is identified as categories having any of the following
+     * options set to activated:
+     * - categoryShowEntries
+     * - categoryShowSubcategories
+     *
+     * @return  array   List of IDs of categories
+     */
+    public static function getIdsWithPublishedData() {
+        $cx = \Cx\Core\Core\Controller\Cx::instanciate();
+        $db = $cx->getDb()->getAdoDb();
+        $result = $db->Execute('
+            SELECT `id`
+            FROM `' . DBPREFIX . 'module_mediadir_categories`
+            WHERE `active` = 1
+            AND (
+                `show_subcategories` = 1 OR
+                `show_entries` = 1
+            )
+        ');
+        if (!$result || $result->EOF) {
+            return array();
+        }
+
+        $ids = array();
+        while (!$result->EOF) {
+            $ids[] = $result->fields['id'];
+            $result->MoveNext();
+        }
+
+        return $ids;
+    }
+
     function listCategories($objTpl, $intView, $intCategoryId=null, $arrParentIds=null, $intEntryId=null, $arrExistingBlocks=null, $intStartLevel=1, $cmd = null)
     {
         global $_ARRAYLANG, $_CORELANG, $objDatabase, $objInit;
@@ -396,6 +432,7 @@ class MediaDirectoryCategory extends MediaDirectoryLibrary
                         $this->moduleLangVar.'_CATEGORY_LEVEL_LINK' => $strIndexHeaderTag.'<a href="'.$this->getAutoSlugPath(null, $arrCategory['catId'], $levelId, true).'">'.contrexx_raw2xhtml($arrCategory['catName'][0]).'</a>',
                         $this->moduleLangVar.'_CATEGORY_LEVEL_LINK_SRC' => $this->getAutoSlugPath(null, $arrCategory['catId'], $levelId, true),
                         $this->moduleLangVar.'_CATEGORY_LEVEL_DESCRIPTION' => $arrCategory['catDescription'][0],
+                        $this->moduleLangVar.'_CATEGORY_LEVEL_META_DESCRIPTION' => contrexx_raw2xhtml($arrCategory['catMetaDesc'][0]),
                         $this->moduleLangVar.'_CATEGORY_LEVEL_PICTURE' => '<img src="'.$arrCategory['catPicture'].'" border="0" alt="'.contrexx_raw2xhtml($arrCategory['catName'][0]).'" />',
                         $this->moduleLangVar.'_CATEGORY_LEVEL_PICTURE_SOURCE' => $arrCategory['catPicture'],
                         $this->moduleLangVar.'_CATEGORY_LEVEL_NUM_ENTRIES' => $arrCategory['catNumEntries'],
@@ -535,6 +572,7 @@ class MediaDirectoryCategory extends MediaDirectoryLibrary
                     $this->moduleLangVar.'_CATEGORY_LEVEL_LINK' => '<a href="'.$this->getAutoSlugPath(null, $intCategoryId, $levelId).'">'.contrexx_raw2xhtml($arrCategories[$intCategoryId]['catName'][0]).'</a>',
                     $this->moduleLangVar.'_CATEGORY_LEVEL_LINK_SRC' => $this->getAutoSlugPath(null, $intCategoryId, $levelId),
                     $this->moduleLangVar.'_CATEGORY_LEVEL_DESCRIPTION' => $arrCategories[$intCategoryId]['catDescription'][0],
+                    $this->moduleLangVar.'_CATEGORY_LEVEL_META_DESCRIPTION' => contrexx_raw2xhtml($arrCategories[$intCategoryId]['catMetaDesc'][0]),
                     $this->moduleLangVar.'_CATEGORY_LEVEL_PICTURE' => '<img src="'. $thumbImage .'" border="0" alt="'.$arrCategories[$intCategoryId]['catName'][0].'" />',
                     $this->moduleLangVar.'_CATEGORY_LEVEL_PICTURE_SOURCE' => $arrCategories[$intCategoryId]['catPicture'],
                     $this->moduleLangVar.'_CATEGORY_LEVEL_NUM_ENTRIES' => $arrCategories[$intCategoryId]['catNumEntries'],

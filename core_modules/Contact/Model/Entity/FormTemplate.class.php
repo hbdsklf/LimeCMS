@@ -634,7 +634,8 @@ class FormTemplate extends \Cx\Model\Base\EntityBase {
                 $checkboxSelected = '';
                 if (
                     $fieldValue == 1 ||
-                    !empty($_POST['contactFormField_' . $fieldId])
+                    !empty($_POST['contactFormField_' . $fieldId]) ||
+                    !empty($_GET[$fieldId])
                 ) {
                     $checkboxSelected = 'checked="checked"';
                 }
@@ -1003,26 +1004,61 @@ class FormTemplate extends \Cx\Model\Base\EntityBase {
             }
             $valueFromGet = '';
             if (isset($_GET[$fieldId])) {
-                $valueFromGet = contrexx_input2raw($_GET[$fieldId]);
+                $valueFromGet = contrexx_input2raw(
+                    $_GET[$fieldId]
+                );
             }
 
             $isOptionInPost = !empty($valueFromPost) && (
                 (
-                    is_array($valueFromPost) &&
-                    in_array($option, $valueFromPost)
+                    is_array($valueFromPost) && (
+                        (
+                            $fieldType == 'recipient' &&
+                            in_array($index, $valueFromPost)
+                        ) || (
+                            $fieldType != 'recipient' &&
+                            in_array($option, $valueFromPost)
+                        )
+                    )
                 ) || (
                     !is_array($valueFromPost) && (
-                        $option == $valueFromPost ||
-                        strcasecmp($option, $valueFromPost) == 0
+                        (
+                            $fieldType == 'recipient' &&
+                            $index == $valueFromPost
+                        ) || (
+                            $fieldType != 'recipient' && (
+                                $option == $valueFromPost ||
+                                strcasecmp($option, $valueFromPost) == 0
+                            )
+                        )
                     )
                 )
             );
-            $isOptionInGet =
-                !empty($valueFromGet) &&
+            $isOptionInGet = !empty($valueFromGet) && (
                 (
-                    $option == $valueFromGet ||
-                    strcasecmp($option, $valueFromGet) == 0
-                );
+                    is_array($valueFromGet) && (
+                        (
+                            $fieldType == 'recipient' &&
+                            in_array($index, $valueFromGet)
+                        ) || (
+                            $fieldType != 'recipient' &&
+                            in_array($option, $valueFromGet)
+                        )
+                    )
+                ) || (
+                    !is_array($valueFromGet) && (
+                        (
+                            $fieldType == 'recipient' &&
+                            $index == $valueFromGet
+                        ) || (
+                            $fieldType != 'recipient' && (
+                                $option == $valueFromGet ||
+                                strcasecmp($option, $valueFromGet) == 0
+                            )
+                        )
+                    )
+                )
+            );
             $isOptionInAccessAttr =
                 $isSpecialType &&
                 isset($profileData[strtoupper($accessAttrId)]) &&
@@ -1192,21 +1228,6 @@ class FormTemplate extends \Cx\Model\Base\EntityBase {
         // Only use session if it's already present. If there's no session
         // we skip identifying the user (uploader initializes session)
         $this->cx->getComponent('Session')->getSession(false);
-
-        $id = 0;
-        if (isset($_REQUEST['unique_id'])) {
-            // an id is specified - we're handling a page reload
-            $id = intval($_REQUEST['unique_id']);
-        } else { // generate a new id
-            if (!isset($_SESSION['contact_last_id'])) {
-                $_SESSION['contact_last_id'] = 1;
-            } else {
-                $_SESSION['contact_last_id'] += 1;
-            }
-
-            $id = $_SESSION['contact_last_id'];
-        }
-        $this->template->setVariable('CONTACT_UNIQUE_ID', $id);
     }
 
     /**
