@@ -359,4 +359,19 @@ class Uploader extends EntityBase
     public static function isValidId($id) {
         return isset($_SESSION['uploader']['handlers'][$id]);
     }
+
+    /**
+     * Drop the upload instance (it's session data) identified by ID $id.
+     * This should be called after the upload was successful and will no
+     * longer be used.
+     *
+     * @param   string  $id The ID of the upload instance to drop
+     */
+    public static function destroy($id) {
+        if (!static::isValidId($id)) {
+            return;
+        }
+
+        unset($_SESSION['uploader']['handlers'][$id]);
+    }
 }
