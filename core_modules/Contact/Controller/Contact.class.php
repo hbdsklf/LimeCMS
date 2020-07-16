@@ -1193,7 +1193,7 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
                    ? contrexx_input2raw($_POST['contactFormUploadId_'.$fieldId])
                    : '';
         // verify the upload path
-        if (!preg_match('/^[0-9a-z]+$/i', $dirname)) {
+        if (!\Cx\Core_Modules\Uploader\Model\Entity\Uploader::isValidId($dirname)) {
             throw new \Cx\Core_Modules\Contact\Controller\ContactException(
                 'Invalid Upload directory: ' . $dirname
             );
