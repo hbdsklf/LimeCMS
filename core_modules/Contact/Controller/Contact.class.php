@@ -784,6 +784,11 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
         // try to fetch a user submitted e-mail address to which we will send a copy to
         if (!empty($arrFormData['fields'])) {
             foreach ($arrFormData['fields'] as $fieldId => $arrField) {
+                // proceed to next field in case no data has been submitted
+                if (!isset($arrFormData['data'][$fieldId])) {
+                    continue;
+                }
+
                 // fetch first- and lastname from user attributes
                 if ($arrField['type'] == 'special') {
                     switch ($arrField['special_type']) {
@@ -1217,7 +1222,7 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
         // in case uploader has been restricted to only allow one single file to be
         // uploaded, we'll have to clean up any previously uploaded files
         if (isset($data['singleFile'])) {
-            if (count($fileInfos['name'])) {
+            if (!empty($fileInfos['name'])) {
                 // new files have been uploaded -> remove existing files
                 if (\Cx\Lib\FileSystem\FileSystem::exists($tempPath)) {
                     foreach (glob($tempPath.'/*') as $file) {
