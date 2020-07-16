@@ -1237,7 +1237,15 @@ class FormTemplate extends \Cx\Model\Base\EntityBase {
         try {
             $session = $this->cx->getComponent('Session')->getSession();
 
-            $uploader = new \Cx\Core_Modules\Uploader\Model\Entity\Uploader();
+            // fetch existing upload id
+            $id = '';
+            if (!empty($_POST['contactFormUploadId_' . $fieldId])) {
+                $id = $_POST['contactFormUploadId_' . $fieldId];
+            } elseif (!empty($_GET[$fieldId])) {
+                $id = $_GET[$fieldId];
+            }
+
+            $uploader = new \Cx\Core_Modules\Uploader\Model\Entity\Uploader($id);
             // set instance name so we are able to catch the instance with js
             $uploader->setCallback('contactFormUploader_' . $fieldId);
 
