@@ -1255,7 +1255,14 @@ class FormTemplate extends \Cx\Model\Base\EntityBase {
             );
 
             // handle special case pdf-view which does not support javascript
-            if (\Env::get('init')->getCurrentChannel() == \Cx\Core\View\Model\Entity\Theme::THEME_TYPE_PDF) {
+            // and print-view which should not depend on javascript
+            if (in_array(
+                \Env::get('init')->getCurrentChannel(),
+                array(
+                    \Cx\Core\View\Model\Entity\Theme::THEME_TYPE_PRINT,
+                    \Cx\Core\View\Model\Entity\Theme::THEME_TYPE_PDF,
+                )
+            )) {
                 $jsonData =  new \Cx\Core\Json\JsonData();
                 $response = $jsonData->data(
                     'MediaBrowser',
