@@ -341,4 +341,13 @@ class Uploader extends EntityBase
     {
         return $this->id;
     }
+
+    /**
+     * Verifies that the ID $id is a valid upload ID
+     * of the current user's session
+     * @return  boolean TRUE if the ID $id is valid, otherwise FALSE.
+     */
+    public static function isValidId($id) {
+        return isset($_SESSION['uploader']['handlers'][$id]);
+    }
 }
