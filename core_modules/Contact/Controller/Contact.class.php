@@ -313,109 +313,108 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
      * @return array A list of files that have been stored successfully in the system
      */
     protected function _uploadFiles($arrFields, $move = false) {
+        // handle legacy file upload
         if ($this->legacyMode) {
-            //legacy function for old uploader
             return $this->_uploadFilesLegacy($arrFields);
-        } else {
-            //new uploader used
-            if (!$this->hasFileField) {
-                //nothing to do for us, no files
-                return array();
-            }
-
-            $arrFiles = array(); //we'll collect name => path of all files here and return this
-            $documentRootPath = \Env::get('cx')->getWebsiteDocumentRootPath();
-            foreach ($arrFields as $fieldId => $arrField) {
-                // skip non-upload fields
-                if (!in_array($arrField['type'], array('file', 'multi_file'))) {
-                    continue;
-                }
-
-                $tup = self::getTemporaryUploadPath($fieldId);
-                $tmpUploadDir = !empty($tup[2]) ? $tup[1].'/'.$tup[2].'/' : ''; //all the files uploaded are in here
-
-                $depositionTarget = ""; //target folder
-
-                //on the first call, _uploadFiles is called with move=false.
-                //this is done in order to get an array of the moved files' names, but
-                //the files are left in place.
-                //the second call is done with move=true - here we finally move the
-                //files.
-                //
-                //the target folder is created in the first call, because if we can't
-                //create the folder, the target path is left pointing at the path
-                //specified by $arrSettings['fileUploadDepositionPath'].
-                //
-                //to remember the target folder for the second call, it is stored in
-                //$this->depositionTarget.
-                if(!$move) { //first call - create folder
-                    //determine where form uploads are stored
-                    $arrSettings = $this->getSettings();
-                    $depositionTarget = $arrSettings['fileUploadDepositionPath'].'/';
-
-                    //find an unique folder name for the uploaded files
-                    $folderName = date("Ymd").'_'.$fieldId;
-                    $suffix = "";
-                    if(file_exists($documentRootPath.$depositionTarget.$folderName)) {
-                        $suffix = 1;
-                        while(file_exists($documentRootPath.$depositionTarget.$folderName.'-'.$suffix))
-                            $suffix++;
-
-                        $suffix = '-'.$suffix;
-                    }
-                    $folderName .= $suffix;
-
-                    //try to make the folder and change target accordingly on success
-                    if(\Cx\Lib\FileSystem\FileSystem::make_folder($documentRootPath.$depositionTarget.$folderName)) {
-                        \Cx\Lib\FileSystem\FileSystem::makeWritable($documentRootPath.$depositionTarget.$folderName);
-                        $depositionTarget .= $folderName.'/';
-                    }
-                    $this->depositionTarget[$fieldId] = $depositionTarget;
-                }
-                else //second call - restore remembered target
-                {
-                    $depositionTarget = $this->depositionTarget[$fieldId];
-                }
-
-                //move all files
-                if (empty($tmpUploadDir) || !\Cx\Lib\FileSystem\FileSystem::exists($tmpUploadDir)) {
-                   continue;
-                }
-
-                $h = opendir(\Env::get('cx')->getWebsitePath().$tmpUploadDir);
-                while(false !== ($f = readdir($h))) {
-                    if($f != '..' && $f != '.') {
-                        //do not overwrite existing files.
-                        $prefix = '';
-                        while (file_exists($documentRootPath.$depositionTarget.$prefix.$f)) {
-                            if (empty($prefix)) {
-                                $prefix = 0;
-                            }
-                            $prefix ++;
-                        }
-
-                        if($move) {
-                            // move file
-                            try {
-                                $objFile = new \Cx\Lib\FileSystem\File($tmpUploadDir.$f);
-                                $objFile->move($documentRootPath.$depositionTarget.$prefix.$f, false);
-                            } catch (\Cx\Lib\FileSystem\FileSystemException $e) {
-                                \DBG::msg($e->getMessage());
-                            }
-                        }
-
-                        $arrFiles[$fieldId][] = array(
-                            'name'  => $f,
-                            'path'  => $depositionTarget.$prefix.$f,
-                        );
-                    }
-                }
-            }
-            //cleanup
-//TODO: this does not work for certain reloads - add cleanup routine
-            //@rmdir($tmpUploadDir);
-            return $arrFiles;
         }
+
+        // abort in case the form does not contain any upload fields
+        if (!$this->hasFileField) {
+            return array();
+        }
+
+        $arrFiles = array(); //we'll collect name => path of all files here and return this
+        $documentRootPath = \Env::get('cx')->getWebsiteDocumentRootPath();
+        foreach ($arrFields as $fieldId => $arrField) {
+            // skip non-upload fields
+            if (!in_array($arrField['type'], array('file', 'multi_file'))) {
+                continue;
+            }
+
+            $tup = self::getTemporaryUploadPath($fieldId);
+            $tmpUploadDir = !empty($tup[2]) ? $tup[1].'/'.$tup[2].'/' : ''; //all the files uploaded are in here
+
+            $depositionTarget = ""; //target folder
+
+            //on the first call, _uploadFiles is called with move=false.
+            //this is done in order to get an array of the moved files' names, but
+            //the files are left in place.
+            //the second call is done with move=true - here we finally move the
+            //files.
+            //
+            //the target folder is created in the first call, because if we can't
+            //create the folder, the target path is left pointing at the path
+            //specified by $arrSettings['fileUploadDepositionPath'].
+            //
+            //to remember the target folder for the second call, it is stored in
+            //$this->depositionTarget.
+            if(!$move) { //first call - create folder
+                //determine where form uploads are stored
+                $arrSettings = $this->getSettings();
+                $depositionTarget = $arrSettings['fileUploadDepositionPath'].'/';
+
+                //find an unique folder name for the uploaded files
+                $folderName = date("Ymd").'_'.$fieldId;
+                $suffix = "";
+                if(file_exists($documentRootPath.$depositionTarget.$folderName)) {
+                    $suffix = 1;
+                    while(file_exists($documentRootPath.$depositionTarget.$folderName.'-'.$suffix))
+                        $suffix++;
+
+                    $suffix = '-'.$suffix;
+                }
+                $folderName .= $suffix;
+
+                //try to make the folder and change target accordingly on success
+                if(\Cx\Lib\FileSystem\FileSystem::make_folder($documentRootPath.$depositionTarget.$folderName)) {
+                    \Cx\Lib\FileSystem\FileSystem::makeWritable($documentRootPath.$depositionTarget.$folderName);
+                    $depositionTarget .= $folderName.'/';
+                }
+                $this->depositionTarget[$fieldId] = $depositionTarget;
+            }
+            else //second call - restore remembered target
+            {
+                $depositionTarget = $this->depositionTarget[$fieldId];
+            }
+
+            //move all files
+            if (empty($tmpUploadDir) || !\Cx\Lib\FileSystem\FileSystem::exists($tmpUploadDir)) {
+               continue;
+            }
+
+            $h = opendir(\Env::get('cx')->getWebsitePath().$tmpUploadDir);
+            while(false !== ($f = readdir($h))) {
+                if($f != '..' && $f != '.') {
+                    //do not overwrite existing files.
+                    $prefix = '';
+                    while (file_exists($documentRootPath.$depositionTarget.$prefix.$f)) {
+                        if (empty($prefix)) {
+                            $prefix = 0;
+                        }
+                        $prefix ++;
+                    }
+
+                    if($move) {
+                        // move file
+                        try {
+                            $objFile = new \Cx\Lib\FileSystem\File($tmpUploadDir.$f);
+                            $objFile->move($documentRootPath.$depositionTarget.$prefix.$f, false);
+                        } catch (\Cx\Lib\FileSystem\FileSystemException $e) {
+                            \DBG::msg($e->getMessage());
+                        }
+                    }
+
+                    $arrFiles[$fieldId][] = array(
+                        'name'  => $f,
+                        'path'  => $depositionTarget.$prefix.$f,
+                    );
+                }
+            }
+        }
+        //cleanup
+//TODO: this does not work for certain reloads - add cleanup routine
+        //@rmdir($tmpUploadDir);
+        return $arrFiles;
     }
 
     /**
