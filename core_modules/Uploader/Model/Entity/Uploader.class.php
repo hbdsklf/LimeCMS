@@ -75,19 +75,28 @@ class Uploader extends EntityBase
      */
     protected $cx;
 
-    function __construct()
-    {
+    public function __construct($id = '') {
         $this->cx = Cx::instanciate();
         $this->getComponentController()->addUploader($this);
+        $this->getComponent('Session')->getSession();
         if (!isset($_SESSION['uploader'])) {
             $_SESSION['uploader'] = array();
         }
         if (!isset($_SESSION['uploader']['handlers'])) {
             $_SESSION['uploader']['handlers'] = array();
         }
-        $i       = self::generateId();
-        $_SESSION['uploader']['handlers'][$i] = array('active' => true);
-        $this->id = $i;
+
+        // generate a new unique ID in case non has been supplied
+        // or it is not valid
+        if (
+            empty($id) ||
+            !static::isValidId($id)
+        ) {
+            $id = static::generateId();
+        }
+
+        $_SESSION['uploader']['handlers'][$id] = array('active' => true);
+        $this->id = $id;
         $this->options = array(
             'data-pl-upload',
             'data-uploader-id' => $this->id,
@@ -340,5 +349,14 @@ class Uploader extends EntityBase
     public function getId()
     {
         return $this->id;
+    }
+
+    /**
+     * Verifies that the ID $id is a valid upload ID
+     * of the current user's session
+     * @return  boolean TRUE if the ID $id is valid, otherwise FALSE.
+     */
+    public static function isValidId($id) {
+        return isset($_SESSION['uploader']['handlers'][$id]);
     }
 }

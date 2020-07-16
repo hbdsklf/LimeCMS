@@ -100,7 +100,11 @@ class JsonUploader extends SystemComponentController implements JsonAdapter
     {
         global $_ARRAYLANG;
         $id = null;
-        if (isset($params['get']['id']) && preg_match('/^[a-z0-9]+$/i', $params['get']['id'])
+        if (
+            isset($params['get']['id']) &&
+            \Cx\Core_Modules\Uploader\Model\Entity\Uploader::isValidId(
+                $params['get']['id']
+            )
         ) {
             $id = ($params['get']['id']);
             $uploadedFileCount = isset($params['get']['uploadedFileCount']) ? intval($params['get']['uploadedFileCount']) : 0;
