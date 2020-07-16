@@ -315,7 +315,11 @@ class Uploader extends EntityBase
         return $this->options['pl-Max-File-Size'];
     }
 
-    public static function generateId(){
+    /**
+     * Generate a new unique ID within the user's session
+     * @return  string  Unique new ID
+     */
+    protected static function generateId(){
         $uploaders = $_SESSION['uploader']['handlers'];
         $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
         $randstring = '';
@@ -323,7 +327,7 @@ class Uploader extends EntityBase
             $randstring .= $characters[rand(0, strlen($characters) - 1)];
         }
         if (array_key_exists($randstring, $uploaders)){
-            return self::generateId();
+            return static::generateId();
         }
         return $randstring;
     }
