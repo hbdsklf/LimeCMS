@@ -621,7 +621,12 @@ class Contact extends \Cx\Core_Modules\Contact\Controller\ContactLib
     {
         foreach ($arrKeywords as $keyword) {
             if (!empty($keyword)) {
-                if (preg_match("#{$keyword}#i", $string)) {
+                if (
+                    preg_match(
+                        '/' . preg_quote($keyword, '/') . '/i',
+                        $string
+                    )
+                ) {
                     return true;
                 }
             }
