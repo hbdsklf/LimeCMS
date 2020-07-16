@@ -387,7 +387,6 @@ class FormTemplate extends \Cx\Model\Base\EntityBase {
         $formId      = $this->form->getId();
         $formFields  = $this->contactLib->getFormFields($formId);
         $profileData = $this->getProfileData();
-        $this->handleUniqueId();
 
         // Check if the loaded form has form fields and
         // the template block 'contact_form' is exists otherwise return empty.
@@ -1216,14 +1215,6 @@ class FormTemplate extends \Cx\Model\Base\EntityBase {
         }
 
         return $profileData;
-    }
-
-    /**
-     * generates an unique id for each form and user.
-     */
-    protected function handleUniqueId()
-    {
-        $this->cx->getComponent('Session')->getSession();
     }
 
     /**
