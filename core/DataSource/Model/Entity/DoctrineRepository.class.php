@@ -140,9 +140,6 @@ class DoctrineRepository extends DataSource {
         // Add id to filter (after other filters to prevent override)
         if (isset($elementId) && count($elementId)) {
             foreach ($elementId as $field=>$id) {
-                if (empty($id)) {
-                    continue;
-                }
                 $criteria[$field] = array('eq' => $id);
             }
         }
