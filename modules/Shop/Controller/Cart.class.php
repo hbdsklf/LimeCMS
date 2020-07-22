@@ -712,6 +712,9 @@ class Cart
         if ($hasCoupon) {
             $total_price -= $total_discount_amount;
             \Message::clear();
+            $_SESSION['shop']['cart']['coupon_code'] = $objCoupon->code();
+        } else {
+            unset($_SESSION['shop']['cart']['coupon_code']);
         }
 
         // total discount amount
@@ -1317,4 +1320,16 @@ die("Cart::view(): ERROR: No template");
         return self::$products[$cart_id]['quantity'];
     }
 
+    /**
+     * Get currently redeemed coupon
+     *
+     * @return  \Cx\Modules\Shop\Controller\Coupon  The redeemed coupon or NULL
+     */
+    public static function getCoupon() {
+        if (empty($_SESSION['shop']['cart']['coupon_code'])) {
+            return null;
+        }
+
+        return Coupon::get($_SESSION['shop']['cart']['coupon_code']);
+    }
 }
