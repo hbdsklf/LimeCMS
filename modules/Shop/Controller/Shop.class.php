@@ -3500,6 +3500,7 @@ die("Shop::processRedirect(): This method is obsolete!");
                 unset($_SESSION['shop']['shipperId']);
                 $_SESSION['shop']['shipment_price'] = '0.00';
             } else {
+                // update shipment costs (after deducting coupon discount)
                 $_SESSION['shop']['shipment_price'] = $shipmentPrice;
             }
         } else {
@@ -4576,6 +4577,7 @@ die("Shop::processRedirect(): This method is obsolete!");
         // Note that it is not redeemed yet (uses=0)!
 //\DBG::log("Shop::process(): Looking for global Coupon $coupon_code");
         if ($coupon_code) {
+            // verify that the coupon to redeem has not been redeemed meanwhile
             $objCoupon = Coupon::available($coupon_code, $items_total,
                 self::$objCustomer->id(), null, $payment_id);
             if ($objCoupon) {

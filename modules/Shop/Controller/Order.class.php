@@ -1727,10 +1727,11 @@ class Order
         Vat::is_reseller($objCustomer->is_reseller());
         Vat::is_home_country(
             \Cx\Core\Setting\Controller\Setting::getValue('country_id','Shop') == $objOrder->country_id());
+        $currency = Currency::getCurrencySymbolById($objOrder->currency_id());
         $objTemplate->setGlobalVariable($_ARRAYLANG
           + array(
             'SHOP_CURRENCY' =>
-                Currency::getCurrencySymbolById($objOrder->currency_id())));
+                $currency));
 //DBG::log("Order sum: ".Currency::formatPrice($objOrder->sum()));
         $objTemplate->setVariable(array(
             'SHOP_CUSTOMER_ID' => $customer_id,
@@ -1878,15 +1879,24 @@ class Order
         $objCoupon = Coupon::getByOrderId($order_id);
         if ($objCoupon) {
             $discount = $objCoupon->discount_amount() != 0 ? $objCoupon->discount_amount() : $total_net_price/100*$objCoupon->discount_rate();
+
+            // show coupon data
             $objTemplate->setVariable(array(
                 'SHOP_COUPON_NAME' => $_ARRAYLANG['TXT_SHOP_DISCOUNT_COUPON_CODE'],
                 'SHOP_COUPON_CODE' => $objCoupon->code(),
                 'SHOP_COUPON_AMOUNT' => Currency::formatPrice(
                     -$discount),
             ));
+            $objTemplate->touchBlock('coupon_row');
+
+            // deduct item discount from total item costs
             $total_net_price -= $discount;
+
 //DBG::log("Order::view_detail(): Coupon: ".var_export($objCoupon, true));
+        } else {
+            $objTemplate->hideBlock('coupon_row');
         }
+
         $objTemplate->setVariable(array(
             'SHOP_ROWCLASS_NEW' => 'row'.(++$i % 2 + 1),
             'SHOP_TOTAL_WEIGHT' => Weight::getWeightString($total_weight),

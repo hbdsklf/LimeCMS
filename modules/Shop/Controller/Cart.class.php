@@ -711,8 +711,6 @@ class Cart
         //      then $total_discount_amount is the discount for all products (of the cart)
         if ($hasCoupon) {
             $total_price -= $total_discount_amount;
-        }
-        if ($hasCoupon) {
             \Message::clear();
         }
 
