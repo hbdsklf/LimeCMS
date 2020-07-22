@@ -3503,6 +3503,16 @@ die("Shop::processRedirect(): This method is obsolete!");
                 // deduct global coupon (if one is set)
                 $coupon = Cart::getCoupon();
 
+                // verify VAT of shipment
+                // ensure each VAT rate only occurs once
+                $usedVatRates = array_unique(
+                    array_merge(
+                        $_SESSION['shop']['cart']['item_vat_rates'],
+                        // VAT for shipment
+                        array(Vat::getOtherRate())
+                    )
+                );
+
                 // check if we have to apply a discount on the shipment costs
                 $shipmentDiscount = 0;
                 if (
@@ -3515,7 +3525,13 @@ die("Shop::processRedirect(): This method is obsolete!");
                     $coupon &&
                     // ...and the cost of the selected items dooes not cover the
                     // full discount...
-                    $coupon->discount_amount() - Cart::get_discount_amount() > 0
+                    $coupon->discount_amount() - Cart::get_discount_amount() > 0 &&
+                    // ...and either VAT is not being used or everything uses the
+                    // same VAT rate...
+                    (
+                        !Vat::isEnabled() ||
+                        count($usedVatRates) <= 1
+                    )
                 ) {
                     // ...then do calculate the discount on the shipment costs.
                     $shipmentDiscount = $coupon->discount_amount() - Cart::get_discount_amount();

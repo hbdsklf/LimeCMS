@@ -591,6 +591,9 @@ class Cart
         // ensure each VAT rate only occurs once
         $usedVatRates = array_unique($usedVatRates);
 
+        // remember used VAT rates for later (validation of coupon redemption)
+        $_SESSION['shop']['cart']['item_vat_rates'] = $usedVatRates;
+
         $_SESSION['shop']['cart']['items'] = $products;
 
         // Loop 2: Calculate Coupon discounts and VAT
