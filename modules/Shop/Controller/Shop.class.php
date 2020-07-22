@@ -3500,6 +3500,36 @@ die("Shop::processRedirect(): This method is obsolete!");
                 unset($_SESSION['shop']['shipperId']);
                 $_SESSION['shop']['shipment_price'] = '0.00';
             } else {
+                // deduct global coupon (if one is set)
+                $coupon = Cart::getCoupon();
+
+                // check if we have to apply a discount on the shipment costs
+                $shipmentDiscount = 0;
+                if (
+                    // If the required option is enabled...
+                    \Cx\Core\Setting\Controller\Setting::getValue(
+                        'apply_coupon_code_on_shipment',
+                        'Shop'
+                    ) &&
+                    // ...and a coupon is being redeemed...
+                    $coupon &&
+                    // ...and the cost of the selected items dooes not cover the
+                    // full discount...
+                    $coupon->discount_amount() - Cart::get_discount_amount() > 0
+                ) {
+                    // ...then do calculate the discount on the shipment costs.
+                    $shipmentDiscount = $coupon->discount_amount() - Cart::get_discount_amount();
+                }
+
+                // ensure discount is not greater than shipment costs
+                if ($shipmentDiscount > $shipmentPrice) {
+                    $shipmentDiscount = $shipmentPrice;
+                }
+
+                // deduct discount from shipment costs
+                $shipmentPrice -= $shipmentDiscount;
+                $_SESSION['shop']['cart']['shipment_discount_amount'] = $shipmentDiscount;
+
                 // update shipment costs (after deducting coupon discount)
                 $_SESSION['shop']['shipment_price'] = $shipmentPrice;
             }
@@ -4577,6 +4607,19 @@ die("Shop::processRedirect(): This method is obsolete!");
         // Note that it is not redeemed yet (uses=0)!
 //\DBG::log("Shop::process(): Looking for global Coupon $coupon_code");
         if ($coupon_code) {
+            // Add shipment discount...
+            if (
+                // ...if the required option is enabled...
+                \Cx\Core\Setting\Controller\Setting::getValue(
+                    'apply_coupon_code_on_shipment',
+                    'Shop'
+                ) &&
+                // ...and a discount on the shipment costs has been applied.
+                !empty($_SESSION['shop']['cart']['shipment_discount_amount'])
+            ) {
+                $items_total += $_SESSION['shop']['cart']['shipment_discount_amount'];
+            }
+
             // verify that the coupon to redeem has not been redeemed meanwhile
             $objCoupon = Coupon::available($coupon_code, $items_total,
                 self::$objCustomer->id(), null, $payment_id);
