@@ -974,6 +974,7 @@ $_ARRAYLANG['TXT_SHOP_PRODUCT_LANGUAGE_EDIT'] = "Edit in %3\$s";
 $_ARRAYLANG['TXT_SHOP_CATEGORY_LANGUAGE_EDIT'] = "Edit in %3\$s";
 $_ARRAYLANG['TXT_SHOP_CUSTOMER_NOT_FOUND'] = "Information nicht vorhanden (der entsprechende Benutzer ist gelöscht worden)";
 $_ARRAYLANG['TXT_SHOP_DISCOUNT_COUPON_PRODUCT_INVALID'] = "ungültiges Produkt";
+$_ARRAYLANG['TXT_SHOP_DISCOUNT'] = "Discount";
 
 $_ARRAYLANG['TXT_SHOP_PSP_PAYREXX'] = "Payrexx";
 $_ARRAYLANG['TXT_SHOP_PSP_PAYPAL'] = "PayPal";

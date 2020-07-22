@@ -176,12 +176,10 @@ function edit(order_id)
 <!-- END order_item -->
 
 <!-- BEGIN coupon_row -->
-  <tr class="{SHOP_ROWCLASS}">
-    <td colspan="2">&nbsp;</td>
-    <td>{SHOP_COUPON_CODE}&nbsp;</td>
-    <td>{SHOP_COUPON_NAME}&nbsp;</td>
-    <td colspan="4">&nbsp;</td>
-    <td class="number">{SHOP_COUPON_AMOUNT}&nbsp;{SHOP_CURRENCY}</td>
+  <tr>
+    <td colspan="8" class="number"><strong>{TXT_SHOP_DISCOUNT}</strong> ({SHOP_COUPON_NAME}: {SHOP_COUPON_CODE})</td>
+    <td class="number">{SHOP_COUPON_AMOUNT}&nbsp;{SHOP_CURRENCY}
+    </td>
   </tr>
 <!-- END coupon_row -->
 
