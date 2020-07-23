@@ -166,8 +166,9 @@ class LinkSanitizer {
                     return $matches[\LinkSanitizer::ATTRIBUTE_AND_OPEN_QUOTE] .
                         $ret .
                         $matches[\LinkSanitizer::CLOSE_QUOTE];
+                } else
                 // backend case
-                } else if (isset($params['cmd'])) {
+                if (isset($params['cmd'])) {
                     $ret .= $params['cmd'];
                     unset($params['cmd']);
                     if (isset($params['act'])) {
@@ -175,6 +176,8 @@ class LinkSanitizer {
                         unset($params['act']);
                     }
                 }
+
+                // re-add query string
                 if (count($params)) {
                     $ret .= '?' . http_build_query($params, null, '&', PHP_QUERY_RFC3986);
                 }
