@@ -127,8 +127,8 @@ class LinkSanitizer {
         // fix empty urls like empty form-action tags
         if (empty($matches[\LinkSanitizer::FILE_PATH])) {
             return $matches[\LinkSanitizer::ATTRIBUTE_AND_OPEN_QUOTE] .
-            $this->cx->getRequest()->getUrl() .
-            $matches[\LinkSanitizer::CLOSE_QUOTE];
+                $this->cx->getRequest()->getUrl() .
+                $matches[\LinkSanitizer::CLOSE_QUOTE];
         }
         $testPath = explode('?', $matches[\LinkSanitizer::FILE_PATH], 2);
         if ($testPath[0] == 'index.php' || $testPath[0] == '' || $testPath[0] == './') {
@@ -178,8 +178,8 @@ class LinkSanitizer {
                 }
             }
             return $matches[\LinkSanitizer::ATTRIBUTE_AND_OPEN_QUOTE] .
-            $ret .
-            $matches[\LinkSanitizer::CLOSE_QUOTE];
+                $ret .
+                $matches[\LinkSanitizer::CLOSE_QUOTE];
         } else if (
             $localFile = $this->cx->getClassLoader()->getWebFilePath(
                 $this->cx->getCodeBaseDocumentRootPath() . '/' .
@@ -188,14 +188,14 @@ class LinkSanitizer {
         ) {
             // this is an existing file, do not add virtual language dir
             return $matches[\LinkSanitizer::ATTRIBUTE_AND_OPEN_QUOTE] .
-            $localFile . (isset($testPath[1]) ? '?' . $testPath[1] : '') .
-            $matches[\LinkSanitizer::CLOSE_QUOTE];
+                $localFile . (isset($testPath[1]) ? '?' . $testPath[1] : '') .
+                $matches[\LinkSanitizer::CLOSE_QUOTE];
         } else {
             // this is a link to a page, add virtual language dir
             return $matches[\LinkSanitizer::ATTRIBUTE_AND_OPEN_QUOTE] .
-            $this->offset .
-            $matches[\LinkSanitizer::FILE_PATH] .
-            $matches[\LinkSanitizer::CLOSE_QUOTE];
+                $this->offset .
+                $matches[\LinkSanitizer::FILE_PATH] .
+                $matches[\LinkSanitizer::CLOSE_QUOTE];
         }
     }
 
