@@ -138,12 +138,20 @@ class LinkSanitizer {
             }
             $ret .= '/';
             if (isset($testPath[1])) {
-                $args = preg_split('/&(amp;)?/', $testPath[1]);
-                $params = array();
-                foreach ($args as $arg) {
-                    $split = explode('=', $arg, 2);
-                    $params[$split[0]] = $split[1];
+                // split it up into the query string and the anchor
+                $qsParts = explode('#', $testPath[1], 2);
+                $anchor = '';
+                if (isset($qsParts[1])) {
+                    $anchor = $qsParts[1];
                 }
+
+                // fix wrong encoding
+                $qs = str_replace('&amp;', '&', $qsParts[0]);
+
+                // parse query string into an array
+                $params = array();
+                parse_str($qs, $params);
+
                 // frontend case
                 if (isset($params['section'])) {
                     $cmd = '';
@@ -154,10 +162,10 @@ class LinkSanitizer {
                     $ret = \Cx\Core\Routing\Url::fromModuleAndCmd($params['section'], $cmd);
                     unset($params['section']);
                     $ret->setParams($params);
+                    $ret->setAnchor($anchor);
                     return $matches[\LinkSanitizer::ATTRIBUTE_AND_OPEN_QUOTE] .
-                    $ret .
-                    $matches[\LinkSanitizer::CLOSE_QUOTE];
-
+                        $ret .
+                        $matches[\LinkSanitizer::CLOSE_QUOTE];
                 // backend case
                 } else if (isset($params['cmd'])) {
                     $ret .= $params['cmd'];
@@ -168,13 +176,12 @@ class LinkSanitizer {
                     }
                 }
                 if (count($params)) {
-                    array_walk(
-                        $params,
-                        function(&$value, $key) {
-                            $value = $key . '=' . $value;
-                        }
-                    );
-                    $ret .= '?' . implode('&', $params);
+                    $ret .= '?' . http_build_query($params, null, '&', PHP_QUERY_RFC3986);
+                }
+
+                // re-add anchor
+                if ($anchor != '') {
+                    $ret .= '#' . $anchor;
                 }
             }
             return $matches[\LinkSanitizer::ATTRIBUTE_AND_OPEN_QUOTE] .
