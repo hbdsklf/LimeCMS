@@ -3507,7 +3507,7 @@ die("Shop::processRedirect(): This method is obsolete!");
                 // ensure each VAT rate only occurs once
                 $usedVatRates = array_unique(
                     array_merge(
-                        $_SESSION['shop']['cart']['item_vat_rates'],
+                        $_SESSION['shop']['cart']['item_vat_rates']->toArray(),
                         // VAT for shipment
                         array(Vat::getOtherRate())
                     )
