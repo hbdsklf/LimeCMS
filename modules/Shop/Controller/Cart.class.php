@@ -621,13 +621,13 @@ class Cart
                     // coupon value
                     if (   $objCoupon->discount_amount() > 0
                         && ($total_discount_amount + $discount_amount)
-                            > $objCoupon->discount_amount()) {
+                            > $objCoupon->getUsedAmount($customer_id)) {
                         // Already applied discounts plus the discount of this
                         // product exceed the coupons total value. Therefore
                         // we must subtract the applied discounts from the
                         // coupon to get the remaining discount amount.
                         $discount_amount =
-                            $objCoupon->discount_amount()
+                            $objCoupon->getUsedAmount($customer_id)
                           - $total_discount_amount;
                     }
                     $total_discount_amount += $discount_amount;
