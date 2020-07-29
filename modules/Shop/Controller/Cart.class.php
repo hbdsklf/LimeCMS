@@ -613,21 +613,45 @@ class Cart
                 if ($objCoupon) {
                     $hasCoupon = true;
                     $discount_amount = $objCoupon->getDiscountAmount(
-                        $product['price'], $customer_id);
+                        $product['price'], $customer_id
+                    );
                     // In case the loaded coupon is a coupon of type value (of
                     // a certain amount) and if it has been used on a previous
                     // product, then we have to check if the discount (to be
                     // applied on the current product) will exceed the total
                     // coupon value
-                    if (   $objCoupon->discount_amount() > 0
-                        && ($total_discount_amount + $discount_amount)
-                            > $objCoupon->getUsedAmount($customer_id)) {
+                    if (
+                        // coupon is of type value
+                        $objCoupon->discount_amount() > 0 &&
+                        // and sum of
+                        (
+                            // applied discount on previous product(s) of cart
+                            $total_discount_amount
+                            // and discount of current product
+                          + $discount_amount
+                        )
+                        // is greater
+                        >
+                        // than the remaining amount of discount that is still
+                        // available (in case the coupon has been used before
+                        // in other orders)
+                        (
+                            $objCoupon->discount_amount()
+                          - $objCoupon->getUsedAmount($customer_id)
+                        )
+                    ) {
                         // Already applied discounts plus the discount of this
                         // product exceed the coupons total value. Therefore
                         // we must subtract the applied discounts from the
                         // coupon to get the remaining discount amount.
                         $discount_amount =
-                            $objCoupon->getUsedAmount($customer_id)
+                            // initial discount amount of coupon
+                            $objCoupon->discount_amount()
+                            // already redeemed discount amount (from previous
+                            // orders)
+                          - $objCoupon->getUsedAmount($customer_id)
+                            // already applied discount of previous products (
+                            // of cart)
                           - $total_discount_amount;
                     }
                     $total_discount_amount += $discount_amount;
