@@ -3523,7 +3523,9 @@ die("Shop::processRedirect(): This method is obsolete!");
                     ) &&
                     // ...and a coupon is being redeemed...
                     $coupon &&
-                    // ...and the cost of the selected items dooes not cover the
+                    // ...and the coupon is of type amount (not percentage)...
+                    $coupon->discount_amount() > 0 &&
+                    // ...and the cost of the selected items does not cover the
                     // full discount...
                     $coupon->discount_amount() - Cart::get_discount_amount() > 0 &&
                     // ...and either VAT is not being used or everything uses the
