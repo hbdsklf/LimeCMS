@@ -1878,7 +1878,7 @@ class Order
         // Coupon
         $objCoupon = Coupon::getByOrderId($order_id);
         if ($objCoupon) {
-            $discount = $objCoupon->discount_amount() != 0 ? $objCoupon->discount_amount() : $total_net_price/100*$objCoupon->discount_rate();
+            $discount = $objCoupon->discount_amount() != 0 ? $objCoupon->getUsedAmount(null, $order_id) : $total_net_price/100*$objCoupon->discount_rate();
 
             // calculate applied shipment discount (if any)
             $shipmentDiscountAmount = 0;
