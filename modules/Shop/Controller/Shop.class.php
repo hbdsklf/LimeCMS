@@ -3527,7 +3527,7 @@ die("Shop::processRedirect(): This method is obsolete!");
                     $coupon->discount_amount() > 0 &&
                     // ...and the cost of the selected items does not cover the
                     // full discount...
-                    $coupon->discount_amount() - Cart::get_discount_amount() > 0 &&
+                    $coupon->discount_amount() - $coupon->getUsedAmount() - Cart::get_discount_amount() > 0 &&
                     // ...and either VAT is not being used or everything uses the
                     // same VAT rate...
                     (
@@ -3536,12 +3536,16 @@ die("Shop::processRedirect(): This method is obsolete!");
                     )
                 ) {
                     // ...then do calculate the discount on the shipment costs.
-                    $shipmentDiscount = $coupon->discount_amount() - Cart::get_discount_amount();
-                }
+                    $shipmentDiscount =
+                        $coupon->discount_amount()
+                        - $coupon->getUsedAmount()
+                        - Cart::get_discount_amount();
 
-                // ensure discount is not greater than shipment costs
-                if ($shipmentDiscount > $shipmentPrice) {
-                    $shipmentDiscount = $shipmentPrice;
+                    // ensure discount is not greater than shipment costs
+                    $shipmentDiscount = min(
+                        $shipmentDiscount,
+                        $shipmentPrice
+                    );
                 }
 
                 // deduct discount from shipment costs
