@@ -1052,11 +1052,7 @@ die("Failed to update the Cart!");
                 $catName = contrexx_raw2xhtml($objCategory->name());
                 $imageName = $objCategory->picture();
                 $shortDescription = $objCategory->shortDescription();
-                $shortDescription = nl2br(contrexx_raw2xhtml($shortDescription));
-                $shortDescription = preg_replace('/[\n\r]/', '', $shortDescription);
                 $description = $objCategory->description();
-                $description = nl2br(contrexx_raw2xhtml($description));
-                $description = preg_replace('/[\n\r]/', '', $description);
                 self::$objTemplate->setVariable(array(
                     'SHOP_CATEGORY_CURRENT_ID'          => $id,
                     'SHOP_CATEGORY_CURRENT_NAME'        => $catName,
@@ -1064,7 +1060,7 @@ die("Failed to update the Cart!");
                     'SHOP_CATEGORY_CURRENT_DESCRIPTION' => $description,
                 ));
                 static::$pageTitle = $objCategory->name();
-                static::$pageMetaDesc = $objCategory->shortDescription();
+                static::$pageMetaDesc = contrexx_html2plaintext($objCategory->shortDescription());
                 if ($imageName) {
                     self::$objTemplate->setVariable(array(
                         'SHOP_CATEGORY_CURRENT_IMAGE'       => $cx->getWebsiteImagesShopWebPath() . '/' . $imageName,
@@ -1117,11 +1113,7 @@ die("Failed to update the Cart!");
             $imageName = $objCategory->picture();
             $thumbnailPath = self::$defaultImage;
             $shortDescription = $objCategory->shortDescription();
-            $shortDescription = nl2br(htmlentities($shortDescription, ENT_QUOTES, CONTREXX_CHARSET));
-            $shortDescription = preg_replace('/[\n\r]/', '', $shortDescription);
             $description = $objCategory->description();
-            $description = nl2br(htmlentities($description, ENT_QUOTES, CONTREXX_CHARSET));
-            $description = preg_replace('/[\n\r]/', '', $description);
             if (empty($arrDefaultImageSize)) {
 //\DBG::log("Shop::showCategories(): ".\Cx\Core\Core\Controller\Cx::instanciate()->getWebsitePath() . self::$defaultImage);
                 $arrDefaultImageSize = getimagesize($cx->getWebsitePath() . self::$defaultImage);
