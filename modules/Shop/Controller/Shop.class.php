@@ -1577,6 +1577,7 @@ die("Failed to update the Cart!");
                     'THUMBNAIL_LINK' => $pictureLink,
                     'POPUP_LINK' => $pictureLink,
                     'IMAGE_PATH' => $imageFilePath,
+                    'IMAGE_NAME' => basename($imageFilePath),
                     'POPUP_LINK_NAME' => $_ARRAYLANG['TXT_SHOP_IMAGE'].' '.$index,
                     'THUMBNAIL_FORMATS' => $arrThumbnails,
                 );
@@ -1596,6 +1597,7 @@ die("Failed to update the Cart!");
                 self::$objTemplate->setVariable(array(
                     'SHOP_PRODUCT_THUMBNAIL_'.$i => $arrProductImage['THUMBNAIL'],
                     'SHOP_PRODUCT_THUMBNAIL_SIZE_'.$i => $arrProductImage['THUMBNAIL_SIZE'],
+                    'SHOP_PRODUCT_IMAGE_NAME_'.$i => $arrProductImage['IMAGE_NAME'],
                 ));
                 if (!empty($arrProductImage['THUMBNAIL_LINK'])) {
                     self::$objTemplate->setVariable(array(
