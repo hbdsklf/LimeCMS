@@ -2499,6 +2499,8 @@ die("Failed to update the Cart!");
                         // left old spelling for comatibility (obsolete)
                         'SHOP_PRODCUT_OPTION' => $selectValues,
                         'SHOP_PRODUCT_OPTION' => $selectValues,
+                        'SHOP_PRODUCT_OPTIONS_ID' => $objAttribute->getId(),
+                        'SHOP_PRODUCT_OPTIONS_TYPE_ID' => $objAttribute->getType(),
                         'SHOP_PRODUCT_OPTIONS_NAME' => $objAttribute->getName(),
                         'SHOP_PRODUCT_OPTIONS_TITLE' =>
                             '<a href="javascript:{}" onclick="toggleOptions('.
