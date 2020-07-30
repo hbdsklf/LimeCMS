@@ -1051,6 +1051,8 @@ die("Cart::view(): ERROR: No template");
                 'SHOP_TOTAL_TAX_AMOUNT' =>
                     self::get_vat_amount().
                     '&nbsp;'.Currency::getActiveCurrencySymbol(),
+                'SHOP_TOTAL_TAX_AMOUNT_NO_SYMBOL' =>
+                    self::get_vat_amount(),
 
             ));
             if (Vat::isIncluded()) {

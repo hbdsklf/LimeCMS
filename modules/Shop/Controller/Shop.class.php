@@ -3962,6 +3962,8 @@ die("Shop::processRedirect(): This method is obsolete!");
                 'SHOP_TAX_PRICE' =>
                     $_SESSION['shop']['vat_price'].
                     '&nbsp;'.Currency::getActiveCurrencySymbol(),
+                'SHOP_TAX_PRICE_NO_SYMBOL' =>
+                    $_SESSION['shop']['vat_price'],
                 'SHOP_TAX_PRODUCTS_TXT' => $_SESSION['shop']['vat_products_txt'],
                 'SHOP_TAX_GRAND_TXT' => $_SESSION['shop']['vat_grand_txt'],
                 'TXT_TAX_RATE' => $_ARRAYLANG['TXT_SHOP_VAT_RATE'],
