@@ -1941,6 +1941,18 @@ die("Failed to update the Cart!");
                 }
             }
 
+            // list assigned categories
+            if (self::$objTemplate->blockExists('shop_product_categories')) {
+                $categoryIds = $objProduct->category_id();
+                foreach (preg_split('/\s*,\s*/', $categoryIds) as $catId) {
+                    self::$objTemplate->setVariable(
+                        'SHOP_PRODUCT_CATEGORY_ID',
+                        $catId
+                    );
+                    self::$objTemplate->parse('shop_product_categories');
+                }
+            }
+
             if (self::$objTemplate->blockExists('shopProductRow')) {
                 self::$objTemplate->parse('shopProductRow');
             }
