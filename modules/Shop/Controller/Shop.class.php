@@ -1655,6 +1655,11 @@ die("Failed to update the Cart!");
             self::showDiscountInfo(
                 $groupCustomerId, $groupArticleId, $groupCountId, 1
             );
+
+            self::$objTemplate->setVariable(array(
+                'SHOP_PRODUCT_GROUP_ID' => $groupArticleId,
+            ));
+
 /* OLD
             $price = Currency::getCurrencyPrice(
                 $objProduct->getCustomerPrice(self::$objCustomer)
