@@ -802,7 +802,7 @@ class Cart
     {
         if (empty($_SESSION['shop']['cart']['items'][$cart_id]['options'][$attribute_id]))
             return null;
-        return $_SESSION['shop']['cart']['items'][$cart_id]['options'][$attribute_id];
+        return $_SESSION['shop']['cart']['items'][$cart_id]['options'][$attribute_id]->toArray();
     }
 
 
