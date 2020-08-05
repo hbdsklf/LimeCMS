@@ -3488,6 +3488,7 @@ die("Shop::processRedirect(): This method is obsolete!");
             $_SESSION['shop']['agb'] = \Html::ATTRIBUTE_CHECKED;
         if (isset($_POST['cancellation_terms']))
             $_SESSION['shop']['cancellation_terms'] = \Html::ATTRIBUTE_CHECKED;
+        unset($_SESSION['shop']['shipment_discount_amount']);
         // if shipperId is not set, there is no use in trying to determine a shipment_price
         if (isset($_SESSION['shop']['shipperId'])) {
             $shipmentPrice = self::_calculateShipmentPrice(
