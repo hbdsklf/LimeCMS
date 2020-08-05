@@ -615,6 +615,8 @@ class Cart
                     $discount_amount = $objCoupon->getDiscountAmount(
                         $product['price'], $customer_id
                     );
+                    // The amount already spent by that Customer
+                    $couponUsedAmount = $objCoupon->getUsedAmount($customer_id);
                     // In case the loaded coupon is a coupon of type value (of
                     // a certain amount) and if it has been used on a previous
                     // product, then we have to check if the discount (to be
@@ -637,7 +639,7 @@ class Cart
                         // in other orders)
                         (
                             $objCoupon->discount_amount()
-                          - $objCoupon->getUsedAmount($customer_id)
+                          - $couponUsedAmount
                         )
                     ) {
                         // Already applied discounts plus the discount of this
@@ -649,7 +651,7 @@ class Cart
                             $objCoupon->discount_amount()
                             // already redeemed discount amount (from previous
                             // orders)
-                          - $objCoupon->getUsedAmount($customer_id)
+                          - $couponUsedAmount
                             // already applied discount of previous products (
                             // of cart)
                           - $total_discount_amount;
