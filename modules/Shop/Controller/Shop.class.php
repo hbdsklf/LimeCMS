@@ -3550,7 +3550,7 @@ die("Shop::processRedirect(): This method is obsolete!");
 
                 // deduct discount from shipment costs
                 $shipmentPrice -= $shipmentDiscount;
-                $_SESSION['shop']['cart']['shipment_discount_amount'] = $shipmentDiscount;
+                $_SESSION['shop']['shipment_discount_amount'] = $shipmentDiscount;
 
                 // update shipment costs (after deducting coupon discount)
                 $_SESSION['shop']['shipment_price'] = $shipmentPrice;
@@ -4637,9 +4637,9 @@ die("Shop::processRedirect(): This method is obsolete!");
                     'Shop'
                 ) &&
                 // ...and a discount on the shipment costs has been applied.
-                !empty($_SESSION['shop']['cart']['shipment_discount_amount'])
+                !empty($_SESSION['shop']['shipment_discount_amount'])
             ) {
-                $items_total += $_SESSION['shop']['cart']['shipment_discount_amount'];
+                $items_total += $_SESSION['shop']['shipment_discount_amount'];
             }
 
             // verify that the coupon to redeem has not been redeemed meanwhile
