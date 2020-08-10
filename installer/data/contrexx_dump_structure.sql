@@ -3403,6 +3403,7 @@ CREATE TABLE `contrexx_sessions` (
   `lastupdated` varchar(14) NOT NULL DEFAULT '',
   `status` varchar(20) NOT NULL DEFAULT '',
   `user_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `client_hash` varchar(32) NOT NULL,
   PRIMARY KEY (`sessionid`),
   KEY `LastUpdated` (`lastupdated`)
 ) ENGINE=InnoDB;

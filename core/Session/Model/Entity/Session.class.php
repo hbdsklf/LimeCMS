@@ -638,20 +638,35 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
         $this->sessionid = $aKey;
         $this->sessionPath = \Env::get('cx')->getWebsiteTempWebPath() . '/' . $this->sessionPathPrefix . $this->sessionid;
         /** @var $objResult ADORecordSet */
-        $objResult = \Env::get('db')->Execute('SELECT `user_id`, `status` FROM `' . DBPREFIX . 'sessions` WHERE `sessionid` = "' . $aKey . '"');
-        if ($objResult !== false) {
-            if ($objResult->RecordCount() == 1) {
-                $this->userId = $objResult->fields['user_id'];
-                $this->status = $objResult->fields['status'];
-            } else {
-                \Env::get('db')->Execute('
-                    INSERT INTO `' . DBPREFIX . 'sessions` (`sessionid`, `remember_me`, `startdate`, `lastupdated`, `status`, `user_id`)
-                    VALUES ("' . $aKey . '", ' . ($this->rememberMe ? 1 : 0) . ', "' . time() . '", "' . time() . '", "' . $this->status . '", ' . intval($this->userId) . ')
-                ');
+        $objResult = \Env::get('db')->Execute('SELECT `user_id`, `status`, `client_hash` FROM `' . DBPREFIX . 'sessions` WHERE `sessionid` = "' . $aKey . '"');
+        if ($objResult === false) {
+            throw new \Exception('Unable to read session data');
+        }
 
+        $clientHash = $this->getClientHash();
+
+        // check for an existing session
+        if ($objResult->RecordCount() == 1) {
+            $this->userId = $objResult->fields['user_id'];
+            $this->status = $objResult->fields['status'];
+
+            // verify fingerprint of the client
+            if ($objResult->fields['client_hash'] == $clientHash) {
                 return '';
             }
+
+            // request was made from a different browser
+            // this might indicate a possible session hijack attack
+            // therefore the reuqested session is being denied
+            session_destroy();
+            setcookie(static::SESSION_NAME, '', time() - 3600, '/');
+            throw new \Exception('Access to session denied');
         }
+
+        \Env::get('db')->Execute('
+            INSERT INTO `' . DBPREFIX . 'sessions` (`sessionid`, `remember_me`, `startdate`, `lastupdated`, `status`, `user_id`, `client_hash`)
+            VALUES ("' . $aKey . '", ' . ($this->rememberMe ? 1 : 0) . ', "' . time() . '", "' . time() . '", "' . $this->status . '", ' . intval($this->userId) . ', "' . $clientHash .  '")
+        ');
 
         return '';
     }
@@ -1119,6 +1134,27 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
 
         // setup qualifies for secure session
         return true;
+    }
+
+    /**
+     * Get the client hash to be used to map the session ID to.
+     * The hash is build as follows:
+     * hash = md5(User-Agent + Accept-Language)
+     *
+     * @return  string  Hash of the client.
+     */
+    protected function getClientHash() {
+        $userAgent = 'anonymous';
+        if (!empty($_SERVER['HTTP_USER_AGENT'])) {
+            $userAgent = $_SERVER['HTTP_USER_AGENT'];
+        }
+
+        $locale = 'none';
+        if (!empty($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
+            $locale = $_SERVER['HTTP_ACCEPT_LANGUAGE'];
+        }
+
+        return md5($userAgent . $locale);
     }
 
     /**
