@@ -1227,4 +1227,41 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
 
         return $sessionId;
     }
+
+    /**
+     * Get valid session ID from current request
+     *
+     * @throws  Exception   In case the current request does not contain a
+     *                      valid session ID.
+     * @return string   Valid session ID of current requeset.
+     */
+    public static function getValidIdFromRequest() {
+        // check if a session ID has been supplied to the current request
+        if (empty($_COOKIE[static::SESSION_NAME])) {
+            throw new \Exception('No session ID supplied in request');
+        }
+
+        $id = $_COOKIE[static::SESSION_NAME];
+
+        // verify that the session ID has a valid scheme
+        if (!static::isValidSessionId($id)) {
+            throw new \Exception('No valid session id');
+        }
+
+        return $id;
+    }
+
+    /**
+     * Verify the scheme of a session id
+     * @param   string  $id The session ID to verify.
+     * @return  boolean TRUE if the session ID $id has a valid format.
+     *                  Otherwise FALSE.
+     */
+    protected static function isValidSessionId($id) {
+        return preg_match(
+            '/^' . static::SESSION_SID_CHAR_CLASS .
+                '{' . static::SESSION_SID_LENGTH . '}$/',
+            $id
+        );
+    }
 }
