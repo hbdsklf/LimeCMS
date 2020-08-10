@@ -149,6 +149,13 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
     private static $sessionLockTime = 10;
 
     /**
+     * Name of the session cookie
+     *
+     * @var string
+     */
+    const SESSION_NAME = 'clxsid';
+
+    /**
      * Maximum allowed length of a session variable key.
      * This maximum length is defined by the associated database field core_session_variable.key.
      * @var integer
@@ -206,7 +213,7 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
             }
 
             if ($destroyCookie) {
-                setcookie("PHPSESSID", '', time() - 3600, '/');
+                setcookie(static::SESSION_NAME, '', time() - 3600, '/');
             }
             // do not write the session data
             $this->discardChanges = true;
@@ -257,6 +264,10 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
         }
 
         register_shutdown_function(array(& $this, 'releaseLocks'));
+
+        if (!$this->isSecureSessionConfig()) {
+            throw new \Exception('Unable to initialize session on non-secure environment.');
+        }
 
         $this->initDatabase();
         $this->initRememberMe();
@@ -497,7 +508,7 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
     protected function initRememberMe()
     {
         /** @var $objResult ADORecordSet */
-        $sessionId = !empty($_COOKIE[session_name()]) ? $_COOKIE[session_name()] : null;
+        $sessionId = !empty($_COOKIE[static::SESSION_NAME]) ? $_COOKIE[static::SESSION_NAME] : null;
         if (isset($_POST['remember_me'])) {
             $this->rememberMe = true;
             if (static::sessionExists($sessionId)) {//remember me status for new sessions will be stored in cmsSessionRead() (when creating the appropriate db entry)
@@ -531,9 +542,9 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
 
         if (
             empty($sessionId) &&
-            !empty($_COOKIE[session_name()])
+            !empty($_COOKIE[static::SESSION_NAME])
         ) {
-            $sessionId = $_COOKIE[session_name()];
+            $sessionId = $_COOKIE[static::SESSION_NAME];
         }
 
         if (empty($sessionId)) {
@@ -578,12 +589,11 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
     public function cmsSessionExpand()
     {
         // Reset the expiration time upon page load
-        $ses = session_name();
-        if (isset($_COOKIE[$ses])) {
+        if (isset($_COOKIE[static::SESSION_NAME])) {
             $expirationTime = ($this->lifetime > 0 ? $this->lifetime + time() : 0);
             setcookie(
-                $ses,
-                $_COOKIE[$ses],
+                static::SESSION_NAME,
+                $_COOKIE[static::SESSION_NAME],
                 $expirationTime,
                 '/',
                 ini_get('session.cookie_domain'),
@@ -1089,5 +1099,34 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
         }
 
         return true;
+    }
+
+    /**
+     * Verifies that a secure session can be initialized.
+     * If needed it tries to adjust the session config to ensure
+     * a secure session can be initialized.
+     *
+     * @return  boolean TRUE if the session config is valid, otherwise FALSE.
+     */
+    protected static function isSecureSessionConfig() {
+        // ensure we use a non-default session cookie name
+        if (session_name() != static::SESSION_NAME) {
+            session_name(static::SESSION_NAME);
+        }
+        if (session_name() != static::SESSION_NAME) {
+            return false;
+        }
+
+        // setup qualifies for secure session
+        return true;
+    }
+
+    /**
+     * Get the name of the session cookie
+     *
+     * @return  string  The name of the session cookie.
+     */
+    public static function getSessionName() {
+        return static::SESSION_NAME;
     }
 }
