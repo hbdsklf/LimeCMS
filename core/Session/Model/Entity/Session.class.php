@@ -284,6 +284,16 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
             throw new \Exception('Unable to initialize session on non-secure environment.');
         }
 
+        // ensure only self-generated session IDs are valid
+        try {
+            static::getIdOfActiveSession();
+        } catch (\Exception $e) {
+            // Supplied session ID is not known by the session handler,
+            // therefore, we will drop it.
+            // session_start() will then set a new one
+            unset($_COOKIE[static::SESSION_NAME]);
+        }
+
         $this->initDatabase();
         $this->initRememberMe();
         $this->initSessionLifetime();
@@ -1197,5 +1207,24 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
      */
     public static function getSessionName() {
         return static::SESSION_NAME;
+    }
+
+    /**
+     * Get ID of active session
+     *
+     * @throws  Exception   In case no active session exists
+     * @return string   ID of active session
+     */
+    public static function getIdOfActiveSession() {
+        if (empty($_COOKIE[static::SESSION_NAME])) {
+            throw new \Exception('No session ID supplied in request');
+        }
+
+        $sessionId = $_COOKIE[static::SESSION_NAME];
+        if (!static::sessionExists($sessionId)) {
+            throw new \Exception('No active session');
+        }
+
+        return $sessionId;
     }
 }
