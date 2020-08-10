@@ -207,11 +207,14 @@ class CacheLib
                 // This only supports the session cookie instead of full cookie
                 // support as specified by W3C
                 \Cx\Core\Session\Model\Entity\Session::getSessionName() => function() {
-                    $sessId = 0;
-                    if (!empty($_COOKIE[\Cx\Core\Session\Model\Entity\Session::getSessionName()])) {
-                        $sessId = $_COOKIE[\Cx\Core\Session\Model\Entity\Session::getSessionName()];
+                    try {
+                        // note: in case no active session exists, it will
+                        // throw an exception
+                        return \Cx\Core\Session\Model\Entity\Session::getValidIdFromRequest();
+                    } catch (\Exception $e) {
+                        // use pseudo-sessionid '0' in no active session exists
+                        return 0;
                     }
-                    return $sessId;
                 },
             ),
             // HTTP_ACCEPT_LANGUAGE
