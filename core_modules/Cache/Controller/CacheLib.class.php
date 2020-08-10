@@ -204,12 +204,12 @@ class CacheLib
                 },
             ),
             'HTTP_COOKIE' => array(
-                // This only supports PHPSESSID instead of full cookie support
-                // as specified by W3C
-                'PHPSESSID' => function() {
+                // This only supports the session cookie instead of full cookie
+                // support as specified by W3C
+                \Cx\Core\Session\Model\Entity\Session::getSessionName() => function() {
                     $sessId = 0;
-                    if (!empty($_COOKIE[session_name()])) {
-                        $sessId = $_COOKIE[session_name()];
+                    if (!empty($_COOKIE[\Cx\Core\Session\Model\Entity\Session::getSessionName()])) {
+                        $sessId = $_COOKIE[\Cx\Core\Session\Model\Entity\Session::getSessionName()];
                     }
                     return $sessId;
                 },
