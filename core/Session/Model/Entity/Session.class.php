@@ -156,6 +156,21 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
     const SESSION_NAME = 'clxsid';
 
     /**
+     * Length of the session ID
+     *
+     * @var integer
+     */
+    const SESSION_SID_LENGTH = 32;
+
+    /**
+     * Regular expression to match a session ID.
+     * The valid characters are defined by session.sid_bits_per_character.
+     *
+     * @var string
+     */
+    const SESSION_SID_CHAR_CLASS = '[0-9a-v]';
+
+    /**
      * Maximum allowed length of a session variable key.
      * This maximum length is defined by the associated database field core_session_variable.key.
      * @var integer
@@ -839,7 +854,7 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
         $esiFiles = glob($cx->getWebsiteTempPath() . '/cache/*_u*');
         foreach ($esiFiles as $esiFile) {
             $match = array();
-            if (!preg_match('#/[0-9a-f]{32}(?:_[pl][a-z0-9]+){0,2}?_u([a-z0-9]+)(?:_|$)#', $esiFile, $match)) {
+            if (!preg_match('#/[0-9a-f]{32}(?:_[pl][a-z0-9]+){0,2}?_u(' . static::SESSION_SID_CHAR_CLASS . '+)(?:_|$)#', $esiFile, $match)) {
                 continue;
             }
             if (in_array($match[1], $sessions)) {
@@ -1129,6 +1144,24 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
             session_name(static::SESSION_NAME);
         }
         if (session_name() != static::SESSION_NAME) {
+            return false;
+        }
+
+        // enforce fixed session length
+        ini_set('session.sid_length', static::SESSION_SID_LENGTH);
+        if (ini_get('session.sid_length') != static::SESSION_SID_LENGTH) {
+            return false;
+        }
+
+        // enforce fixed bits per character
+        ini_set('session.sid_bits_per_character', 5);
+        if (ini_get('session.sid_bits_per_character') != 5) {
+            return false;
+        }
+
+        // exposing the session cookie in URLs must be prohibited
+        ini_set('session.use_trans_sid', false);
+        if (ini_get('session.use_trans_sid')) {
             return false;
         }
 
