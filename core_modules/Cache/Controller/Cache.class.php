@@ -410,17 +410,22 @@ class Cache extends \Cx\Core_Modules\Cache\Controller\CacheLib
 
     /**
      * Removes all page cache files for a request
-     * @param string $filename Request hash (as in $this->strCacheFilename
+     * @param string $filename Request hash (as in $this->strCacheFilename)
      * @param int $pageId Page ID
      * @param boolean $userbased True if the current request is userbased, false otherwise
      */
     protected function cleanupCacheFiles($filename, $pageId, $userbased) {
+        // drop non-userbased cache files as they may contain invalid data
+        // as the request must be cached userbased
         if ($userbased) {
             $cacheFileSuffixes = array(
                 '', // no session, not userbased
                 '_u', // session, not userbased
             );
-        } else {
+        }
+        // drop userbased cache files as they may contain invalid data
+        // as the request must be cached non-userbased
+        else {
             $cacheFileSuffixes = array(
                 '_u0', // no session, userbased
             );
