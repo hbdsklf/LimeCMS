@@ -1609,6 +1609,9 @@ if ($test === NULL) {
                 \Cx\Core\Setting\Controller\Setting::getValue('numof_mailtemplate_per_page_backend','Shop'),
             'SHOP_SETTING_NUMOF_COUPON_PER_PAGE_BACKEND' =>
                 \Cx\Core\Setting\Controller\Setting::getValue('numof_coupon_per_page_backend','Shop'),
+            'SHOP_SETTING_APPLY_COUPON_ON_SHIPMENT' =>
+                \Html::getCheckbox('apply_coupon_code_on_shipment', 1, false,
+                    \Cx\Core\Setting\Controller\Setting::getValue('apply_coupon_code_on_shipment','Shop')),
             'SHOP_SETTING_NUMOF_PRODUCTS_PER_PAGE_FRONTEND' =>
                 \Cx\Core\Setting\Controller\Setting::getValue('numof_products_per_page_frontend','Shop'),
             'SHOP_SETTING_NUM_CATEGORIES_PER_ROW' =>

@@ -979,6 +979,8 @@ $_ARRAYLANG['TXT_SHOP_DISCOUNT_COUPON_PRODUCT_INVALID'] = "ungültiges Produkt";
 $_ARRAYLANG['TXT_SHOP_SETTING_NUMOF_PRODUCTS_PER_PAGE_BACKEND'] = "Number of products per page in the backend overview";
 $_ARRAYLANG['TXT_SHOP_SETTING_NUMOF_ORDERS_PER_PAGE_BACKEND'] = "Number of orders per page in the backend overview	";
 $_ARRAYLANG['TXT_SHOP_SETTING_NUMOF_COUPON_PER_PAGE_BACKEND'] = "Number of coupon codes per page in the backend overview	";
+$_ARRAYLANG['TXT_SHOP_SETTING_APPLY_COUPON_ON_SHIPMENT'] = "Allow redemption of coupon codes on shipment costs";
+$_ARRAYLANG['TXT_SHOP_COUPON_SHIPMENT_DEDUCTION'] = "Discount (%1\$s): %2\$s";
 $_ARRAYLANG['TXT_SHOP_DISCOUNT'] = "Discount";
 
 $_ARRAYLANG['TXT_SHOP_PSP_PAYREXX'] = "Payrexx";
