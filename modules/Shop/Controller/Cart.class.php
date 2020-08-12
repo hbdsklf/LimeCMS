@@ -832,7 +832,7 @@ class Cart
     {
         if (empty($_SESSION['shop']['cart']['items'][$cart_id]['options'][$attribute_id]))
             return null;
-        return $_SESSION['shop']['cart']['items'][$cart_id]['options'][$attribute_id];
+        return $_SESSION['shop']['cart']['items'][$cart_id]['options'][$attribute_id]->toArray();
     }
 
 
@@ -1081,6 +1081,8 @@ die("Cart::view(): ERROR: No template");
                 'SHOP_TOTAL_TAX_AMOUNT' =>
                     self::get_vat_amount().
                     '&nbsp;'.Currency::getActiveCurrencySymbol(),
+                'SHOP_TOTAL_TAX_AMOUNT_NO_SYMBOL' =>
+                    self::get_vat_amount(),
 
             ));
             if (Vat::isIncluded()) {

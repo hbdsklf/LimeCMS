@@ -1715,6 +1715,10 @@ if ($test === NULL) {
                 }
             }
         }
+
+        $short = new \Cx\Core\Wysiwyg\Wysiwyg('short', $short);
+        $desc = new \Cx\Core\Wysiwyg\Wysiwyg('desc', $desc, 'full');
+
         $max_width = intval(\Cx\Core\Setting\Controller\Setting::getValue('thumbnail_max_width','Shop'));
         $max_height = intval(\Cx\Core\Setting\Controller\Setting::getValue('thumbnail_max_height','Shop'));
         if (empty($max_width)) $max_width = 1e5;
