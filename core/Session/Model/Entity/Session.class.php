@@ -683,7 +683,11 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
             // request was made from a different browser
             // this might indicate a possible session hijack attack
             // therefore the reuqested session is being denied
-            session_destroy();
+            //
+            // note: we can't call session_destroy() here, as we are still
+            // in the scope of the session_start() call, which would result
+            // in an recursion issue of the session
+            unset($_COOKIE[static::SESSION_NAME]);
             setcookie(static::SESSION_NAME, '', time() - 3600, '/');
             throw new \Exception('Access to session denied');
         }
