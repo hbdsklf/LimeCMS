@@ -178,10 +178,19 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
     const VARIABLE_KEY_MAX_LENGTH = 100;
 
     /**
-     * @return self
-     * Get instance of the class from the out side world
+     * Get the session instance or initialize a new one if non is present yet
+     *
+     * @param   boolean $retry  Whether or not to retry the session
+     *                          initialization again in case it fails.
+     *                          This will allow the initialization of a new
+     *                          clean session in case an invalid session has
+     *                          been requested.
+     * @return  mixed   Returns an instance of
+     *                  \Cx\Core\Session\Model\Entity\Session on successful
+     *                  session initialization. If session initialization fails
+     *                  NULL is returned.
      */
-    public static function getInstance()
+    public static function getInstance($retry = true)
     {
         try {
             if (!isset(static::$instance)) {
@@ -199,8 +208,18 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
 
             return static::$instance;
         } catch (\Exception $e) {
-            return null;
+            \DBG::msg($e->getMessage());
         }
+
+        // If the initialization of the session failed due to a potential
+        // session hijack, do try to initialize a new clean session
+        if ($retry) {
+            \DBG::msg('Try to initialize a new clean session');
+            return static::getInstance(false);
+        }
+
+        // session initialization failed unrecoverably
+        return null;
     }
 
     /**
@@ -613,19 +632,29 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
      */
     public function cmsSessionExpand()
     {
-        // Reset the expiration time upon page load
-        if (isset($_COOKIE[static::SESSION_NAME])) {
-            $expirationTime = ($this->lifetime > 0 ? $this->lifetime + time() : 0);
-            setcookie(
-                static::SESSION_NAME,
-                $_COOKIE[static::SESSION_NAME],
-                $expirationTime,
-                '/',
-                ini_get('session.cookie_domain'),
-                ini_get('session.cookie_secure'),
-                ini_get('session.cookie_httponly')
-            );
+        // register ID of newly created session in superglobal $_COOKIE.
+        // This (manual step) is required, as the session $_COOKIE will not be
+        // set until the next request as the new session has just been
+        // initialized.
+        // We need the session ID to be set in $_COOKIE to make the ESI
+        // requests work, which may depend on the ESI variable
+        // $(COOKIE{'static::SESSION_NAME'}).
+        if (!isset($_COOKIE[static::SESSION_NAME])) {
+            $_COOKIE[static::SESSION_NAME] = $this->sessionid;
+            return;
         }
+
+        // expand session duration
+        $expirationTime = ($this->lifetime > 0 ? $this->lifetime + time() : 0);
+        setcookie(
+            static::SESSION_NAME,
+            $_COOKIE[static::SESSION_NAME],
+            $expirationTime,
+            '/',
+            ini_get('session.cookie_domain'),
+            ini_get('session.cookie_secure'),
+            ini_get('session.cookie_httponly')
+        );
     }
 
     /**
@@ -683,7 +712,11 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
             // request was made from a different browser
             // this might indicate a possible session hijack attack
             // therefore the reuqested session is being denied
-            session_destroy();
+            //
+            // note: we can't call session_destroy() here, as we are still
+            // in the scope of the session_start() call, which would result
+            // in an recursion issue of the session
+            unset($_COOKIE[static::SESSION_NAME]);
             setcookie(static::SESSION_NAME, '', time() - 3600, '/');
             throw new \Exception('Access to session denied');
         }
