@@ -254,10 +254,19 @@ class Session extends \Cx\Core\Model\RecursiveArrayAccess implements \SessionHan
             
             // drop user specific ESI cache:
             $cx = \Cx\Core\Core\Controller\Cx::instanciate();
-            $esiFiles = glob($cx->getWebsiteTempPath() . '/cache/*u' . $aKey . '*');
+            // flush ESI cache
+            $esiFiles = glob($cx->getWebsiteTempPath() . '/cache/esi/*u' . $aKey . '*');
             foreach ($esiFiles as $esiFile) {
                 try {
                     $file = new \Cx\Lib\FileSystem\File($esiFile);
+                    $file->delete();
+                } catch (\Cx\Lib\FileSystem\FileSystemException $e) {}
+            }
+            // flush page cache
+            $pageFiles = glob($cx->getWebsiteTempPath() . '/cache/page/*u' . $aKey . '*');
+            foreach ($pageFiles as $pageFile) {
+                try {
+                    $file = new \Cx\Lib\FileSystem\File($pageFile);
                     $file->delete();
                 } catch (\Cx\Lib\FileSystem\FileSystemException $e) {}
             }
